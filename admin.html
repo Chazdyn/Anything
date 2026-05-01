@@ -579,6 +579,166 @@
     .hint { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
     .hint a { color: var(--accent); }
 
+    /* CROP MODAL */
+    .crop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.5rem;
+    }
+
+    .crop-overlay.open { display: flex; }
+
+    .crop-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .crop-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .crop-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+    }
+
+    .crop-close {
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      transition: all 0.2s;
+    }
+
+    .crop-close:hover { border-color: var(--red); color: var(--red); }
+
+    .crop-canvas-wrap {
+      background: #000;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+
+    #crop-canvas {
+      display: block;
+      max-width: 100%;
+      cursor: crosshair;
+    }
+
+    #crop-selection {
+      position: absolute;
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+      cursor: move;
+      pointer-events: none;
+    }
+
+    .crop-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .crop-ratio-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .crop-ratio-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--muted);
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .crop-ratio-btn:hover,
+    .crop-ratio-btn.active { background: rgba(168,85,247,0.1); border-color: var(--accent); color: var(--accent); }
+
+    .crop-preview-wrap {
+      margin-bottom: 1rem;
+    }
+
+    .crop-preview-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    #crop-preview-canvas {
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      max-width: 100%;
+      display: block;
+    }
+
+    .crop-actions { display: flex; gap: 10px; }
+
+    .btn-crop-apply {
+      flex: 1;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-crop-apply:hover { background: var(--accent2); }
+
+    .btn-crop-reset {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--muted);
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-crop-reset:hover { border-color: var(--accent); color: var(--text); }
+
     /* SCROLLBAR */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -620,6 +780,50 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       Save & Publish
     </button>
+  </div>
+</div>
+
+<!-- CROP MODAL -->
+<div class="crop-overlay" id="crop-overlay">
+  <div class="crop-box">
+    <div class="crop-header">
+      <span class="crop-title">Crop & Resize Image</span>
+      <button class="crop-close" onclick="closeCrop()">✕ Cancel</button>
+    </div>
+
+    <div class="crop-ratio-btns">
+      <button class="crop-ratio-btn active" onclick="setRatio('free')" id="ratio-free">Free</button>
+      <button class="crop-ratio-btn" onclick="setRatio('1:1')" id="ratio-1:1">1:1 Square</button>
+      <button class="crop-ratio-btn" onclick="setRatio('16:9')" id="ratio-16:9">16:9 Wide</button>
+      <button class="crop-ratio-btn" onclick="setRatio('4:3')" id="ratio-4:3">4:3</button>
+      <button class="crop-ratio-btn" onclick="setRatio('3:4')" id="ratio-3:4">3:4 Portrait</button>
+    </div>
+
+    <div class="crop-controls">
+      <div class="field" style="margin:0;">
+        <label>Output Width (px)</label>
+        <input type="text" id="crop-out-w" value="400" />
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Output Height (px)</label>
+        <input type="text" id="crop-out-h" value="400" />
+      </div>
+    </div>
+
+    <div class="crop-canvas-wrap" id="crop-canvas-wrap">
+      <canvas id="crop-canvas"></canvas>
+      <div id="crop-selection"></div>
+    </div>
+
+    <div class="crop-preview-wrap">
+      <div class="crop-preview-label">Preview</div>
+      <canvas id="crop-preview-canvas" width="200" height="200"></canvas>
+    </div>
+
+    <div class="crop-actions">
+      <button class="btn-crop-reset" onclick="resetCrop()">Reset Selection</button>
+      <button class="btn-crop-apply" onclick="applyCrop()">Apply & Use This Image</button>
+    </div>
   </div>
 </div>
 
@@ -847,7 +1051,7 @@
         <div class="upload-preview" id="avatar-preview"></div>
         <div class="field" style="margin-top:10px;">
           <label>Or paste image URL</label>
-          <input type="url" id="avatarUrl" placeholder="https://..." oninput="previewUrl('avatar', this.value)" />
+          <input type="url" id="avatarUrl" placeholder="chazdyn.png or full https://..." oninput="previewUrl('avatar', this.value)" />
         </div>
       </div>
 
@@ -862,7 +1066,7 @@
         <div class="upload-preview" id="banner-preview"></div>
         <div class="field" style="margin-top:10px;">
           <label>Or paste image URL</label>
-          <input type="url" id="heroBannerUrl" placeholder="https://..." oninput="previewUrl('banner', this.value)" />
+          <input type="url" id="heroBannerUrl" placeholder="banner.png or full https://..." oninput="previewUrl('banner', this.value)" />
         </div>
       </div>
 
@@ -1157,9 +1361,9 @@
     cfg.tiktokHandle = v('tiktokHandle');
     cfg.instaUrl = v('instaUrl');
     cfg.instaHandle = v('instaHandle');
-    cfg.avatarUrl = v('avatarUrl');
-    cfg.heroBannerUrl = v('heroBannerUrl');
-    cfg.logoUrl = v('logoUrl');
+    cfg.avatarUrl = resolveUrl(v('avatarUrl'));
+    cfg.heroBannerUrl = resolveUrl(v('heroBannerUrl'));
+    cfg.logoUrl = resolveUrl(v('logoUrl'));
     cfg.accentColor = v('accentColor');
     cfg.accent2Color = v('accent2Color');
     cfg.bgColor = v('bgColor');
@@ -1376,8 +1580,9 @@
 
   function previewUrl(type, url) {
     if (!url || url.startsWith('(')) return;
-    if (type === 'avatar') { cfg.avatarUrl = url; showPreview('avatar', url); }
-    else { cfg.heroBannerUrl = url; showPreview('banner', url); }
+    const resolved = resolveUrl(url);
+    if (type === 'avatar') { cfg.avatarUrl = resolved; showPreview('avatar', resolved); }
+    else { cfg.heroBannerUrl = resolved; showPreview('banner', resolved); }
   }
 
   function showPreview(type, src) {
@@ -1468,6 +1673,15 @@
     document.getElementById('password-gate').style.display = 'none';
   }
 
+  // ASSET URL HELPER
+  const ASSETS_BASE = 'https://raw.githubusercontent.com/Chazdyn/Anything/main/assets/';
+
+  function resolveUrl(val) {
+    if (!val || val === '(uploaded)' || val === '(cropped)') return val;
+    if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:')) return val;
+    return ASSETS_BASE + val;
+  }
+
   // THICC CLAN MANAGER
   const DEFAULT_THICC_MEMBERS = [
     { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'', videoUrl:'', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
@@ -1492,7 +1706,12 @@
   }
 
   function saveThicc() {
-    localStorage.setItem('chazdyn_thicc', JSON.stringify(thiccMembers));
+    const toSave = thiccMembers.map(m => ({
+      ...m,
+      photoUrl: resolveUrl(m.photoUrl),
+      videoUrl: resolveUrl(m.videoUrl)
+    }));
+    localStorage.setItem('chazdyn_thicc', JSON.stringify(toSave));
     showToast('Clan saved!');
   }
 
@@ -1539,10 +1758,14 @@
             </div>
           </div>
           <div class="field"><label>Bio / About</label><textarea oninput="thiccMembers[${i}].about=this.value" placeholder="Short bio...">${m.about||''}</textarea></div>
-          <div class="field"><label>Profile Photo URL</label><input type="url" value="${m.photoUrl||''}" oninput="thiccMembers[${i}].photoUrl=this.value" placeholder="https://..." /></div>
+          <div class="field">
+            <label>Profile Photo URL</label>
+            <input type="url" value="${m.photoUrl||''}" oninput="thiccMembers[${i}].photoUrl=this.value" placeholder="shyshack.png  —  or full https://... for external" />
+            <button class="btn-add btn-crop-open" style="margin-top:6px;" onclick="openMemberCrop(${i})">&#x2702; Crop &amp; Resize</button>
+          </div>
           <div class="field">
             <label>Highlight Clip URL (plays on hover)</label>
-            <input type="url" value="${m.videoUrl||''}" oninput="thiccMembers[${i}].videoUrl=this.value" placeholder="https://... (.mp4 direct link)" />
+            <input type="url" value="${m.videoUrl||''}" oninput="thiccMembers[${i}].videoUrl=this.value" placeholder="shyshack-clip.mp4  —  or full https://... for external" />
             <div class="hint">Use a direct .mp4 link. Upload clips to streamable.com and use the direct video URL.</div>
           </div>
           <div class="field">
@@ -1612,6 +1835,212 @@
 
   const _origShowPanel = showPanel;
   showPanel = function(name) { _origShowPanel(name); if (name === 'thicc') loadThicc(); };
+
+  // ══ CROP & RESIZE TOOL ══
+  let _cropState = {
+    img: null, canvas: null, ctx: null,
+    scale: 1, imgX: 0, imgY: 0,
+    sel: { x: 0, y: 0, w: 0, h: 0 },
+    dragging: false, dragStart: null, dragSel: null,
+    ratio: 'free',
+    callback: null
+  };
+
+  function openCrop(imageUrl, callback) {
+    const overlay = document.getElementById('crop-overlay');
+    overlay.classList.add('open');
+    _cropState.callback = callback;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      _cropState.img = img;
+      initCropCanvas();
+    };
+    img.onerror = () => showToast('Could not load image for cropping. Check the URL.');
+    img.src = imageUrl;
+  }
+
+  function closeCrop() {
+    document.getElementById('crop-overlay').classList.remove('open');
+    _cropState.img = null;
+    _cropState.callback = null;
+  }
+
+  function initCropCanvas() {
+    const wrap = document.getElementById('crop-canvas-wrap');
+    const canvas = document.getElementById('crop-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = _cropState.img;
+    const maxW = wrap.clientWidth - 4;
+    const maxH = 400;
+    const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    _cropState.scale = scale;
+    _cropState.canvas = canvas;
+    _cropState.ctx = ctx;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    resetCrop();
+    canvas.onmousedown = cropMouseDown;
+    canvas.onmousemove = cropMouseMove;
+    canvas.onmouseup = cropMouseUp;
+    canvas.ontouchstart = e => { e.preventDefault(); cropMouseDown(e.touches[0]); };
+    canvas.ontouchmove = e => { e.preventDefault(); cropMouseMove(e.touches[0]); };
+    canvas.ontouchend = e => { e.preventDefault(); cropMouseUp(e.changedTouches[0]); };
+  }
+
+  function resetCrop() {
+    const c = _cropState.canvas;
+    if (!c) return;
+    _cropState.sel = { x: 0, y: 0, w: c.width, h: c.height };
+    updateCropSelection();
+    updateCropPreview();
+  }
+
+  function setRatio(r) {
+    _cropState.ratio = r;
+    document.querySelectorAll('.crop-ratio-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('ratio-' + r).classList.add('active');
+    if (r !== 'free') {
+      const [rw, rh] = r.split(':').map(Number);
+      const c = _cropState.canvas;
+      const maxW = c.width;
+      const maxH = c.height;
+      let w = maxW, h = Math.round(w * rh / rw);
+      if (h > maxH) { h = maxH; w = Math.round(h * rw / rh); }
+      _cropState.sel = { x: Math.round((c.width - w)/2), y: Math.round((c.height - h)/2), w, h };
+      const ow = document.getElementById('crop-out-w');
+      const oh = document.getElementById('crop-out-h');
+      const outW = parseInt(ow.value) || 400;
+      oh.value = Math.round(outW * rh / rw);
+      updateCropSelection();
+      updateCropPreview();
+    }
+  }
+
+  function getCanvasPos(e) {
+    const rect = _cropState.canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function cropMouseDown(e) {
+    const pos = getCanvasPos(e);
+    _cropState.dragging = true;
+    _cropState.dragStart = pos;
+    _cropState.dragSel = { x: pos.x, y: pos.y, w: 0, h: 0 };
+  }
+
+  function cropMouseMove(e) {
+    if (!_cropState.dragging) return;
+    const pos = getCanvasPos(e);
+    const c = _cropState.canvas;
+    let x = Math.min(_cropState.dragStart.x, pos.x);
+    let y = Math.min(_cropState.dragStart.y, pos.y);
+    let w = Math.abs(pos.x - _cropState.dragStart.x);
+    let h = Math.abs(pos.y - _cropState.dragStart.y);
+    if (_cropState.ratio !== 'free') {
+      const [rw, rh] = _cropState.ratio.split(':').map(Number);
+      h = Math.round(w * rh / rw);
+    }
+    x = Math.max(0, Math.min(x, c.width - w));
+    y = Math.max(0, Math.min(y, c.height - h));
+    w = Math.min(w, c.width - x);
+    h = Math.min(h, c.height - y);
+    _cropState.sel = { x, y, w, h };
+    updateCropSelection();
+    updateCropPreview();
+  }
+
+  function cropMouseUp() {
+    _cropState.dragging = false;
+  }
+
+  function updateCropSelection() {
+    const sel = document.getElementById('crop-selection');
+    const c = _cropState.canvas;
+    const rect = c.getBoundingClientRect();
+    const wrap = document.getElementById('crop-canvas-wrap').getBoundingClientRect();
+    const canvasLeft = rect.left - wrap.left;
+    const canvasTop = rect.top - wrap.top;
+    const s = _cropState.sel;
+    sel.style.left = (canvasLeft + s.x) + 'px';
+    sel.style.top = (canvasTop + s.y) + 'px';
+    sel.style.width = s.w + 'px';
+    sel.style.height = s.h + 'px';
+    sel.style.display = s.w > 4 && s.h > 4 ? 'block' : 'none';
+  }
+
+  function updateCropPreview() {
+    const prev = document.getElementById('crop-preview-canvas');
+    const pCtx = prev.getContext('2d');
+    const s = _cropState.sel;
+    const outW = parseInt(document.getElementById('crop-out-w').value) || 400;
+    const outH = parseInt(document.getElementById('crop-out-h').value) || 400;
+    prev.width = Math.min(outW, 300);
+    prev.height = Math.round(prev.width * outH / outW);
+    if (s.w < 2 || s.h < 2) { pCtx.clearRect(0,0,prev.width,prev.height); return; }
+    const sc = _cropState.scale;
+    pCtx.drawImage(_cropState.img,
+      s.x / sc, s.y / sc, s.w / sc, s.h / sc,
+      0, 0, prev.width, prev.height
+    );
+  }
+
+  function applyCrop() {
+    const outW = parseInt(document.getElementById('crop-out-w').value) || 400;
+    const outH = parseInt(document.getElementById('crop-out-h').value) || 400;
+    const s = _cropState.sel;
+    const sc = _cropState.scale;
+    const out = document.createElement('canvas');
+    out.width = outW; out.height = outH;
+    out.getContext('2d').drawImage(_cropState.img,
+      s.x / sc, s.y / sc, s.w / sc, s.h / sc,
+      0, 0, outW, outH
+    );
+    const dataUrl = out.toDataURL('image/png');
+    if (_cropState.callback) _cropState.callback(dataUrl);
+    closeCrop();
+    showToast('Image cropped and applied!');
+  }
+
+  // Hook crop button into graphics panel fields
+  function addCropButton(inputId, previewType) {
+    const inp = document.getElementById(inputId);
+    if (!inp) return;
+    const existing = inp.parentElement.querySelector('.btn-crop-open');
+    if (existing) existing.remove();
+    const btn = document.createElement('button');
+    btn.className = 'btn-add btn-crop-open';
+    btn.style.marginTop = '6px';
+    btn.textContent = '✂ Crop & Resize';
+    btn.onclick = () => {
+      const url = resolveUrl(inp.value.trim());
+      if (!url || url === '(uploaded)') { showToast('Enter an image URL first, then crop.'); return; }
+      openCrop(url, (dataUrl) => {
+        if (previewType) { showPreview(previewType, dataUrl); }
+        if (previewType === 'avatar') cfg.avatarUrl = dataUrl;
+        if (previewType === 'banner') cfg.heroBannerUrl = dataUrl;
+        inp.value = '(cropped)';
+      });
+    };
+    inp.parentElement.appendChild(btn);
+  }
+
+  // Add crop buttons to graphics fields after DOM ready
+  setTimeout(() => {
+    addCropButton('avatarUrl', 'avatar');
+    addCropButton('heroBannerUrl', 'banner');
+  }, 500);
+
+  // Also expose a global for THICC member photo crop
+  window.openMemberCrop = function(i) {
+    const url = resolveUrl(thiccMembers[i].photoUrl);
+    if (!url) { showToast('Enter a photo URL first, then crop.'); return; }
+    openCrop(url, (dataUrl) => {
+      thiccMembers[i].photoUrl = dataUrl;
+      showToast('Member photo cropped!');
+    });
+  };
 </script>
 
 </body>
