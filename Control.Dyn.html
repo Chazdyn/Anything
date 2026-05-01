@@ -720,6 +720,52 @@
 <!-- Toast container -->
 <div id="toast-container"></div>
 
+<!-- Image Preview + Cropper Modal -->
+<div id="crop-modal" class="crop-modal hidden" aria-hidden="true">
+  <div class="crop-dialog">
+    <div class="crop-head">
+      <div>
+        <div class="crop-title">Preview & Crop Image</div>
+        <div class="crop-subtitle" id="crop-file-label">Adjust before assigning this image</div>
+      </div>
+      <button class="qa-btn ghost" type="button" onclick="closeImageCropper(false)">Cancel</button>
+    </div>
+    <div class="crop-body crop-layout">
+      <div class="crop-main">
+        <canvas id="crop-canvas" width="920" height="560"></canvas>
+        <div class="crop-controls">
+          <label>
+            Crop type
+            <select id="crop-aspect" onchange="setCropMode(this.value)">
+              <option value="square">Square 1:1</option>
+              <option value="circle">Circular</option>
+              <option value="portrait">Portrait 4:5</option>
+              <option value="wide">Wide 16:9</option>
+              <option value="original">Original ratio</option>
+            </select>
+          </label>
+          <label>
+            Zoom
+            <input type="range" id="crop-zoom" min="1" max="3" step="0.01" value="1" oninput="setCropZoom(this.value)" />
+          </label>
+          <button class="qa-btn ghost" type="button" onclick="resetCropperView()">Reset</button>
+          <button class="qa-btn ghost" type="button" onclick="confirmOriginalImage()">Use Original</button>
+          <button class="qa-btn primary" type="button" onclick="confirmImageCrop()">Use Cropped Image</button>
+        </div>
+        <div class="crop-help">Drag the image to reposition it inside the crop box. Circular crops export as transparent PNG. Other crops export as optimized JPG.</div>
+      </div>
+      <aside class="crop-preview-panel">
+        <div class="crop-preview-title">Original preview</div>
+        <img id="crop-source-preview" class="crop-source-preview" alt="Original image preview" />
+        <div class="crop-preview-title">Cropped preview</div>
+        <div class="crop-output-wrap"><canvas id="crop-output-preview" width="240" height="240"></canvas></div>
+        <div id="crop-output-label" class="crop-output-label">Square 1:1</div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+
 <script>
 // ══════════════════════════════════════════════
 //  STATE
@@ -1019,6 +1065,151 @@ function renderBackupsList() {
   document.getElementById('dash-backup-count').textContent = STATE.backups.length;
 }
 
+
+// ══════════════════════════════════════════════
+//  IMAGE PREVIEW + CROPPER
+// ══════════════════════════════════════════════
+const CROP = {
+  file:null, img:null, objectUrl:null, onDone:null, mode:'square', aspect:1,
+  canvas:null, ctx:null, preview:null, pctx:null, crop:{x:0,y:0,w:0,h:0},
+  baseScale:1, zoom:1, scale:1, imgX:0, imgY:0, dragging:false, lastX:0, lastY:0
+};
+const CROP_MODES = {
+  square: { aspect:1, label:'Square 1:1' },
+  circle: { aspect:1, label:'Circular' },
+  portrait: { aspect:0.8, label:'Portrait 4:5' },
+  wide: { aspect:16/9, label:'Wide 16:9' },
+  original: { aspect:'original', label:'Original ratio' }
+};
+function isCropCapableImage(file) { return file && file.type && /^image\/(png|jpe?g|webp)$/i.test(file.type); }
+function safeBaseName(file) { return (file.name || 'image').replace(/\.[^.]+$/, '').replace(/[^a-z0-9-_]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'image'; }
+function croppedFileName(file) { const stamp = new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0,14); return `${safeBaseName(file)}-cropped-${CROP.mode}-${stamp}${CROP.mode === 'circle' ? '.png' : '.jpg'}`; }
+function openImageCropper(file, onDone) {
+  const modal = document.getElementById('crop-modal');
+  const canvas = document.getElementById('crop-canvas');
+  const preview = document.getElementById('crop-output-preview');
+  const sourcePreview = document.getElementById('crop-source-preview');
+  if (!modal || !canvas || !preview || !sourcePreview) { onDone(file); return; }
+  CROP.file = file; CROP.onDone = onDone; CROP.canvas = canvas; CROP.ctx = canvas.getContext('2d'); CROP.preview = preview; CROP.pctx = preview.getContext('2d'); CROP.zoom = 1; CROP.mode = 'square'; CROP.aspect = 1;
+  document.getElementById('crop-zoom').value = '1';
+  document.getElementById('crop-aspect').value = 'square';
+  document.getElementById('crop-file-label').textContent = file.name;
+  document.getElementById('crop-output-label').textContent = CROP_MODES.square.label;
+  const img = new Image();
+  CROP.objectUrl = URL.createObjectURL(file);
+  sourcePreview.src = CROP.objectUrl;
+  img.onload = () => { CROP.img = img; modal.classList.remove('hidden'); modal.setAttribute('aria-hidden','false'); sizeCropCanvas(); setupCropEvents(); resetCropperView(); };
+  img.onerror = () => { toast('Could not read image for cropping', 'error'); closeImageCropper(false); onDone(file); };
+  img.src = CROP.objectUrl;
+}
+function closeImageCropper(useOriginal) {
+  const modal = document.getElementById('crop-modal');
+  if (modal) { modal.classList.add('hidden'); modal.setAttribute('aria-hidden','true'); }
+  const original = CROP.file; const cb = CROP.onDone;
+  if (CROP.objectUrl) URL.revokeObjectURL(CROP.objectUrl);
+  const srcPrev = document.getElementById('crop-source-preview'); if (srcPrev) srcPrev.removeAttribute('src');
+  CROP.file = CROP.img = CROP.objectUrl = CROP.onDone = null;
+  if (useOriginal && cb && original) cb(original);
+}
+function confirmOriginalImage() { closeImageCropper(true); }
+function sizeCropCanvas() {
+  const c = CROP.canvas; if (!c) return;
+  const w = Math.min(920, Math.max(420, Math.floor(window.innerWidth * 0.68)));
+  c.width = w; c.height = Math.min(560, Math.max(320, Math.floor(window.innerHeight * 0.56)));
+  updateCropBox();
+}
+function currentAspect() { return CROP.aspect === 'original' && CROP.img ? CROP.img.naturalWidth / CROP.img.naturalHeight : CROP.aspect; }
+function updateCropBox() {
+  const c = CROP.canvas; if (!c || !CROP.img) return;
+  const a = currentAspect(); let w = c.width * 0.72; let h = w / a;
+  if (h > c.height * 0.74) { h = c.height * 0.74; w = h * a; }
+  CROP.crop = { x:(c.width-w)/2, y:(c.height-h)/2, w, h };
+}
+function setupCropEvents() {
+  const c = CROP.canvas; if (c.dataset.cropReady) return; c.dataset.cropReady = '1';
+  const point = (ev) => { const r = c.getBoundingClientRect(); const t = ev.touches && ev.touches[0]; const x = (t ? t.clientX : ev.clientX) - r.left; const y = (t ? t.clientY : ev.clientY) - r.top; return { x:x*(c.width/r.width), y:y*(c.height/r.height) }; };
+  const down = ev => { ev.preventDefault(); const p = point(ev); CROP.dragging = true; CROP.lastX = p.x; CROP.lastY = p.y; c.classList.add('dragging'); };
+  const move = ev => { if (!CROP.dragging) return; ev.preventDefault(); const p = point(ev); CROP.imgX += p.x - CROP.lastX; CROP.imgY += p.y - CROP.lastY; CROP.lastX = p.x; CROP.lastY = p.y; constrainCropImage(); drawCropper(); };
+  const up = () => { CROP.dragging = false; c.classList.remove('dragging'); };
+  c.addEventListener('mousedown', down); c.addEventListener('touchstart', down, {passive:false});
+  window.addEventListener('mousemove', move); window.addEventListener('touchmove', move, {passive:false});
+  window.addEventListener('mouseup', up); window.addEventListener('touchend', up);
+  window.addEventListener('resize', () => { if (CROP.img && !document.getElementById('crop-modal')?.classList.contains('hidden')) { sizeCropCanvas(); resetCropperView(); } });
+}
+function resetCropperView() {
+  if (!CROP.img || !CROP.canvas) return; updateCropBox();
+  const {w,h,x,y} = CROP.crop;
+  CROP.baseScale = Math.max(w/CROP.img.naturalWidth, h/CROP.img.naturalHeight);
+  CROP.scale = CROP.baseScale * CROP.zoom;
+  CROP.imgX = x + (w - CROP.img.naturalWidth*CROP.scale)/2;
+  CROP.imgY = y + (h - CROP.img.naturalHeight*CROP.scale)/2;
+  constrainCropImage(); drawCropper();
+}
+function setCropMode(value) {
+  const mode = CROP_MODES[value] ? value : 'square';
+  CROP.mode = mode; CROP.aspect = CROP_MODES[mode].aspect;
+  document.getElementById('crop-output-label').textContent = CROP_MODES[mode].label;
+  resetCropperView();
+}
+function setCropZoom(value) {
+  if (!CROP.img) return; const old = CROP.scale || 1;
+  CROP.zoom = Number(value) || 1; CROP.scale = CROP.baseScale * CROP.zoom;
+  const cx = CROP.crop.x + CROP.crop.w/2; const cy = CROP.crop.y + CROP.crop.h/2;
+  CROP.imgX = cx - (cx-CROP.imgX)*(CROP.scale/old);
+  CROP.imgY = cy - (cy-CROP.imgY)*(CROP.scale/old);
+  constrainCropImage(); drawCropper();
+}
+function constrainCropImage() {
+  const iw = CROP.img.naturalWidth*CROP.scale, ih = CROP.img.naturalHeight*CROP.scale; const {x,y,w,h} = CROP.crop;
+  if (iw <= w) CROP.imgX = x+(w-iw)/2; else { if (CROP.imgX > x) CROP.imgX = x; if (CROP.imgX+iw < x+w) CROP.imgX = x+w-iw; }
+  if (ih <= h) CROP.imgY = y+(h-ih)/2; else { if (CROP.imgY > y) CROP.imgY = y; if (CROP.imgY+ih < y+h) CROP.imgY = y+h-ih; }
+}
+function drawCropPath(ctx, x, y, w, h) {
+  ctx.beginPath();
+  if (CROP.mode === 'circle') ctx.arc(x + w/2, y + h/2, Math.min(w,h)/2, 0, Math.PI*2);
+  else ctx.rect(x,y,w,h);
+}
+function drawCropper() {
+  const c = CROP.canvas, ctx = CROP.ctx; if (!c || !ctx || !CROP.img) return;
+  ctx.clearRect(0,0,c.width,c.height); ctx.fillStyle = '#05070a'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.drawImage(CROP.img, CROP.imgX, CROP.imgY, CROP.img.naturalWidth*CROP.scale, CROP.img.naturalHeight*CROP.scale);
+  const {x,y,w,h} = CROP.crop;
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.58)';
+  ctx.beginPath(); ctx.rect(0,0,c.width,c.height); drawCropPath(ctx,x,y,w,h); ctx.fill('evenodd');
+  ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.setLineDash([8,6]); drawCropPath(ctx,x,y,w,h); ctx.stroke(); ctx.setLineDash([]);
+  if (CROP.mode !== 'circle') { ctx.strokeStyle = 'rgba(255,255,255,0.45)'; ctx.lineWidth = 1; ctx.strokeRect(x+w/3,y,w/3,h); ctx.strokeRect(x,y+h/3,w,h/3); }
+  ctx.restore(); drawCropPreview();
+}
+function getCropSourceRect() {
+  const {x,y,w,h} = CROP.crop;
+  const sx = Math.max(0, (x-CROP.imgX)/CROP.scale);
+  const sy = Math.max(0, (y-CROP.imgY)/CROP.scale);
+  const sw = Math.min(CROP.img.naturalWidth-sx, w/CROP.scale);
+  const sh = Math.min(CROP.img.naturalHeight-sy, h/CROP.scale);
+  return {sx, sy, sw, sh};
+}
+function drawCropPreview() {
+  const p = CROP.preview, ctx = CROP.pctx; if (!p || !ctx || !CROP.img) return;
+  const a = currentAspect(); let pw = 240, ph = Math.round(pw / a); if (ph > 240) { ph = 240; pw = Math.round(ph * a); }
+  p.width = Math.max(80, pw); p.height = Math.max(80, ph);
+  ctx.clearRect(0,0,p.width,p.height);
+  if (CROP.mode !== 'circle') { ctx.fillStyle = '#000'; ctx.fillRect(0,0,p.width,p.height); }
+  ctx.save(); if (CROP.mode === 'circle') { ctx.beginPath(); ctx.arc(p.width/2,p.height/2,Math.min(p.width,p.height)/2,0,Math.PI*2); ctx.clip(); }
+  const {sx,sy,sw,sh} = getCropSourceRect(); ctx.drawImage(CROP.img, sx, sy, sw, sh, 0, 0, p.width, p.height); ctx.restore();
+}
+async function confirmImageCrop() {
+  if (!CROP.img || !CROP.file || !CROP.onDone) return;
+  const {w,h} = CROP.crop; const {sx,sy,sw,sh} = getCropSourceRect();
+  const maxLong = 1600; let outW = Math.round(w), outH = Math.round(h);
+  const mult = Math.min(maxLong / Math.max(outW,outH), 4); outW = Math.max(320, Math.round(outW*mult)); outH = Math.max(320, Math.round(outH*mult));
+  const out = document.createElement('canvas'); out.width = outW; out.height = outH; const octx = out.getContext('2d');
+  if (CROP.mode !== 'circle') { octx.fillStyle = '#000'; octx.fillRect(0,0,outW,outH); }
+  octx.save(); if (CROP.mode === 'circle') { octx.beginPath(); octx.arc(outW/2,outH/2,Math.min(outW,outH)/2,0,Math.PI*2); octx.clip(); }
+  octx.drawImage(CROP.img, sx, sy, sw, sh, 0, 0, outW, outH); octx.restore();
+  const original = CROP.file; const cb = CROP.onDone; const mime = CROP.mode === 'circle' ? 'image/png' : 'image/jpeg'; const quality = CROP.mode === 'circle' ? undefined : 0.92;
+  out.toBlob(blob => { if (!blob) { toast('Crop failed; uploading original image instead', 'warning'); closeImageCropper(true); return; } const cropped = new File([blob], croppedFileName(original), {type:mime, lastModified:Date.now()}); closeImageCropper(false); cb(cropped); }, mime, quality);
+}
+
 // ══════════════════════════════════════════════
 //  ASSETS
 // ══════════════════════════════════════════════
@@ -1064,6 +1255,17 @@ async function uploadAsset(input, targetInputId, configKey) {
   const file = input.files[0];
   if (!file) return;
   if (!STATE.ghConnected) { toast('Connect GitHub to upload assets', 'error'); return; }
+  if (targetInputId && isCropCapableImage(file)) {
+    openImageCropper(file, async (processedFile) => {
+      await finishAssetUpload(processedFile, targetInputId, configKey);
+      if (input.value !== undefined) input.value = '';
+    });
+    return;
+  }
+  await finishAssetUpload(file, targetInputId, configKey);
+  if (input.value !== undefined) input.value = '';
+}
+async function finishAssetUpload(file, targetInputId, configKey) {
   toast('Uploading ' + file.name + '...', 'info');
   const reader = new FileReader();
   reader.onload = async (e) => {
@@ -1811,6 +2013,17 @@ async function handleTHICCUpload(input, type) {
   const file = input.files[0];
   if (!file) return;
   if (!STATE.ghConnected) { toast('Connect GitHub to upload', 'error'); return; }
+  const go = async (processedFile) => {
+    await finishTHICCUpload(input, processedFile);
+    if (input.value !== undefined) input.value = '';
+  };
+  if (type === 'photo' && isCropCapableImage(file)) {
+    openImageCropper(file, go);
+    return;
+  }
+  await go(file);
+}
+async function finishTHICCUpload(input, file) {
   toast('Uploading ' + file.name + '...', 'info');
   const reader = new FileReader();
   reader.onload = async (e) => {
