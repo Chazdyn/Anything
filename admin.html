@@ -780,6 +780,9 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       Save & Publish
     </button>
+    <button class="btn-save" id="deploy-btn" onclick="deployToGitHub()" title="Push the saved site data into GitHub Pages">
+      🚀 Go Live
+    </button>
   </div>
 </div>
 
@@ -871,6 +874,13 @@
       <div class="sidebar-item" onclick="showPanel('sections')" id="nav-sections">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         Extra Sections
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Publish</div>
+      <div class="sidebar-item" onclick="showPanel('deploy')" id="nav-deploy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/><path d="M5 19h14"/></svg>
+        GitHub Deploy
       </div>
     </div>
     <div class="sidebar-section">
@@ -1379,7 +1389,7 @@
     const btn = document.getElementById('save-btn');
     btn.textContent = '✓ Saved!';
     btn.classList.add('saved');
-    showToast('Changes saved! Refresh index.html to see updates.');
+    showToast('Changes saved locally. Click Go Live to publish to GitHub.');
     setTimeout(() => { btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save & Publish'; btn.classList.remove('saved'); }, 3000);
   }
 
@@ -1600,6 +1610,185 @@
   // ── Init ──
   loadConfig();
   populateFields();
+
+
+  // ── GitHub Deploy ──
+  function getGitHubSettings() {
+    return {
+      owner: v('ghOwner') || localStorage.getItem('controldyn_gh_owner') || 'Chazdyn',
+      repo: v('ghRepo') || localStorage.getItem('controldyn_gh_repo') || 'Anything',
+      branch: v('ghBranch') || localStorage.getItem('controldyn_gh_branch') || 'main',
+      folder: v('ghFolder') || localStorage.getItem('controldyn_gh_folder') || '/root',
+      token: v('ghToken') || localStorage.getItem('controldyn_gh_token') || ''
+    };
+  }
+
+  function loadGitHubSettings() {
+    setVal('ghOwner', localStorage.getItem('controldyn_gh_owner') || 'Chazdyn');
+    setVal('ghRepo', localStorage.getItem('controldyn_gh_repo') || 'Anything');
+    setVal('ghBranch', localStorage.getItem('controldyn_gh_branch') || 'main');
+    setVal('ghFolder', localStorage.getItem('controldyn_gh_folder') || '/root');
+    setVal('ghToken', localStorage.getItem('controldyn_gh_token') || '');
+  }
+
+  function saveGitHubSettings() {
+    const gh = getGitHubSettings();
+    localStorage.setItem('controldyn_gh_owner', gh.owner);
+    localStorage.setItem('controldyn_gh_repo', gh.repo);
+    localStorage.setItem('controldyn_gh_branch', gh.branch);
+    localStorage.setItem('controldyn_gh_folder', gh.folder);
+    if (gh.token) localStorage.setItem('controldyn_gh_token', gh.token);
+    setDeployStatus('GitHub settings saved.');
+    showToast('GitHub settings saved.');
+  }
+
+  function setDeployStatus(msg, isError=false) {
+    const el = document.getElementById('deploy-status');
+    if (el) {
+      el.style.color = isError ? '#ff6b8a' : 'var(--muted)';
+      el.textContent = msg;
+    }
+    if (isError) showToast(msg);
+  }
+
+  function utf8ToBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  function base64ToUtf8(str) {
+    return decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
+  }
+
+  async function ghRequest(path, options={}) {
+    const gh = getGitHubSettings();
+    if (!gh.token) throw new Error('Missing GitHub token. Add it under GitHub Deploy first.');
+
+    const res = await fetch(`https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}${path}`, {
+      ...options,
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${gh.token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(options.headers || {})
+      }
+    });
+
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch(e) { data = { message: text }; }
+
+    if (!res.ok) {
+      const err = new Error(`${res.status} — ${data.message || res.statusText}`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  async function testGitHubConnection() {
+    saveGitHubSettings();
+    try {
+      const gh = getGitHubSettings();
+      await ghRequest(`/contents/index.html?ref=${encodeURIComponent(gh.branch)}`);
+      setDeployStatus('Connection works. GitHub can read index.html. Go Live should be able to publish if Contents is set to Read and write.');
+      showToast('GitHub connection works!');
+    } catch (e) {
+      setDeployStatus('GitHub test failed: ' + e.message, true);
+    }
+  }
+
+  function buildConfigPayload() {
+    readFields();
+
+    // Capture THICC roster/settings too, because live visitors do not share your browser localStorage.
+    let clan = thiccMembers;
+    const clanRaw = localStorage.getItem('chazdyn_thicc');
+    if (clanRaw) {
+      try { clan = JSON.parse(clanRaw); } catch(e) {}
+    }
+
+    const payload = {
+      ...cfg,
+      thiccMembers: clan && clan.length ? clan : DEFAULT_THICC_MEMBERS,
+      _lastDeploy: new Date().toISOString()
+    };
+
+    localStorage.setItem('chazdyn_config', JSON.stringify(payload));
+    if (payload.thiccMembers) localStorage.setItem('chazdyn_thicc', JSON.stringify(payload.thiccMembers));
+    return payload;
+  }
+
+  function controlDynScript(payload) {
+    const configJson = JSON.stringify(payload).replace(/</g, '\\u003c');
+    const clanJson = JSON.stringify(payload.thiccMembers || []).replace(/</g, '\\u003c');
+    return `<script data-controldyn>localStorage.setItem('chazdyn_config',${JSON.stringify(configJson)});localStorage.setItem('chazdyn_thicc',${JSON.stringify(clanJson)});<\/script>`;
+  }
+
+  function injectControlDynScript(html, script) {
+    if (html.includes('<script data-controldyn>')) {
+      return html.replace(/<script\s+data-controldyn>[\s\S]*?<\/script>/, script);
+    }
+    if (html.includes('</head>')) return html.replace('</head>', script + '</head>');
+    return script + html;
+  }
+
+  async function updateGitHubFile(path, transform, message, attempt=1) {
+    const gh = getGitHubSettings();
+    const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+    const file = await ghRequest(`/contents/${encodedPath}?ref=${encodeURIComponent(gh.branch)}`);
+    const current = base64ToUtf8(file.content || '');
+    const next = transform(current);
+
+    if (next === current) return { skipped: true, path };
+
+    try {
+      await ghRequest(`/contents/${encodedPath}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message,
+          content: utf8ToBase64(next),
+          sha: file.sha,
+          branch: gh.branch
+        })
+      });
+      return { skipped: false, path };
+    } catch (e) {
+      // 409 means index.html changed after ControlDyn fetched it. Refetch once and retry.
+      if (e.status === 409 && attempt < 2) return updateGitHubFile(path, transform, message, attempt + 1);
+      throw e;
+    }
+  }
+
+  async function deployToGitHub() {
+    const btn = document.getElementById('deploy-btn') || document.getElementById('deploy-panel-btn');
+    const oldText = btn ? btn.textContent : '';
+
+    try {
+      saveGitHubSettings();
+      const gh = getGitHubSettings();
+      const payload = buildConfigPayload();
+      const script = controlDynScript(payload);
+      const stamp = new Date().toLocaleString();
+
+      if (btn) { btn.disabled = true; btn.textContent = 'Deploying…'; }
+      setDeployStatus('Deploying to GitHub Pages...');
+
+      const results = [];
+      results.push(await updateGitHubFile('index.html', html => injectControlDynScript(html, script), `ControlDyn deploy: ${stamp}`));
+      results.push(await updateGitHubFile('thicc/index.html', html => injectControlDynScript(html, script), `ControlDyn deploy THICC: ${stamp}`));
+
+      const changed = results.filter(r => !r.skipped).map(r => r.path).join(', ') || 'no file changes needed';
+      setDeployStatus(`Deploy complete on ${gh.owner}/${gh.repo}@${gh.branch}: ${changed}. Give GitHub Pages a moment, then hard refresh.`);
+      showToast('Go Live complete!');
+    } catch (e) {
+      setDeployStatus('Deploy failed: ' + e.message, true);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = oldText || '🚀 Go Live'; }
+    }
+  }
+
+  loadGitHubSettings();
 
   // ── Theme config ──
   const _themeDefaults = {
