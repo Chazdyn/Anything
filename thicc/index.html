@@ -748,7 +748,7 @@
   // ── LOAD & RENDER ──
   function loadAndRender() {
     const raw = localStorage.getItem('chazdyn_thicc');
-    const members = raw ? JSON.parse(raw) : DEFAULT_MEMBERS;
+    let members = raw ? JSON.parse(raw) : DEFAULT_MEMBERS;
 
     const cfg = localStorage.getItem('chazdyn_config');
     if (cfg) {
@@ -757,6 +757,7 @@
         if (c.thiccDesc) document.getElementById('hero-desc').textContent = c.thiccDesc;
         if (c.thiccFounded) document.getElementById('stat-founded').textContent = c.thiccFounded;
         if (c.thiccGame) document.getElementById('stat-game').textContent = c.thiccGame;
+        if (!raw && c.thiccMembers && c.thiccMembers.length) members = c.thiccMembers;
       } catch(e){}
     }
 
