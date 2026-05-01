@@ -579,6 +579,166 @@
     .hint { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
     .hint a { color: var(--accent); }
 
+    /* CROP MODAL */
+    .crop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1.5rem;
+    }
+
+    .crop-overlay.open { display: flex; }
+
+    .crop-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 680px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .crop-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .crop-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+    }
+
+    .crop-close {
+      background: none;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      transition: all 0.2s;
+    }
+
+    .crop-close:hover { border-color: var(--red); color: var(--red); }
+
+    .crop-canvas-wrap {
+      background: #000;
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+    }
+
+    #crop-canvas {
+      display: block;
+      max-width: 100%;
+      cursor: crosshair;
+    }
+
+    #crop-selection {
+      position: absolute;
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+      cursor: move;
+      pointer-events: none;
+    }
+
+    .crop-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .crop-ratio-btns {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .crop-ratio-btn {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 6px;
+      color: var(--muted);
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .crop-ratio-btn:hover,
+    .crop-ratio-btn.active { background: rgba(168,85,247,0.1); border-color: var(--accent); color: var(--accent); }
+
+    .crop-preview-wrap {
+      margin-bottom: 1rem;
+    }
+
+    .crop-preview-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    #crop-preview-canvas {
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      max-width: 100%;
+      display: block;
+    }
+
+    .crop-actions { display: flex; gap: 10px; }
+
+    .btn-crop-apply {
+      flex: 1;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-crop-apply:hover { background: var(--accent2); }
+
+    .btn-crop-reset {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--muted);
+      padding: 10px 18px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-crop-reset:hover { border-color: var(--accent); color: var(--text); }
+
     /* SCROLLBAR */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -620,6 +780,53 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       Save & Publish
     </button>
+    <button class="btn-save" id="deploy-btn" onclick="deployToGitHub()" title="Push the saved site data into GitHub Pages">
+      🚀 Go Live
+    </button>
+  </div>
+</div>
+
+<!-- CROP MODAL -->
+<div class="crop-overlay" id="crop-overlay">
+  <div class="crop-box">
+    <div class="crop-header">
+      <span class="crop-title">Crop & Resize Image</span>
+      <button class="crop-close" onclick="closeCrop()">✕ Cancel</button>
+    </div>
+
+    <div class="crop-ratio-btns">
+      <button class="crop-ratio-btn active" onclick="setRatio('free')" id="ratio-free">Free</button>
+      <button class="crop-ratio-btn" onclick="setRatio('1:1')" id="ratio-1:1">1:1 Square</button>
+      <button class="crop-ratio-btn" onclick="setRatio('16:9')" id="ratio-16:9">16:9 Wide</button>
+      <button class="crop-ratio-btn" onclick="setRatio('4:3')" id="ratio-4:3">4:3</button>
+      <button class="crop-ratio-btn" onclick="setRatio('3:4')" id="ratio-3:4">3:4 Portrait</button>
+    </div>
+
+    <div class="crop-controls">
+      <div class="field" style="margin:0;">
+        <label>Output Width (px)</label>
+        <input type="text" id="crop-out-w" value="400" />
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Output Height (px)</label>
+        <input type="text" id="crop-out-h" value="400" />
+      </div>
+    </div>
+
+    <div class="crop-canvas-wrap" id="crop-canvas-wrap">
+      <canvas id="crop-canvas"></canvas>
+      <div id="crop-selection"></div>
+    </div>
+
+    <div class="crop-preview-wrap">
+      <div class="crop-preview-label">Preview</div>
+      <canvas id="crop-preview-canvas" width="200" height="200"></canvas>
+    </div>
+
+    <div class="crop-actions">
+      <button class="btn-crop-reset" onclick="resetCrop()">Reset Selection</button>
+      <button class="btn-crop-apply" onclick="applyCrop()">Apply & Use This Image</button>
+    </div>
   </div>
 </div>
 
@@ -667,6 +874,20 @@
       <div class="sidebar-item" onclick="showPanel('sections')" id="nav-sections">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         Extra Sections
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Publish</div>
+      <div class="sidebar-item" onclick="showPanel('deploy')" id="nav-deploy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/><path d="M5 19h14"/></svg>
+        GitHub Deploy
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">THICC Clan</div>
+      <div class="sidebar-item" onclick="showPanel('thicc')" id="nav-thicc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Clan Members
       </div>
     </div>
   </nav>
@@ -840,7 +1061,7 @@
         <div class="upload-preview" id="avatar-preview"></div>
         <div class="field" style="margin-top:10px;">
           <label>Or paste image URL</label>
-          <input type="url" id="avatarUrl" placeholder="https://..." oninput="previewUrl('avatar', this.value)" />
+          <input type="url" id="avatarUrl" placeholder="chazdyn.png or full https://..." oninput="previewUrl('avatar', this.value)" />
         </div>
       </div>
 
@@ -855,7 +1076,7 @@
         <div class="upload-preview" id="banner-preview"></div>
         <div class="field" style="margin-top:10px;">
           <label>Or paste image URL</label>
-          <input type="url" id="heroBannerUrl" placeholder="https://..." oninput="previewUrl('banner', this.value)" />
+          <input type="url" id="heroBannerUrl" placeholder="banner.png or full https://..." oninput="previewUrl('banner', this.value)" />
         </div>
       </div>
 
@@ -997,6 +1218,40 @@
       </div>
     </div>
 
+  <!-- ══ THICC CLAN PANEL ══ -->
+    <div class="panel" id="panel-thicc">
+      <div class="panel-header">
+        <h2>THICC Clan</h2>
+        <p>Manage clan members, bios, photos, clips and social links.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Clan Page Settings</div>
+        <div class="field">
+          <label>Clan Description (hero text)</label>
+          <textarea id="thiccDesc" placeholder="We're not a tryhard clan..."></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Main Game</label>
+            <input type="text" id="thiccGame" placeholder="COD" />
+          </div>
+          <div class="field">
+            <label>Year Founded</label>
+            <input type="text" id="thiccFounded" placeholder="2024" />
+          </div>
+        </div>
+        <button class="btn-add" onclick="saveClanSettings()" style="margin-top:0.5rem;">Save Clan Settings</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Clan Roster</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">Click a member to expand and edit their profile.</p>
+        <div id="thicc-members-list"></div>
+        <button class="btn-add" onclick="addMember()" style="width:100%;justify-content:center;margin-top:0.5rem;">+ Add New Member</button>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -1116,9 +1371,9 @@
     cfg.tiktokHandle = v('tiktokHandle');
     cfg.instaUrl = v('instaUrl');
     cfg.instaHandle = v('instaHandle');
-    cfg.avatarUrl = v('avatarUrl');
-    cfg.heroBannerUrl = v('heroBannerUrl');
-    cfg.logoUrl = v('logoUrl');
+    cfg.avatarUrl = resolveUrl(v('avatarUrl'));
+    cfg.heroBannerUrl = resolveUrl(v('heroBannerUrl'));
+    cfg.logoUrl = resolveUrl(v('logoUrl'));
     cfg.accentColor = v('accentColor');
     cfg.accent2Color = v('accent2Color');
     cfg.bgColor = v('bgColor');
@@ -1134,7 +1389,7 @@
     const btn = document.getElementById('save-btn');
     btn.textContent = '✓ Saved!';
     btn.classList.add('saved');
-    showToast('Changes saved! Refresh index.html to see updates.');
+    showToast('Changes saved locally. Click Go Live to publish to GitHub.');
     setTimeout(() => { btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save & Publish'; btn.classList.remove('saved'); }, 3000);
   }
 
@@ -1335,8 +1590,9 @@
 
   function previewUrl(type, url) {
     if (!url || url.startsWith('(')) return;
-    if (type === 'avatar') { cfg.avatarUrl = url; showPreview('avatar', url); }
-    else { cfg.heroBannerUrl = url; showPreview('banner', url); }
+    const resolved = resolveUrl(url);
+    if (type === 'avatar') { cfg.avatarUrl = resolved; showPreview('avatar', resolved); }
+    else { cfg.heroBannerUrl = resolved; showPreview('banner', resolved); }
   }
 
   function showPreview(type, src) {
@@ -1354,6 +1610,185 @@
   // ── Init ──
   loadConfig();
   populateFields();
+
+
+  // ── GitHub Deploy ──
+  function getGitHubSettings() {
+    return {
+      owner: v('ghOwner') || localStorage.getItem('controldyn_gh_owner') || 'Chazdyn',
+      repo: v('ghRepo') || localStorage.getItem('controldyn_gh_repo') || 'Anything',
+      branch: v('ghBranch') || localStorage.getItem('controldyn_gh_branch') || 'main',
+      folder: v('ghFolder') || localStorage.getItem('controldyn_gh_folder') || '/root',
+      token: v('ghToken') || localStorage.getItem('controldyn_gh_token') || ''
+    };
+  }
+
+  function loadGitHubSettings() {
+    setVal('ghOwner', localStorage.getItem('controldyn_gh_owner') || 'Chazdyn');
+    setVal('ghRepo', localStorage.getItem('controldyn_gh_repo') || 'Anything');
+    setVal('ghBranch', localStorage.getItem('controldyn_gh_branch') || 'main');
+    setVal('ghFolder', localStorage.getItem('controldyn_gh_folder') || '/root');
+    setVal('ghToken', localStorage.getItem('controldyn_gh_token') || '');
+  }
+
+  function saveGitHubSettings() {
+    const gh = getGitHubSettings();
+    localStorage.setItem('controldyn_gh_owner', gh.owner);
+    localStorage.setItem('controldyn_gh_repo', gh.repo);
+    localStorage.setItem('controldyn_gh_branch', gh.branch);
+    localStorage.setItem('controldyn_gh_folder', gh.folder);
+    if (gh.token) localStorage.setItem('controldyn_gh_token', gh.token);
+    setDeployStatus('GitHub settings saved.');
+    showToast('GitHub settings saved.');
+  }
+
+  function setDeployStatus(msg, isError=false) {
+    const el = document.getElementById('deploy-status');
+    if (el) {
+      el.style.color = isError ? '#ff6b8a' : 'var(--muted)';
+      el.textContent = msg;
+    }
+    if (isError) showToast(msg);
+  }
+
+  function utf8ToBase64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  function base64ToUtf8(str) {
+    return decodeURIComponent(escape(atob(str.replace(/\n/g, ''))));
+  }
+
+  async function ghRequest(path, options={}) {
+    const gh = getGitHubSettings();
+    if (!gh.token) throw new Error('Missing GitHub token. Add it under GitHub Deploy first.');
+
+    const res = await fetch(`https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}${path}`, {
+      ...options,
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${gh.token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(options.headers || {})
+      }
+    });
+
+    const text = await res.text();
+    let data;
+    try { data = text ? JSON.parse(text) : {}; } catch(e) { data = { message: text }; }
+
+    if (!res.ok) {
+      const err = new Error(`${res.status} — ${data.message || res.statusText}`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  async function testGitHubConnection() {
+    saveGitHubSettings();
+    try {
+      const gh = getGitHubSettings();
+      await ghRequest(`/contents/index.html?ref=${encodeURIComponent(gh.branch)}`);
+      setDeployStatus('Connection works. GitHub can read index.html. Go Live should be able to publish if Contents is set to Read and write.');
+      showToast('GitHub connection works!');
+    } catch (e) {
+      setDeployStatus('GitHub test failed: ' + e.message, true);
+    }
+  }
+
+  function buildConfigPayload() {
+    readFields();
+
+    // Capture THICC roster/settings too, because live visitors do not share your browser localStorage.
+    let clan = thiccMembers;
+    const clanRaw = localStorage.getItem('chazdyn_thicc');
+    if (clanRaw) {
+      try { clan = JSON.parse(clanRaw); } catch(e) {}
+    }
+
+    const payload = {
+      ...cfg,
+      thiccMembers: clan && clan.length ? clan : DEFAULT_THICC_MEMBERS,
+      _lastDeploy: new Date().toISOString()
+    };
+
+    localStorage.setItem('chazdyn_config', JSON.stringify(payload));
+    if (payload.thiccMembers) localStorage.setItem('chazdyn_thicc', JSON.stringify(payload.thiccMembers));
+    return payload;
+  }
+
+  function controlDynScript(payload) {
+    const configJson = JSON.stringify(payload).replace(/</g, '\\u003c');
+    const clanJson = JSON.stringify(payload.thiccMembers || []).replace(/</g, '\\u003c');
+    return `<script data-controldyn>localStorage.setItem('chazdyn_config',${JSON.stringify(configJson)});localStorage.setItem('chazdyn_thicc',${JSON.stringify(clanJson)});<\/script>`;
+  }
+
+  function injectControlDynScript(html, script) {
+    if (html.includes('<script data-controldyn>')) {
+      return html.replace(/<script\s+data-controldyn>[\s\S]*?<\/script>/, script);
+    }
+    if (html.includes('</head>')) return html.replace('</head>', script + '</head>');
+    return script + html;
+  }
+
+  async function updateGitHubFile(path, transform, message, attempt=1) {
+    const gh = getGitHubSettings();
+    const encodedPath = path.split('/').map(encodeURIComponent).join('/');
+    const file = await ghRequest(`/contents/${encodedPath}?ref=${encodeURIComponent(gh.branch)}`);
+    const current = base64ToUtf8(file.content || '');
+    const next = transform(current);
+
+    if (next === current) return { skipped: true, path };
+
+    try {
+      await ghRequest(`/contents/${encodedPath}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          message,
+          content: utf8ToBase64(next),
+          sha: file.sha,
+          branch: gh.branch
+        })
+      });
+      return { skipped: false, path };
+    } catch (e) {
+      // 409 means index.html changed after ControlDyn fetched it. Refetch once and retry.
+      if (e.status === 409 && attempt < 2) return updateGitHubFile(path, transform, message, attempt + 1);
+      throw e;
+    }
+  }
+
+  async function deployToGitHub() {
+    const btn = document.getElementById('deploy-btn') || document.getElementById('deploy-panel-btn');
+    const oldText = btn ? btn.textContent : '';
+
+    try {
+      saveGitHubSettings();
+      const gh = getGitHubSettings();
+      const payload = buildConfigPayload();
+      const script = controlDynScript(payload);
+      const stamp = new Date().toLocaleString();
+
+      if (btn) { btn.disabled = true; btn.textContent = 'Deploying…'; }
+      setDeployStatus('Deploying to GitHub Pages...');
+
+      const results = [];
+      results.push(await updateGitHubFile('index.html', html => injectControlDynScript(html, script), `ControlDyn deploy: ${stamp}`));
+      results.push(await updateGitHubFile('thicc/index.html', html => injectControlDynScript(html, script), `ControlDyn deploy THICC: ${stamp}`));
+
+      const changed = results.filter(r => !r.skipped).map(r => r.path).join(', ') || 'no file changes needed';
+      setDeployStatus(`Deploy complete on ${gh.owner}/${gh.repo}@${gh.branch}: ${changed}. Give GitHub Pages a moment, then hard refresh.`);
+      showToast('Go Live complete!');
+    } catch (e) {
+      setDeployStatus('Deploy failed: ' + e.message, true);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = oldText || '🚀 Go Live'; }
+    }
+  }
+
+  loadGitHubSettings();
 
   // ── Theme config ──
   const _themeDefaults = {
@@ -1426,6 +1861,375 @@
   if (sessionStorage.getItem('chazdyn_admin_auth') === '1') {
     document.getElementById('password-gate').style.display = 'none';
   }
+
+  // ASSET URL HELPER
+  const ASSETS_BASE = 'https://raw.githubusercontent.com/Chazdyn/Anything/main/assets/';
+
+  function resolveUrl(val) {
+    if (!val || val === '(uploaded)' || val === '(cropped)') return val;
+    if (val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:')) return val;
+    return ASSETS_BASE + val;
+  }
+
+  // THICC CLAN MANAGER
+  const DEFAULT_THICC_MEMBERS = [
+    { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'', videoUrl:'', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
+    { id:2, name:'ShyShack', gamertag:'ShyShack', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:3, name:'Mastercardi', gamertag:'Mastercardi', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:4, name:'SenoritoTaquito', gamertag:'SenoritoTaquito', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:5, name:'PrincessBayleaf', gamertag:'PrincessBayleaf', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:7, name:'Thomas', gamertag:'Thomas', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] }
+  ];
+
+  let thiccMembers = [];
+
+  function loadThicc() {
+    const raw = localStorage.getItem('chazdyn_thicc');
+    thiccMembers = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_THICC_MEMBERS));
+    const c = JSON.parse(localStorage.getItem('chazdyn_config')||'{}');
+    setVal('thiccDesc', c.thiccDesc||'');
+    setVal('thiccGame', c.thiccGame||'COD');
+    setVal('thiccFounded', c.thiccFounded||'2024');
+    renderThiccList();
+  }
+
+  function saveThicc() {
+    const toSave = thiccMembers.map(m => ({
+      ...m,
+      photoUrl: resolveUrl(m.photoUrl),
+      videoUrl: resolveUrl(m.videoUrl)
+    }));
+    localStorage.setItem('chazdyn_thicc', JSON.stringify(toSave));
+    showToast('Clan saved!');
+  }
+
+  function saveClanSettings() {
+    const c = JSON.parse(localStorage.getItem('chazdyn_config')||'{}');
+    c.thiccDesc = v('thiccDesc');
+    c.thiccGame = v('thiccGame');
+    c.thiccFounded = v('thiccFounded');
+    localStorage.setItem('chazdyn_config', JSON.stringify(c));
+    showToast('Clan settings saved!');
+  }
+
+  function renderThiccList() {
+    const container = document.getElementById('thicc-members-list');
+    if (!thiccMembers.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No members yet.</p>'; return; }
+    container.innerHTML = thiccMembers.map((m,i) => `
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;" onclick="toggleMemberExpand(${i})">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(168,85,247,0.15);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.85rem;color:var(--accent);">${m.name.charAt(0)}</div>
+            <div>
+              <div style="font-weight:600;font-size:0.9rem;">${m.name}</div>
+              <div style="font-size:0.75rem;color:var(--muted);">${m.gamertag} &middot; ${m.rank}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${m.isLeader ? '<span style="font-size:0.65rem;background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.3);padding:2px 8px;border-radius:4px;">Leader</span>' : ''}
+            <span style="color:var(--muted);font-size:0.8rem;" id="chevron-${i}">&#9660;</span>
+          </div>
+        </div>
+        <div id="member-expand-${i}" style="display:none;padding:0 14px 14px;border-top:1px solid var(--border2);">
+          <div style="height:12px;"></div>
+          <div class="field-row">
+            <div class="field"><label>Display Name</label><input type="text" value="${m.name}" oninput="thiccMembers[${i}].name=this.value" /></div>
+            <div class="field"><label>Gamertag</label><input type="text" value="${m.gamertag}" oninput="thiccMembers[${i}].gamertag=this.value" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Rank / Title</label><input type="text" value="${m.rank}" oninput="thiccMembers[${i}].rank=this.value" /></div>
+            <div class="field"><label>Clan Leader?</label>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+                <div class="toggle-switch ${m.isLeader?'on':''}" onclick="thiccMembers[${i}].isLeader=!thiccMembers[${i}].isLeader;this.classList.toggle('on')"></div>
+                <span style="font-size:0.82rem;color:var(--muted);">Is clan leader</span>
+              </div>
+            </div>
+          </div>
+          <div class="field"><label>Bio / About</label><textarea oninput="thiccMembers[${i}].about=this.value" placeholder="Short bio...">${m.about||''}</textarea></div>
+          <div class="field">
+            <label>Profile Photo URL</label>
+            <input type="url" value="${m.photoUrl||''}" oninput="thiccMembers[${i}].photoUrl=this.value" placeholder="shyshack.png  —  or full https://... for external" />
+            <button class="btn-add btn-crop-open" style="margin-top:6px;" onclick="openMemberCrop(${i})">&#x2702; Crop &amp; Resize</button>
+          </div>
+          <div class="field">
+            <label>Highlight Clip URL (plays on hover)</label>
+            <input type="url" value="${m.videoUrl||''}" oninput="thiccMembers[${i}].videoUrl=this.value" placeholder="shyshack-clip.mp4  —  or full https://... for external" />
+            <div class="hint">Use a direct .mp4 link. Upload clips to streamable.com and use the direct video URL.</div>
+          </div>
+          <div class="field">
+            <label>Social Links</label>
+            <div id="member-socials-${i}"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-top:8px;align-items:end;">
+              <div><label>Platform</label><select id="new-social-platform-${i}"><option>Twitch</option><option>TikTok</option><option>Instagram</option><option>YouTube</option><option>Twitter</option><option>Discord</option><option>Other</option></select></div>
+              <div><label>Handle</label><input type="text" id="new-social-handle-${i}" placeholder="@handle" /></div>
+              <div><label>URL</label><input type="url" id="new-social-url-${i}" placeholder="https://..." /></div>
+              <button class="btn-add" style="height:40px;" onclick="addMemberSocial(${i})">+</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:0.5rem;">
+            <button class="btn-add" onclick="saveThicc()" style="flex:1;justify-content:center;">Save Member</button>
+            <button class="btn-remove" onclick="removeMember(${i})" style="width:auto;padding:0 16px;font-size:0.82rem;">Remove</button>
+          </div>
+        </div>
+      </div>`).join('');
+    thiccMembers.forEach((_,i) => renderMemberSocials(i));
+  }
+
+  function toggleMemberExpand(i) {
+    const el = document.getElementById('member-expand-'+i);
+    const ch = document.getElementById('chevron-'+i);
+    const open = el.style.display === 'block';
+    el.style.display = open ? 'none' : 'block';
+    ch.innerHTML = open ? '&#9660;' : '&#9650;';
+  }
+
+  function renderMemberSocials(i) {
+    const container = document.getElementById('member-socials-'+i);
+    if (!container) return;
+    const m = thiccMembers[i];
+    if (!m.socials || !m.socials.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.78rem;margin-bottom:4px;">No socials yet.</p>'; return; }
+    container.innerHTML = m.socials.map((s,j) => `
+      <div class="list-item" style="margin-bottom:4px;">
+        <div style="flex:1;"><span class="list-item-text">${s.platform}</span><span class="list-item-sub" style="margin-left:8px;">${s.handle}</span></div>
+        <button class="btn-remove" onclick="removeMemberSocial(${i},${j})">&#x2715;</button>
+      </div>`).join('');
+  }
+
+  function addMemberSocial(i) {
+    const platform = document.getElementById('new-social-platform-'+i).value;
+    const handle = document.getElementById('new-social-handle-'+i).value.trim();
+    const url = document.getElementById('new-social-url-'+i).value.trim();
+    if (!url) return;
+    if (!thiccMembers[i].socials) thiccMembers[i].socials = [];
+    thiccMembers[i].socials.push({platform, handle, url});
+    document.getElementById('new-social-handle-'+i).value = '';
+    document.getElementById('new-social-url-'+i).value = '';
+    renderMemberSocials(i);
+  }
+
+  function removeMemberSocial(i, j) { thiccMembers[i].socials.splice(j,1); renderMemberSocials(i); }
+
+  function addMember() {
+    thiccMembers.push({ id:Date.now(), name:'New Member', gamertag:'Gamertag', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] });
+    renderThiccList();
+    setTimeout(() => toggleMemberExpand(thiccMembers.length-1), 50);
+  }
+
+  function removeMember(i) {
+    if (!confirm('Remove ' + thiccMembers[i].name + ' from the clan?')) return;
+    thiccMembers.splice(i,1);
+    renderThiccList();
+  }
+
+  const _origShowPanel = showPanel;
+  showPanel = function(name) { _origShowPanel(name); if (name === 'thicc') loadThicc(); };
+
+  // ══ CROP & RESIZE TOOL ══
+  let _cropState = {
+    img: null, canvas: null, ctx: null,
+    scale: 1, imgX: 0, imgY: 0,
+    sel: { x: 0, y: 0, w: 0, h: 0 },
+    dragging: false, dragStart: null, dragSel: null,
+    ratio: 'free',
+    callback: null
+  };
+
+  function openCrop(imageUrl, callback) {
+    const overlay = document.getElementById('crop-overlay');
+    overlay.classList.add('open');
+    _cropState.callback = callback;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      _cropState.img = img;
+      initCropCanvas();
+    };
+    img.onerror = () => showToast('Could not load image for cropping. Check the URL.');
+    img.src = imageUrl;
+  }
+
+  function closeCrop() {
+    document.getElementById('crop-overlay').classList.remove('open');
+    _cropState.img = null;
+    _cropState.callback = null;
+  }
+
+  function initCropCanvas() {
+    const wrap = document.getElementById('crop-canvas-wrap');
+    const canvas = document.getElementById('crop-canvas');
+    const ctx = canvas.getContext('2d');
+    const img = _cropState.img;
+    const maxW = wrap.clientWidth - 4;
+    const maxH = 400;
+    const scale = Math.min(maxW / img.width, maxH / img.height, 1);
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    _cropState.scale = scale;
+    _cropState.canvas = canvas;
+    _cropState.ctx = ctx;
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    resetCrop();
+    canvas.onmousedown = cropMouseDown;
+    canvas.onmousemove = cropMouseMove;
+    canvas.onmouseup = cropMouseUp;
+    canvas.ontouchstart = e => { e.preventDefault(); cropMouseDown(e.touches[0]); };
+    canvas.ontouchmove = e => { e.preventDefault(); cropMouseMove(e.touches[0]); };
+    canvas.ontouchend = e => { e.preventDefault(); cropMouseUp(e.changedTouches[0]); };
+  }
+
+  function resetCrop() {
+    const c = _cropState.canvas;
+    if (!c) return;
+    _cropState.sel = { x: 0, y: 0, w: c.width, h: c.height };
+    updateCropSelection();
+    updateCropPreview();
+  }
+
+  function setRatio(r) {
+    _cropState.ratio = r;
+    document.querySelectorAll('.crop-ratio-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('ratio-' + r).classList.add('active');
+    if (r !== 'free') {
+      const [rw, rh] = r.split(':').map(Number);
+      const c = _cropState.canvas;
+      const maxW = c.width;
+      const maxH = c.height;
+      let w = maxW, h = Math.round(w * rh / rw);
+      if (h > maxH) { h = maxH; w = Math.round(h * rw / rh); }
+      _cropState.sel = { x: Math.round((c.width - w)/2), y: Math.round((c.height - h)/2), w, h };
+      const ow = document.getElementById('crop-out-w');
+      const oh = document.getElementById('crop-out-h');
+      const outW = parseInt(ow.value) || 400;
+      oh.value = Math.round(outW * rh / rw);
+      updateCropSelection();
+      updateCropPreview();
+    }
+  }
+
+  function getCanvasPos(e) {
+    const rect = _cropState.canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function cropMouseDown(e) {
+    const pos = getCanvasPos(e);
+    _cropState.dragging = true;
+    _cropState.dragStart = pos;
+    _cropState.dragSel = { x: pos.x, y: pos.y, w: 0, h: 0 };
+  }
+
+  function cropMouseMove(e) {
+    if (!_cropState.dragging) return;
+    const pos = getCanvasPos(e);
+    const c = _cropState.canvas;
+    let x = Math.min(_cropState.dragStart.x, pos.x);
+    let y = Math.min(_cropState.dragStart.y, pos.y);
+    let w = Math.abs(pos.x - _cropState.dragStart.x);
+    let h = Math.abs(pos.y - _cropState.dragStart.y);
+    if (_cropState.ratio !== 'free') {
+      const [rw, rh] = _cropState.ratio.split(':').map(Number);
+      h = Math.round(w * rh / rw);
+    }
+    x = Math.max(0, Math.min(x, c.width - w));
+    y = Math.max(0, Math.min(y, c.height - h));
+    w = Math.min(w, c.width - x);
+    h = Math.min(h, c.height - y);
+    _cropState.sel = { x, y, w, h };
+    updateCropSelection();
+    updateCropPreview();
+  }
+
+  function cropMouseUp() {
+    _cropState.dragging = false;
+  }
+
+  function updateCropSelection() {
+    const sel = document.getElementById('crop-selection');
+    const c = _cropState.canvas;
+    const rect = c.getBoundingClientRect();
+    const wrap = document.getElementById('crop-canvas-wrap').getBoundingClientRect();
+    const canvasLeft = rect.left - wrap.left;
+    const canvasTop = rect.top - wrap.top;
+    const s = _cropState.sel;
+    sel.style.left = (canvasLeft + s.x) + 'px';
+    sel.style.top = (canvasTop + s.y) + 'px';
+    sel.style.width = s.w + 'px';
+    sel.style.height = s.h + 'px';
+    sel.style.display = s.w > 4 && s.h > 4 ? 'block' : 'none';
+  }
+
+  function updateCropPreview() {
+    const prev = document.getElementById('crop-preview-canvas');
+    const pCtx = prev.getContext('2d');
+    const s = _cropState.sel;
+    const outW = parseInt(document.getElementById('crop-out-w').value) || 400;
+    const outH = parseInt(document.getElementById('crop-out-h').value) || 400;
+    prev.width = Math.min(outW, 300);
+    prev.height = Math.round(prev.width * outH / outW);
+    if (s.w < 2 || s.h < 2) { pCtx.clearRect(0,0,prev.width,prev.height); return; }
+    const sc = _cropState.scale;
+    pCtx.drawImage(_cropState.img,
+      s.x / sc, s.y / sc, s.w / sc, s.h / sc,
+      0, 0, prev.width, prev.height
+    );
+  }
+
+  function applyCrop() {
+    const outW = parseInt(document.getElementById('crop-out-w').value) || 400;
+    const outH = parseInt(document.getElementById('crop-out-h').value) || 400;
+    const s = _cropState.sel;
+    const sc = _cropState.scale;
+    const out = document.createElement('canvas');
+    out.width = outW; out.height = outH;
+    out.getContext('2d').drawImage(_cropState.img,
+      s.x / sc, s.y / sc, s.w / sc, s.h / sc,
+      0, 0, outW, outH
+    );
+    const dataUrl = out.toDataURL('image/png');
+    if (_cropState.callback) _cropState.callback(dataUrl);
+    closeCrop();
+    showToast('Image cropped and applied!');
+  }
+
+  // Hook crop button into graphics panel fields
+  function addCropButton(inputId, previewType) {
+    const inp = document.getElementById(inputId);
+    if (!inp) return;
+    const existing = inp.parentElement.querySelector('.btn-crop-open');
+    if (existing) existing.remove();
+    const btn = document.createElement('button');
+    btn.className = 'btn-add btn-crop-open';
+    btn.style.marginTop = '6px';
+    btn.textContent = '✂ Crop & Resize';
+    btn.onclick = () => {
+      const url = resolveUrl(inp.value.trim());
+      if (!url || url === '(uploaded)') { showToast('Enter an image URL first, then crop.'); return; }
+      openCrop(url, (dataUrl) => {
+        if (previewType) { showPreview(previewType, dataUrl); }
+        if (previewType === 'avatar') cfg.avatarUrl = dataUrl;
+        if (previewType === 'banner') cfg.heroBannerUrl = dataUrl;
+        inp.value = '(cropped)';
+      });
+    };
+    inp.parentElement.appendChild(btn);
+  }
+
+  // Add crop buttons to graphics fields after DOM ready
+  setTimeout(() => {
+    addCropButton('avatarUrl', 'avatar');
+    addCropButton('heroBannerUrl', 'banner');
+  }, 500);
+
+  // Also expose a global for THICC member photo crop
+  window.openMemberCrop = function(i) {
+    const url = resolveUrl(thiccMembers[i].photoUrl);
+    if (!url) { showToast('Enter a photo URL first, then crop.'); return; }
+    openCrop(url, (dataUrl) => {
+      thiccMembers[i].photoUrl = dataUrl;
+      showToast('Member photo cropped!');
+    });
+  };
 </script>
 
 </body>
