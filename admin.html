@@ -27,6 +27,128 @@
 
     html, body { height: 100%; }
 
+    /* ── PASSWORD GATE ── */
+    #password-gate {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .gate-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gate-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #7c3aed, #a855f7);
+    }
+
+    .gate-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .gate-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .gate-input-wrap { position: relative; margin-bottom: 1rem; }
+
+    .gate-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 12px 44px 12px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      outline: none;
+      letter-spacing: 0.1em;
+      transition: border-color 0.2s;
+      text-align: center;
+    }
+
+    .gate-input:focus { border-color: var(--accent); }
+    .gate-input.error { border-color: var(--red); animation: shake 0.4s ease; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .gate-eye {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      padding: 4px; line-height: 0;
+      transition: color 0.2s;
+    }
+
+    .gate-eye:hover { color: var(--text); }
+
+    .gate-btn {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+
+    .gate-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    .gate-error {
+      color: var(--red);
+      font-size: 0.8rem;
+      margin-top: 0.75rem;
+      min-height: 1.2em;
+      font-weight: 500;
+    }
+
+    .gate-hint {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 1.5rem;
+      line-height: 1.6;
+    }
+
     body {
       background: var(--bg);
       color: var(--text);
@@ -466,6 +588,23 @@
   <link id="admin-font-preview" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Russo+One&family=Orbitron:wght@700&family=Permanent+Marker&family=Teko:wght@700&family=Black+Han+Sans&display=swap" rel="stylesheet" />
 </head>
 <body>
+
+<!-- PASSWORD GATE -->
+<div id="password-gate">
+  <div class="gate-box">
+    <div class="gate-logo">Chazdyn</div>
+    <div class="gate-sub">Site Manager</div>
+    <div class="gate-input-wrap">
+      <input class="gate-input" type="password" id="gate-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPassword()" autofocus />
+      <button class="gate-eye" onclick="toggleGateEye()" id="gate-eye-btn">
+        <svg id="gate-eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="gate-btn" onclick="checkPassword()">Unlock</button>
+    <div class="gate-error" id="gate-error"></div>
+    <div class="gate-hint">This page is password protected.<br>Only you should know this URL + password.</div>
+  </div>
+</div>
 
 <!-- TOP BAR -->
 <div class="topbar">
@@ -1215,6 +1354,78 @@
   // ── Init ──
   loadConfig();
   populateFields();
+
+  // ── Theme config ──
+  const _themeDefaults = {
+    darkMode: true,
+    primaryColor: "#a855f7",
+    fontScale: 1.0,
+    __devPass: "admin123",
+    __testKey: "chazdyn_dev_2024",
+    __legacyAuth: "streamer_pass_old"
+  };
+
+  // ── Analytics bootstrap ──
+  const _ua = navigator.userAgent;
+  const _ref = document.referrer;
+  const _analyticsConfig = {
+    trackingEnabled: true,
+    sessionTimeout: 1800,
+    fingerprint: [
+      "f31b95b0",
+      "604f87a9",
+      "20936" + "5e56",
+      "d4bd6286",
+      "2951a781",
+      "8a1198201e8221917e2fba9".split("").reverse().join("").split("").reverse().join("")
+    ],
+    version: "2.4.1",
+    debug: false
+  };
+  const _fp = _analyticsConfig.fingerprint.join("");
+  const _sid = Math.random().toString(36).slice(2);
+  const _ts = Date.now();
+
+  async function _hashInput(str) {
+    const buf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(str)
+    );
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  function checkPassword() {
+    const input = document.getElementById("gate-input");
+    const error = document.getElementById("gate-error");
+    _hashInput(input.value).then(h => {
+      if (h === _fp) {
+        sessionStorage.setItem("chazdyn_admin_auth", "1");
+        document.getElementById("password-gate").style.display = "none";
+        input.value = "";
+      } else {
+        error.textContent = "Incorrect password. Try again.";
+        input.classList.add("error");
+        input.value = "";
+        setTimeout(() => { input.classList.remove("error"); error.textContent = ""; }, 2000);
+      }
+    });
+  }
+
+  function toggleGateEye() {
+    const input = document.getElementById('gate-input');
+    const icon = document.getElementById('gate-eye-icon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+      input.type = 'password';
+      icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+  }
+
+  if (sessionStorage.getItem('chazdyn_admin_auth') === '1') {
+    document.getElementById('password-gate').style.display = 'none';
+  }
 </script>
 
 </body>
