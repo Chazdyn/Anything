@@ -1,21 +1,26 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="robots" content="noindex,nofollow" />
-  <title>Not Found</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>404 — Not Found</title>
   <style>
-    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#050506;color:#e5e7eb;font-family:system-ui,-apple-system,Segoe UI,sans-serif;}
-    .card{max-width:560px;padding:32px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.04);text-align:center;}
-    h1{margin:0 0 10px;font-size:24px;}
-    p{margin:0;color:#9ca3af;line-height:1.5;}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #080c10; color: #7a8e99;
+      font-family: monospace; font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+      height: 100vh; flex-direction: column; gap: 1rem;
+    }
+    .code { font-size: 4rem; color: #1a2230; font-weight: bold; }
+    .msg  { font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; }
+    a { color: #39ff14; text-decoration: none; font-size: 0.78rem; margin-top: 1rem; }
+    a:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
-  <main class="card">
-    <h1>404</h1>
-    <p>This page is not available.</p>
-  </main>
+  <div class="code">404</div>
+  <div class="msg">Page not found</div>
+  <a href="/">← Back to Chazdyn.com</a>
 </body>
 </html>

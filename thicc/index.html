@@ -676,7 +676,7 @@
       rank: 'Clan Leader',
       isLeader: true,
       about: 'PNW dad, musician, and the guy who pauses games to read chat. Come hang.',
-      photoUrl: '',
+      photoUrl: '../assets/Chazdyn Avatar.JPG',
       videoUrl: '',
       socials: [
         { platform: 'Twitch', url: 'https://twitch.tv/chazdyn', handle: 'Chazdyn' },
@@ -684,7 +684,7 @@
         { platform: 'Instagram', url: 'https://instagram.com/chazdynplays', handle: '@ChazdynPlays' }
       ]
     },
-    { id: 2, name: 'ShyShack', gamertag: 'ShyShack', rank: 'Member', isLeader: false, about: '', photoUrl: '', videoUrl: '', socials: [] },
+    { id: 2, name: 'ShyShack', gamertag: 'ShyShack', rank: 'Member', isLeader: false, about: '', photoUrl: '../assets/ShyShack Avatar.png', videoUrl: '', socials: [] },
     { id: 3, name: 'Mastercardi', gamertag: 'Mastercardi', rank: 'Member', isLeader: false, about: '', photoUrl: '', videoUrl: '', socials: [] },
     { id: 4, name: 'SenoritoTaquito', gamertag: 'SenoritoTaquito', rank: 'Member', isLeader: false, about: '', photoUrl: '', videoUrl: '', socials: [] },
     { id: 5, name: 'PrincessBayleaf', gamertag: 'PrincessBayleaf', rank: 'Member', isLeader: false, about: '', photoUrl: '', videoUrl: '', socials: [] },
@@ -748,7 +748,7 @@
   // ── LOAD & RENDER ──
   function loadAndRender() {
     const raw = localStorage.getItem('chazdyn_thicc');
-    let members = raw ? JSON.parse(raw) : DEFAULT_MEMBERS;
+    const members = raw ? JSON.parse(raw) : DEFAULT_MEMBERS;
 
     const cfg = localStorage.getItem('chazdyn_config');
     if (cfg) {
@@ -757,7 +757,6 @@
         if (c.thiccDesc) document.getElementById('hero-desc').textContent = c.thiccDesc;
         if (c.thiccFounded) document.getElementById('stat-founded').textContent = c.thiccFounded;
         if (c.thiccGame) document.getElementById('stat-game').textContent = c.thiccGame;
-        if (!raw && c.thiccMembers && c.thiccMembers.length) members = c.thiccMembers;
       } catch(e){}
     }
 
