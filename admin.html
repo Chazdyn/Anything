@@ -669,6 +669,13 @@
         Extra Sections
       </div>
     </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">THICC Clan</div>
+      <div class="sidebar-item" onclick="showPanel('thicc')" id="nav-thicc">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Clan Members
+      </div>
+    </div>
   </nav>
 
   <!-- MAIN -->
@@ -994,6 +1001,40 @@
         <div class="card-title">Custom Sections</div>
         <div id="sections-list"></div>
         <button class="btn-add" onclick="addSection()" style="width:100%;justify-content:center;">+ Add New Section</button>
+      </div>
+    </div>
+
+  <!-- ══ THICC CLAN PANEL ══ -->
+    <div class="panel" id="panel-thicc">
+      <div class="panel-header">
+        <h2>THICC Clan</h2>
+        <p>Manage clan members, bios, photos, clips and social links.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Clan Page Settings</div>
+        <div class="field">
+          <label>Clan Description (hero text)</label>
+          <textarea id="thiccDesc" placeholder="We're not a tryhard clan..."></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Main Game</label>
+            <input type="text" id="thiccGame" placeholder="COD" />
+          </div>
+          <div class="field">
+            <label>Year Founded</label>
+            <input type="text" id="thiccFounded" placeholder="2024" />
+          </div>
+        </div>
+        <button class="btn-add" onclick="saveClanSettings()" style="margin-top:0.5rem;">Save Clan Settings</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Clan Roster</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1.25rem;">Click a member to expand and edit their profile.</p>
+        <div id="thicc-members-list"></div>
+        <button class="btn-add" onclick="addMember()" style="width:100%;justify-content:center;margin-top:0.5rem;">+ Add New Member</button>
       </div>
     </div>
 
@@ -1426,6 +1467,151 @@
   if (sessionStorage.getItem('chazdyn_admin_auth') === '1') {
     document.getElementById('password-gate').style.display = 'none';
   }
+
+  // THICC CLAN MANAGER
+  const DEFAULT_THICC_MEMBERS = [
+    { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'', videoUrl:'', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
+    { id:2, name:'ShyShack', gamertag:'ShyShack', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:3, name:'Mastercardi', gamertag:'Mastercardi', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:4, name:'SenoritoTaquito', gamertag:'SenoritoTaquito', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:5, name:'PrincessBayleaf', gamertag:'PrincessBayleaf', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+    { id:7, name:'Thomas', gamertag:'Thomas', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] }
+  ];
+
+  let thiccMembers = [];
+
+  function loadThicc() {
+    const raw = localStorage.getItem('chazdyn_thicc');
+    thiccMembers = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_THICC_MEMBERS));
+    const c = JSON.parse(localStorage.getItem('chazdyn_config')||'{}');
+    setVal('thiccDesc', c.thiccDesc||'');
+    setVal('thiccGame', c.thiccGame||'COD');
+    setVal('thiccFounded', c.thiccFounded||'2024');
+    renderThiccList();
+  }
+
+  function saveThicc() {
+    localStorage.setItem('chazdyn_thicc', JSON.stringify(thiccMembers));
+    showToast('Clan saved!');
+  }
+
+  function saveClanSettings() {
+    const c = JSON.parse(localStorage.getItem('chazdyn_config')||'{}');
+    c.thiccDesc = v('thiccDesc');
+    c.thiccGame = v('thiccGame');
+    c.thiccFounded = v('thiccFounded');
+    localStorage.setItem('chazdyn_config', JSON.stringify(c));
+    showToast('Clan settings saved!');
+  }
+
+  function renderThiccList() {
+    const container = document.getElementById('thicc-members-list');
+    if (!thiccMembers.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No members yet.</p>'; return; }
+    container.innerHTML = thiccMembers.map((m,i) => `
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;" onclick="toggleMemberExpand(${i})">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(168,85,247,0.15);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.85rem;color:var(--accent);">${m.name.charAt(0)}</div>
+            <div>
+              <div style="font-weight:600;font-size:0.9rem;">${m.name}</div>
+              <div style="font-size:0.75rem;color:var(--muted);">${m.gamertag} &middot; ${m.rank}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${m.isLeader ? '<span style="font-size:0.65rem;background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.3);padding:2px 8px;border-radius:4px;">Leader</span>' : ''}
+            <span style="color:var(--muted);font-size:0.8rem;" id="chevron-${i}">&#9660;</span>
+          </div>
+        </div>
+        <div id="member-expand-${i}" style="display:none;padding:0 14px 14px;border-top:1px solid var(--border2);">
+          <div style="height:12px;"></div>
+          <div class="field-row">
+            <div class="field"><label>Display Name</label><input type="text" value="${m.name}" oninput="thiccMembers[${i}].name=this.value" /></div>
+            <div class="field"><label>Gamertag</label><input type="text" value="${m.gamertag}" oninput="thiccMembers[${i}].gamertag=this.value" /></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Rank / Title</label><input type="text" value="${m.rank}" oninput="thiccMembers[${i}].rank=this.value" /></div>
+            <div class="field"><label>Clan Leader?</label>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+                <div class="toggle-switch ${m.isLeader?'on':''}" onclick="thiccMembers[${i}].isLeader=!thiccMembers[${i}].isLeader;this.classList.toggle('on')"></div>
+                <span style="font-size:0.82rem;color:var(--muted);">Is clan leader</span>
+              </div>
+            </div>
+          </div>
+          <div class="field"><label>Bio / About</label><textarea oninput="thiccMembers[${i}].about=this.value" placeholder="Short bio...">${m.about||''}</textarea></div>
+          <div class="field"><label>Profile Photo URL</label><input type="url" value="${m.photoUrl||''}" oninput="thiccMembers[${i}].photoUrl=this.value" placeholder="https://..." /></div>
+          <div class="field">
+            <label>Highlight Clip URL (plays on hover)</label>
+            <input type="url" value="${m.videoUrl||''}" oninput="thiccMembers[${i}].videoUrl=this.value" placeholder="https://... (.mp4 direct link)" />
+            <div class="hint">Use a direct .mp4 link. Upload clips to streamable.com and use the direct video URL.</div>
+          </div>
+          <div class="field">
+            <label>Social Links</label>
+            <div id="member-socials-${i}"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;margin-top:8px;align-items:end;">
+              <div><label>Platform</label><select id="new-social-platform-${i}"><option>Twitch</option><option>TikTok</option><option>Instagram</option><option>YouTube</option><option>Twitter</option><option>Discord</option><option>Other</option></select></div>
+              <div><label>Handle</label><input type="text" id="new-social-handle-${i}" placeholder="@handle" /></div>
+              <div><label>URL</label><input type="url" id="new-social-url-${i}" placeholder="https://..." /></div>
+              <button class="btn-add" style="height:40px;" onclick="addMemberSocial(${i})">+</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:0.5rem;">
+            <button class="btn-add" onclick="saveThicc()" style="flex:1;justify-content:center;">Save Member</button>
+            <button class="btn-remove" onclick="removeMember(${i})" style="width:auto;padding:0 16px;font-size:0.82rem;">Remove</button>
+          </div>
+        </div>
+      </div>`).join('');
+    thiccMembers.forEach((_,i) => renderMemberSocials(i));
+  }
+
+  function toggleMemberExpand(i) {
+    const el = document.getElementById('member-expand-'+i);
+    const ch = document.getElementById('chevron-'+i);
+    const open = el.style.display === 'block';
+    el.style.display = open ? 'none' : 'block';
+    ch.innerHTML = open ? '&#9660;' : '&#9650;';
+  }
+
+  function renderMemberSocials(i) {
+    const container = document.getElementById('member-socials-'+i);
+    if (!container) return;
+    const m = thiccMembers[i];
+    if (!m.socials || !m.socials.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.78rem;margin-bottom:4px;">No socials yet.</p>'; return; }
+    container.innerHTML = m.socials.map((s,j) => `
+      <div class="list-item" style="margin-bottom:4px;">
+        <div style="flex:1;"><span class="list-item-text">${s.platform}</span><span class="list-item-sub" style="margin-left:8px;">${s.handle}</span></div>
+        <button class="btn-remove" onclick="removeMemberSocial(${i},${j})">&#x2715;</button>
+      </div>`).join('');
+  }
+
+  function addMemberSocial(i) {
+    const platform = document.getElementById('new-social-platform-'+i).value;
+    const handle = document.getElementById('new-social-handle-'+i).value.trim();
+    const url = document.getElementById('new-social-url-'+i).value.trim();
+    if (!url) return;
+    if (!thiccMembers[i].socials) thiccMembers[i].socials = [];
+    thiccMembers[i].socials.push({platform, handle, url});
+    document.getElementById('new-social-handle-'+i).value = '';
+    document.getElementById('new-social-url-'+i).value = '';
+    renderMemberSocials(i);
+  }
+
+  function removeMemberSocial(i, j) { thiccMembers[i].socials.splice(j,1); renderMemberSocials(i); }
+
+  function addMember() {
+    thiccMembers.push({ id:Date.now(), name:'New Member', gamertag:'Gamertag', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] });
+    renderThiccList();
+    setTimeout(() => toggleMemberExpand(thiccMembers.length-1), 50);
+  }
+
+  function removeMember(i) {
+    if (!confirm('Remove ' + thiccMembers[i].name + ' from the clan?')) return;
+    thiccMembers.splice(i,1);
+    renderThiccList();
+  }
+
+  const _origShowPanel = showPanel;
+  showPanel = function(name) { _origShowPanel(name); if (name === 'thicc') loadThicc(); };
 </script>
 
 </body>
