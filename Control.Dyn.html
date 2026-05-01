@@ -1,0 +1,1874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Control.Dyn</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#39ff14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Control.Dyn" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="control.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="topbar-logo">CONTROL<span>.DYN</span></div>
+
+    <div class="topbar-center">
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="btn-preview-mode" onclick="setMode('preview')">Preview</button>
+        <button class="mode-btn" id="btn-live-mode" onclick="setMode('live')">Live</button>
+      </div>
+      <div class="live-indicator offline" id="twitch-status" title="Twitch status">
+        <span class="live-dot"></span>
+        <span id="twitch-status-text">Offline</span>
+        <span id="twitch-viewer-count" style="display:none"></span>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <button class="qa-btn ghost" id="install-btn" style="display:none" onclick="installPWA()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install App
+      </button>
+      <button class="qa-btn ghost" onclick="forceDeploy()" title="Trigger redeploy">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+      <button class="qa-btn ghost" onclick="toggleLiveBadge()" id="live-badge-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        Live Badge
+      </button>
+      <button class="qa-btn primary" onclick="deployToLive()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="5 12 12 5 19 12"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+        Go Live
+      </button>
+    </div>
+  </header>
+
+  <div class="main">
+
+    <!-- ── SIDEBAR ── -->
+    <nav class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Overview</div>
+        <a class="nav-item active" onclick="showSection('dashboard')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </a>
+        <a class="nav-item" onclick="showSection('preview')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          Preview
+        </a>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Site Editor</div>
+        <a class="nav-item" onclick="showSection('hero')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Hero
+        </a>
+        <a class="nav-item" onclick="showSection('about')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          About
+        </a>
+        <a class="nav-item" onclick="showSection('clips')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Clips
+        </a>
+        <a class="nav-item" onclick="showSection('music')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          Music
+        </a>
+        <a class="nav-item" onclick="showSection('schedule')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Schedule
+        </a>
+        <a class="nav-item" onclick="showSection('socials')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          Socials
+        </a>
+        <a class="nav-item" onclick="showSection('theme')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Theme
+        </a>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">THICC</div>
+        <a class="nav-item" onclick="showSection('thicc')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Roster
+        </a>
+        <a class="nav-item" onclick="showSection('thicc-settings')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+          Clan Settings
+        </a>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Assets & Deploy</div>
+        <a class="nav-item" onclick="showSection('assets')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Assets
+        </a>
+        <a class="nav-item" onclick="showSection('backups')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Backups
+        </a>
+        <a class="nav-item" onclick="showSection('changelog')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Change Log
+        </a>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Settings</div>
+        <a class="nav-item" onclick="showSection('connections')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Connections
+        </a>
+      </div>
+    </nav>
+
+    <!-- ── CONTENT AREA ── -->
+    <main class="content" id="content-area">
+
+      <!-- ════ DASHBOARD ════ -->
+      <section class="section active" id="section-dashboard">
+        <div class="grid-3">
+          <div class="stat-card green">
+            <div class="stat-label">Twitch Status</div>
+            <div class="stat-value" id="dash-status">—</div>
+            <div class="stat-sub" id="dash-viewers">Connect Twitch API</div>
+          </div>
+          <div class="stat-card cyan">
+            <div class="stat-label">Last Deploy</div>
+            <div class="stat-value" id="dash-deploy" style="font-size:1.1rem;line-height:1.4">—</div>
+            <div class="stat-sub" id="dash-deploy-sub">Never</div>
+          </div>
+          <div class="stat-card amber">
+            <div class="stat-label">Backups</div>
+            <div class="stat-value" id="dash-backup-count">0</div>
+            <div class="stat-sub">Stored in repo</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Recent Activity
+            </div>
+            <button class="qa-btn ghost" onclick="clearLog()">Clear</button>
+          </div>
+          <div class="panel-body" id="dash-log" style="max-height:240px;overflow-y:auto;">
+            <div class="log-entry">
+              <span class="log-time">—</span>
+              <span class="log-badge edit">Info</span>
+              <span class="log-msg">Control.Dyn loaded. Connect GitHub to get started.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+              Quick Actions
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="flex-row">
+              <button class="qa-btn primary" onclick="deployToLive()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="5 12 12 5 19 12"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+                Deploy to Live
+              </button>
+              <button class="qa-btn ghost" onclick="createBackup('Manual backup')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Save Backup
+              </button>
+              <button class="qa-btn ghost" onclick="toggleLiveBadge()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                Toggle Live Badge
+              </button>
+              <button class="qa-btn ghost" onclick="showSection('connections')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                Connections
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ PREVIEW ════ -->
+      <section class="section" id="section-preview">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Site Preview
+            </div>
+            <div class="flex-row">
+              <div class="mode-toggle">
+                <button class="mode-btn active" onclick="setPreviewSrc('preview')">Preview</button>
+                <button class="mode-btn" onclick="setPreviewSrc('live')">Live</button>
+              </div>
+              <button class="qa-btn ghost" onclick="document.getElementById('preview-frame').src += ''">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Reload
+              </button>
+            </div>
+          </div>
+          <div class="preview-wrap" style="border-radius:0">
+            <div class="preview-bar">
+              <span class="preview-dot preview" id="preview-dot"></span>
+              <span id="preview-url-bar" style="font-family:monospace;font-size:0.72rem;">../index.html</span>
+            </div>
+            <iframe id="preview-frame" src="../index.html" style="height:70vh"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ HERO ════ -->
+      <section class="section" id="section-hero">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Hero Section
+            </div>
+            <button class="qa-btn ghost" onclick="saveSection('hero')">Save Changes</button>
+          </div>
+          <div class="panel-body">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">🔴 Live Badge</div>
+                <div class="toggle-sub">Shows "Live on Twitch" banner at top of hero</div>
+              </div>
+              <label class="toggle">
+                <input type="checkbox" id="hero-live-badge" onchange="onFieldChange('isLive', this.checked)" />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+            <div class="sep"></div>
+            <div class="field">
+              <label>Eyebrow Text</label>
+              <input type="text" id="hero-eyebrow" placeholder="Streamer · Musician · Dad · Washington State" value="Streamer · Musician · Dad · Washington State" oninput="onFieldChange('heroEyebrow', this.value)" />
+            </div>
+            <div class="field">
+              <label>Tagline</label>
+              <input type="text" id="hero-tagline" placeholder="Always one more match." value="Always one more match." oninput="onFieldChange('heroTagline', this.value)" />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Watch Live Button URL</label>
+                <input type="url" id="hero-twitch-url" placeholder="https://twitch.tv/chazdyn" value="https://twitch.tv/chazdyn" oninput="onFieldChange('twitchUrl', this.value)" />
+              </div>
+              <div class="field">
+                <label>Discord Button URL</label>
+                <input type="url" id="hero-discord-url" placeholder="https://discord.gg/..." value="https://discord.gg/BWV92m2T2D" oninput="onFieldChange('discordUrl', this.value)" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ ABOUT ════ -->
+      <section class="section" id="section-about">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              About Section
+            </div>
+            <button class="qa-btn ghost" onclick="saveSection('about')">Save Changes</button>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Avatar Image</label>
+              <div class="flex-row">
+                <input type="text" id="about-avatar-url" placeholder="assets/Chazdyn Avatar.JPG" value="assets/Chazdyn Avatar.JPG" oninput="onFieldChange('avatarUrl', this.value)" style="flex:1" />
+                <button class="qa-btn ghost" onclick="document.getElementById('avatar-file-input').click()">Upload</button>
+                <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAsset(this, 'about-avatar-url', 'avatarUrl')" />
+              </div>
+              <div class="input-hint">Shorthand path or upload a new image</div>
+            </div>
+            <div class="field">
+              <label>Short Bio (card)</label>
+              <textarea id="about-short-bio" oninput="onFieldChange('aboutBio', this.value)">Husband. Dad. Musician. And yes, I stream too — usually sneaking in one more match while the house is quiet.</textarea>
+            </div>
+            <div class="field">
+              <label>Long Bio (main text)</label>
+              <textarea id="about-long-bio" style="min-height:100px" oninput="onFieldChange('aboutLong', this.value)">I'm Chazdyn — a Black Ops 6 main, amateur musician, full-time dad, and professional yapper from Washington State. My streams are less about perfection and more about having a genuinely good time with good people.</textarea>
+            </div>
+            <div class="field">
+              <label>Tags (comma-separated)</label>
+              <input type="text" id="about-tags" value="Black Ops 6, Party Games, Musician, Dad Life, Washington, Chatty &amp; Chill" oninput="onFieldChange('aboutTags', this.value.split(',').map(t=>t.trim()))" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ CLIPS ════ -->
+      <section class="section" id="section-clips">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              Clips
+            </div>
+            <button class="qa-btn ghost" onclick="saveSection('clips')">Save Changes</button>
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:0.8rem">Paste a Twitch, YouTube, TikTok, or Instagram link — or upload a video file directly. Shorthand filenames shown by default.</p>
+            <div id="clips-editor"></div>
+            <button class="qa-btn ghost full-width" onclick="addClipSlot()" style="margin-top:0.5rem">+ Add Clip Slot</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ MUSIC ════ -->
+      <section class="section" id="section-music">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+              Music Section
+            </div>
+            <button class="qa-btn ghost" onclick="saveSection('music')">Save Changes</button>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Feature Video (YouTube URL or upload)</label>
+              <div class="flex-row">
+                <input type="text" id="music-video-url" placeholder="https://youtube.com/watch?v=..." oninput="onFieldChange('musicVideoUrl', this.value)" style="flex:1" />
+                <button class="qa-btn ghost" onclick="document.getElementById('music-file-input').click()">Upload</button>
+                <input type="file" id="music-file-input" accept="video/*" style="display:none" onchange="uploadAsset(this, 'music-video-url', 'musicVideoUrl')" />
+              </div>
+            </div>
+            <div class="sep"></div>
+            <div class="field">
+              <label>YouTube Channel URL</label>
+              <input type="url" id="music-yt-url" placeholder="https://youtube.com/@..." oninput="onFieldChange('musicYtUrl', this.value)" />
+            </div>
+            <div class="field">
+              <label>Spotify URL</label>
+              <input type="url" id="music-spotify-url" placeholder="https://open.spotify.com/..." oninput="onFieldChange('musicSpotUrl', this.value)" />
+            </div>
+            <div class="field">
+              <label>SoundCloud URL</label>
+              <input type="url" id="music-sc-url" placeholder="https://soundcloud.com/..." oninput="onFieldChange('musicScUrl', this.value)" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ SCHEDULE ════ -->
+      <section class="section" id="section-schedule">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Stream Schedule
+            </div>
+            <button class="qa-btn ghost" onclick="saveSection('schedule')">Save Changes</button>
+          </div>
+          <div class="panel-body">
+            <div class="grid-7" id="schedule-editor"></div>
+            <p class="input-hint" style="margin-top:0.5rem">Toggle days on/off and set approximate start times (e.g. 8pm, 9:30pm)</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ SOCIALS ════ -->
+      <section class="section" id="section-socials">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              Social Links
+            </div>
+            <button class="qa-btn ghost" onclick="saveSection('socials')">Save Changes</button>
+          </div>
+          <div class="panel-body">
+            <div class="field-row">
+              <div class="field">
+                <label style="color:#9147ff">Twitch URL</label>
+                <input type="url" id="soc-twitch" value="https://twitch.tv/chazdyn" oninput="onFieldChange('twitchUrl', this.value)" />
+              </div>
+              <div class="field">
+                <label style="color:#5865f2">Discord URL</label>
+                <input type="url" id="soc-discord" value="https://discord.gg/BWV92m2T2D" oninput="onFieldChange('discordUrl', this.value)" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label style="color:#ff0050">TikTok URL</label>
+                <input type="url" id="soc-tiktok" value="https://tiktok.com/@thiccchazdyn" oninput="onFieldChange('tiktokUrl', this.value)" />
+              </div>
+              <div class="field">
+                <label style="color:#e1306c">Instagram URL</label>
+                <input type="url" id="soc-insta" value="https://instagram.com/chazdynplays" oninput="onFieldChange('instaUrl', this.value)" />
+              </div>
+            </div>
+            <div class="field">
+              <label style="color:#00e5ff">THICC Page URL</label>
+              <input type="url" id="soc-thicc" value="/thicc" oninput="onFieldChange('thiccUrl', this.value)" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ THEME ════ -->
+      <section class="section" id="section-theme">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Theme Editor
+            </div>
+            <button class="qa-btn primary" onclick="pushTheme()">Push Theme to Live</button>
+          </div>
+          <div class="panel-body">
+            <div class="field-3col">
+              <div class="field">
+                <label>Accent Green</label>
+                <div class="color-row">
+                  <input type="color" id="theme-green" value="#39ff14" oninput="liveTheme()" />
+                  <input type="text" id="theme-green-hex" value="#39ff14" oninput="syncColorFromText('theme-green','theme-green-hex')" style="flex:1" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Accent Cyan</label>
+                <div class="color-row">
+                  <input type="color" id="theme-cyan" value="#00e5ff" oninput="liveTheme()" />
+                  <input type="text" id="theme-cyan-hex" value="#00e5ff" oninput="syncColorFromText('theme-cyan','theme-cyan-hex')" style="flex:1" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Background</label>
+                <div class="color-row">
+                  <input type="color" id="theme-bg" value="#080c10" oninput="liveTheme()" />
+                  <input type="text" id="theme-bg-hex" value="#080c10" oninput="syncColorFromText('theme-bg','theme-bg-hex')" style="flex:1" />
+                </div>
+              </div>
+            </div>
+            <div class="sep"></div>
+            <div class="field-row">
+              <div class="field">
+                <label>Display Font</label>
+                <input type="text" id="theme-display-font" value="Bebas Neue" placeholder="Bebas Neue" />
+                <div class="input-hint">Google Fonts name</div>
+              </div>
+              <div class="field">
+                <label>Body Font</label>
+                <input type="text" id="theme-body-font" value="DM Sans" placeholder="DM Sans" />
+                <div class="input-hint">Google Fonts name</div>
+              </div>
+            </div>
+            <div class="sep"></div>
+            <div class="field">
+              <label>Preview (live in iframe)</label>
+              <div class="preview-wrap" style="margin-top:0.25rem">
+                <div class="preview-bar"><span class="preview-dot preview"></span><span style="font-family:monospace;font-size:0.72rem">Theme preview</span></div>
+                <iframe id="theme-preview-frame" src="../index.html" style="height:300px"></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ ASSETS ════ -->
+      <section class="section" id="section-assets">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              Asset Browser
+            </div>
+            <div class="flex-row">
+              <label class="toggle" title="Show full GitHub raw URLs">
+                <input type="checkbox" id="show-full-urls" onchange="refreshAssets()" />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+              <span style="font-size:0.72rem;color:var(--muted)">Show Full URLs</span>
+              <button class="qa-btn ghost" onclick="refreshAssets()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Refresh
+              </button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="upload-zone" id="asset-drop-zone" onclick="document.getElementById('bulk-file-input').click()">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p>Drag &amp; drop files here or click to browse</p>
+              <p style="font-size:0.72rem;margin-top:0.25rem">Images, videos — uploaded directly to GitHub assets/</p>
+              <input type="file" id="bulk-file-input" multiple accept="image/*,video/*" style="display:none" onchange="handleBulkUpload(this)" />
+            </div>
+            <div class="grid-3" id="assets-grid" style="margin-top:0.5rem">
+              <div style="color:var(--muted);font-size:0.82rem;grid-column:1/-1">Connect GitHub to browse assets.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ BACKUPS ════ -->
+      <section class="section" id="section-backups">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Backup &amp; Rollback
+            </div>
+            <button class="qa-btn ghost" onclick="createBackup('Manual backup')">Save Backup Now</button>
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:0.8rem">Backups are saved to <span class="mono text-cyan">backups/</span> in your GitHub repo. Click any backup to preview it, then restore if needed.</p>
+            <div id="backups-list">
+              <div style="color:var(--muted);font-size:0.82rem">No backups yet. Deploy to create your first backup automatically.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ CHANGE LOG ════ -->
+      <section class="section" id="section-changelog">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              Change Log
+            </div>
+            <div class="flex-row">
+              <button class="qa-btn ghost" onclick="exportLog()">Export .json</button>
+              <button class="qa-btn danger" onclick="clearLog()">Clear Log</button>
+            </div>
+          </div>
+          <div class="panel-body" id="changelog-body" style="max-height:60vh;overflow-y:auto;">
+            <div style="color:var(--muted);font-size:0.82rem">No changes logged yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ CONNECTIONS ════ -->
+      <section class="section" id="section-connections">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              Connections &amp; API Keys
+            </div>
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:0.8rem">All keys are stored locally in your browser only and never sent anywhere except the respective APIs.</p>
+            <div class="sep"></div>
+
+            <!-- GitHub -->
+            <div class="field">
+              <label style="color:#6cc644">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                GitHub Personal Access Token
+              </label>
+              <div class="flex-row">
+                <input type="password" id="gh-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="flex:1" />
+                <button class="qa-btn ghost" onclick="toggleVisible('gh-pat')">Show</button>
+              </div>
+              <div class="field-row" style="margin-top:0.5rem">
+                <div class="field">
+                  <label>Repo Owner</label>
+                  <input type="text" id="gh-owner" placeholder="Chazdyn" value="Chazdyn" />
+                </div>
+                <div class="field">
+                  <label>Repo Name</label>
+                  <input type="text" id="gh-repo" placeholder="Anything" value="Anything" />
+                </div>
+              </div>
+              <div class="field" style="margin-top:0.5rem">
+                <label>Branch</label>
+                <input type="text" id="gh-branch" placeholder="main" value="main" />
+              </div>
+              <div class="flex-row" style="margin-top:0.5rem">
+                <button class="qa-btn ghost" onclick="saveGitHubCreds()">Save &amp; Test Connection</button>
+                <span id="gh-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
+              </div>
+            </div>
+
+            <div class="sep"></div>
+
+            <!-- Twitch -->
+            <div class="field">
+              <label style="color:#9147ff">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+                Twitch API
+              </label>
+              <div class="field-row">
+                <div class="field">
+                  <label>Client ID</label>
+                  <input type="text" id="twitch-client-id" placeholder="Twitch Client ID" />
+                </div>
+                <div class="field">
+                  <label>Client Secret</label>
+                  <div class="flex-row">
+                    <input type="password" id="twitch-client-secret" placeholder="Twitch Client Secret" style="flex:1" />
+                    <button class="qa-btn ghost" onclick="toggleVisible('twitch-client-secret')">Show</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field" style="margin-top:0.5rem">
+                <label>Your Twitch Username</label>
+                <input type="text" id="twitch-username" placeholder="chazdyn" value="chazdyn" />
+              </div>
+              <div class="flex-row" style="margin-top:0.5rem">
+                <button class="qa-btn ghost" onclick="saveTwitchCreds()">Save &amp; Connect</button>
+                <span id="twitch-conn-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
+              </div>
+              <div class="field" style="margin-top:0.75rem">
+                <label>Poll Interval (seconds)</label>
+                <input type="number" id="twitch-poll-interval" value="30" min="10" max="300" style="width:100px" />
+                <div class="input-hint">How often to check if you're live (min 10s)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ THICC ROSTER ════ -->
+      <section class="section" id="section-thicc">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              THICC Roster
+            </div>
+            <div class="flex-row">
+              <button class="qa-btn ghost" onclick="addMember()">+ Add Member</button>
+              <button class="qa-btn ghost" onclick="saveTHICC()">Save Changes</button>
+              <button class="qa-btn primary" onclick="deployTHICC()">Deploy THICC</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:0.8rem">Manage clan members. Drag to reorder (leader always shown first). Upload photos/videos directly to GitHub assets.</p>
+            <div id="thicc-roster-editor"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ THICC SETTINGS ════ -->
+      <section class="section" id="section-thicc-settings">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              Clan Settings
+            </div>
+            <button class="qa-btn ghost" onclick="saveTHICC()">Save Changes</button>
+          </div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Clan Description</label>
+              <textarea id="thicc-desc" style="min-height:80px">We're not a tryhard clan. We're a group of friends who happen to be pretty decent at COD — and extremely good at talking over each other on comms.</textarea>
+            </div>
+            <div class="field-3col">
+              <div class="field">
+                <label>Main Game</label>
+                <input type="text" id="thicc-game" value="BO6" placeholder="BO6" />
+              </div>
+              <div class="field">
+                <label>Founded Year</label>
+                <input type="text" id="thicc-founded" value="2024" placeholder="2024" />
+              </div>
+              <div class="field">
+                <label>Clan Tag</label>
+                <input type="text" id="thicc-tag" value="THICC" placeholder="THICC" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Full Name (acronym)</label>
+              <input type="text" id="thicc-fullname" value="Totally Humble Insanely Cracked Champions" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- Context Menu -->
+<div id="ctx-menu">
+  <div class="ctx-header" id="ctx-title">Element</div>
+  <div class="ctx-element-label" id="ctx-element-label"></div>
+  <div id="ctx-items"></div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const STATE = {
+  mode: 'preview',
+  ghPat: '', ghOwner: 'Chazdyn', ghRepo: 'Anything', ghBranch: 'main',
+  ghConnected: false,
+  twitchClientId: '', twitchClientSecret: '', twitchUsername: 'chazdyn',
+  twitchToken: null, twitchConnected: false, twitchPollTimer: null,
+  isLive: false, liveBadgeOn: false,
+  showFullUrls: false,
+  config: {},
+  clips: [{url:'',title:'',file:null},{url:'',title:'',file:null},{url:'',title:'',file:null}],
+  schedule: {
+    Mon:{live:false,time:''},
+    Tue:{live:true, time:'8pm'},
+    Wed:{live:false,time:''},
+    Thu:{live:true, time:'8pm'},
+    Fri:{live:true, time:'9pm'},
+    Sat:{live:true, time:'7pm'},
+    Sun:{live:false,time:'Family'}
+  },
+  assets: [],
+  backups: [],
+  changelog: [],
+  pendingChanges: {}
+};
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+function init() {
+  loadFromStorage();
+  renderClipsEditor();
+  renderScheduleEditor();
+  renderChangelog();
+  renderBackupsList();
+  updateDashboard();
+
+  // drag-and-drop on asset zone
+  const zone = document.getElementById('asset-drop-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    handleFileDrop(e.dataTransfer.files);
+  });
+}
+
+function loadFromStorage() {
+  const saved = localStorage.getItem('controldyn_state');
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      Object.assign(STATE, s);
+      // restore UI
+      if (STATE.ghPat) document.getElementById('gh-pat').value = STATE.ghPat;
+      if (STATE.ghOwner) document.getElementById('gh-owner').value = STATE.ghOwner;
+      if (STATE.ghRepo)  document.getElementById('gh-repo').value  = STATE.ghRepo;
+      if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
+      if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
+      if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
+      if (STATE.ghConnected) updateGhStatus(true);
+      if (STATE.twitchConnected && STATE.twitchClientId) startTwitchPolling();
+    } catch(e) {}
+  }
+}
+
+function saveToStorage() {
+  const toSave = {...STATE};
+  // don't save token in memory — just creds
+  delete toSave.twitchToken;
+  localStorage.setItem('controldyn_state', JSON.stringify(toSave));
+}
+
+// ══════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('section-' + id);
+  if (sec) sec.classList.add('active');
+  // highlight nav
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
+  });
+  if (id === 'assets') refreshAssets();
+}
+
+// ══════════════════════════════════════════════
+//  MODE TOGGLE
+// ══════════════════════════════════════════════
+function setMode(mode) {
+  STATE.mode = mode;
+  document.getElementById('btn-preview-mode').classList.toggle('active', mode === 'preview');
+  document.getElementById('btn-live-mode').classList.toggle('active', mode === 'live');
+}
+
+// ══════════════════════════════════════════════
+//  FIELD CHANGES
+// ══════════════════════════════════════════════
+function onFieldChange(key, value) {
+  STATE.pendingChanges[key] = value;
+  logChange('edit', `${key} updated`, typeof value === 'string' ? value.substring(0, 60) : JSON.stringify(value).substring(0, 60));
+}
+
+// ══════════════════════════════════════════════
+//  SAVE SECTIONS (writes to localStorage config, applies to site)
+// ══════════════════════════════════════════════
+function saveSection(section) {
+  Object.assign(STATE.config, STATE.pendingChanges);
+  STATE.pendingChanges = {};
+  // apply clips & schedule from editors
+  if (section === 'clips') STATE.config.clips = STATE.clips;
+  if (section === 'schedule') STATE.config.schedule = STATE.schedule;
+  if (section === 'hero') STATE.config.isLive = document.getElementById('hero-live-badge').checked;
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  saveToStorage();
+  toast('Changes saved to preview', 'success');
+  logChange('edit', section + ' section saved');
+  updateDashboard();
+}
+
+// ══════════════════════════════════════════════
+//  GITHUB API
+// ══════════════════════════════════════════════
+function ghHeaders() {
+  return { 'Authorization': 'token ' + STATE.ghPat, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' };
+}
+function ghBase() { return `https://api.github.com/repos/${STATE.ghOwner}/${STATE.ghRepo}`; }
+
+async function saveGitHubCreds() {
+  STATE.ghPat    = document.getElementById('gh-pat').value.trim();
+  STATE.ghOwner  = document.getElementById('gh-owner').value.trim();
+  STATE.ghRepo   = document.getElementById('gh-repo').value.trim();
+  STATE.ghBranch = document.getElementById('gh-branch').value.trim() || 'main';
+  saveToStorage();
+  try {
+    const r = await fetch(ghBase(), { headers: ghHeaders() });
+    if (r.ok) { updateGhStatus(true); toast('GitHub connected!', 'success'); refreshAssets(); }
+    else throw new Error('Auth failed');
+  } catch(e) { updateGhStatus(false); toast('GitHub connection failed: ' + e.message, 'error'); }
+}
+
+function updateGhStatus(ok) {
+  STATE.ghConnected = ok;
+  const el = document.getElementById('gh-status');
+  el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
+  el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`;
+  saveToStorage();
+}
+
+// Get file SHA from GitHub
+async function getFileSha(path) {
+  try {
+    const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.sha;
+  } catch(e) { return null; }
+}
+
+// Commit a file to GitHub
+async function commitFile(path, content, message, isBinary = false) {
+  if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return false; }
+  const sha = await getFileSha(path);
+  const body = { message, branch: STATE.ghBranch, content: isBinary ? content : btoa(unescape(encodeURIComponent(content))) };
+  if (sha) body.sha = sha;
+  const r = await fetch(`${ghBase()}/contents/${path}`, {
+    method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body)
+  });
+  return r.ok;
+}
+
+// Read a file from GitHub
+async function readFile(path) {
+  const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+  if (!r.ok) return null;
+  const d = await r.json();
+  return decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+}
+
+// ══════════════════════════════════════════════
+//  DEPLOY
+// ══════════════════════════════════════════════
+async function deployToLive() {
+  // Auto-save any pending editor state before deploying
+  Object.assign(STATE.config, STATE.pendingChanges);
+  STATE.pendingChanges = {};
+  STATE.config.clips = STATE.clips;
+  STATE.config.schedule = STATE.schedule;
+  STATE.config.isLive = STATE.liveBadgeOn || !!(document.getElementById('hero-live-badge') && document.getElementById('hero-live-badge').checked);
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  saveToStorage();
+  if (!STATE.ghConnected) { toast('Connect GitHub first in Connections', 'error'); return; }
+  toast('Creating backup...', 'info');
+  await createBackup('Pre-deploy backup');
+
+  toast('Deploying to GitHub...', 'info');
+  try {
+    // Read current index.html and inject config
+    const html = await readFile('index.html');
+    if (!html) { toast('Could not read index.html from GitHub', 'error'); return; }
+
+    // Inject config as a localStorage pre-seed script
+    const configScript = `\n<script data-controldyn>localStorage.setItem('chazdyn_config',${JSON.stringify(JSON.stringify(STATE.config))});<\/script>`;
+    let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
+    updated = updated.replace('</head>', configScript + '</head>');
+
+    const ok = await commitFile('index.html', updated, '🚀 Control.Dyn deploy: ' + new Date().toLocaleString());
+    if (ok) {
+      toast('Deployed successfully!', 'success');
+      logChange('deploy', 'Deployed to live', new Date().toLocaleString());
+      STATE.config._lastDeploy = new Date().toISOString();
+      saveToStorage(); updateDashboard();
+    } else {
+      toast('Deploy failed — check GitHub permissions', 'error');
+      logChange('error', 'Deploy failed');
+    }
+  } catch(e) { toast('Deploy error: ' + e.message, 'error'); logChange('error', e.message); }
+}
+
+async function forceDeploy() {
+  if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
+  try {
+    const html = await readFile('index.html');
+    if (!html) return;
+    const ok = await commitFile('index.html', html + ' ', '♻️ Force refresh: ' + new Date().toLocaleString());
+    if (ok) toast('Refresh triggered', 'success');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+// ══════════════════════════════════════════════
+//  BACKUPS
+// ══════════════════════════════════════════════
+async function createBackup(label = 'Manual backup') {
+  if (!STATE.ghConnected) { toast('Connect GitHub to create cloud backups', 'warning'); createLocalBackup(label); return; }
+  try {
+    const html = await readFile('index.html');
+    if (!html) { createLocalBackup(label); return; }
+    const ts = new Date().toISOString().replace(/[:.]/g,'-').slice(0,19);
+    const path = `backups/${ts}.html`;
+    const ok = await commitFile(path, html, `💾 Backup: ${label} — ${ts}`);
+    if (ok) {
+      const entry = { ts: new Date().toISOString(), label, path };
+      STATE.backups.unshift(entry);
+      saveToStorage(); renderBackupsList(); updateDashboard();
+      toast('Backup saved to repo', 'success');
+      logChange('backup', label, path);
+    }
+  } catch(e) { createLocalBackup(label); }
+}
+
+function createLocalBackup(label) {
+  const entry = { ts: new Date().toISOString(), label, local: true, config: JSON.stringify(STATE.config) };
+  STATE.backups.unshift(entry);
+  if (STATE.backups.length > 30) STATE.backups.pop();
+  saveToStorage(); renderBackupsList(); updateDashboard();
+  toast('Backup saved locally', 'info');
+  logChange('backup', label + ' (local)');
+}
+
+async function restoreBackup(idx) {
+  const b = STATE.backups[idx];
+  if (!b) return;
+  if (!confirm(`Restore backup from ${new Date(b.ts).toLocaleString()}? This will overwrite the current live site.`)) return;
+  if (b.local) {
+    STATE.config = JSON.parse(b.config);
+    localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+    toast('Local config restored — deploy to push live', 'success');
+    logChange('restore', 'Restored local backup: ' + b.label);
+    return;
+  }
+  try {
+    const html = await readFile(b.path);
+    if (!html) { toast('Could not read backup', 'error'); return; }
+    const ok = await commitFile('index.html', html, `⏮ Rollback to: ${b.label} ${b.ts}`);
+    if (ok) { toast('Rollback complete!', 'success'); logChange('restore', 'Rolled back to ' + b.label, b.ts); }
+    else toast('Rollback failed', 'error');
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function renderBackupsList() {
+  const el = document.getElementById('backups-list');
+  if (!STATE.backups.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.82rem">No backups yet.</div>'; return; }
+  el.innerHTML = STATE.backups.map((b, i) => `
+    <div class="backup-row">
+      <div>
+        <div class="backup-time">${new Date(b.ts).toLocaleString()}</div>
+        <div style="font-size:0.72rem;color:var(--muted)">${b.label}${b.local?' <span style="color:var(--amber)">(local)</span>':' <span style="color:var(--cyan)">(GitHub)</span>'}</div>
+      </div>
+      <button class="qa-btn ghost" onclick="restoreBackup(${i})">Restore</button>
+    </div>
+  `).join('');
+  document.getElementById('dash-backup-count').textContent = STATE.backups.length;
+}
+
+// ══════════════════════════════════════════════
+//  ASSETS
+// ══════════════════════════════════════════════
+async function refreshAssets() {
+  STATE.showFullUrls = document.getElementById('show-full-urls').checked;
+  if (!STATE.ghConnected) { document.getElementById('assets-grid').innerHTML = '<div style="color:var(--muted);font-size:0.82rem;grid-column:1/-1">Connect GitHub to browse assets.</div>'; return; }
+  try {
+    const r = await fetch(`${ghBase()}/contents/assets?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    if (!r.ok) { toast('Could not load assets', 'error'); return; }
+    STATE.assets = await r.json();
+    renderAssets();
+  } catch(e) { toast('Error loading assets: ' + e.message, 'error'); }
+}
+
+function renderAssets() {
+  const grid = document.getElementById('assets-grid');
+  if (!STATE.assets.length) { grid.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;grid-column:1/-1">No assets found in assets/ folder.</div>'; return; }
+  const rawBase = `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/`;
+  grid.innerHTML = STATE.assets.filter(a => a.type === 'file').map(a => {
+    const isImage = /\.(jpe?g|png|gif|webp|svg)$/i.test(a.name);
+    const isVideo = /\.(mp4|webm|mov|avi)$/i.test(a.name);
+    const rawUrl  = rawBase + a.path;
+    const display = STATE.showFullUrls ? rawUrl : a.name;
+    const thumb   = isImage ? `<img class="asset-thumb" src="${rawUrl}" loading="lazy" alt="${a.name}" />` :
+                    isVideo ? `<div class="asset-thumb-placeholder">🎬</div>` :
+                              `<div class="asset-thumb-placeholder">📄</div>`;
+    return `
+      <div class="asset-card">
+        ${thumb}
+        <div class="asset-info">
+          <div class="asset-name" title="${a.name}">${a.name}</div>
+          <div class="asset-url" title="${display}">${display}</div>
+        </div>
+        <div class="asset-actions">
+          <button class="asset-btn" onclick="copyToClipboard('${STATE.showFullUrls ? rawUrl : a.name}')">Copy</button>
+          <button class="asset-btn delete" onclick="deleteAsset('${a.path}','${a.sha}')">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function uploadAsset(input, targetInputId, configKey) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!STATE.ghConnected) { toast('Connect GitHub to upload assets', 'error'); return; }
+  toast('Uploading ' + file.name + '...', 'info');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const path = 'assets/' + file.name;
+    const ok = await commitFile(path, base64, '📁 Asset upload: ' + file.name, true);
+    if (ok) {
+      toast(file.name + ' uploaded!', 'success');
+      if (targetInputId) document.getElementById(targetInputId).value = file.name;
+      if (configKey) onFieldChange(configKey, file.name);
+      logChange('edit', 'Uploaded asset: ' + file.name);
+      refreshAssets();
+    } else toast('Upload failed', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function handleBulkUpload(input) {
+  for (const file of input.files) {
+    await uploadAsset({ files: [file] }, null, null);
+  }
+}
+
+async function handleFileDrop(files) {
+  for (const file of files) {
+    if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
+    toast('Uploading ' + file.name + '...', 'info');
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1];
+      const ok = await commitFile('assets/' + file.name, base64, '📁 Asset upload: ' + file.name, true);
+      if (ok) { toast(file.name + ' uploaded!', 'success'); logChange('edit', 'Dropped asset: ' + file.name); refreshAssets(); }
+      else toast('Upload failed for ' + file.name, 'error');
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+async function deleteAsset(path, sha) {
+  if (!confirm('Delete ' + path + '? This cannot be undone.')) return;
+  const r = await fetch(`${ghBase()}/contents/${path}`, {
+    method: 'DELETE', headers: ghHeaders(),
+    body: JSON.stringify({ message: '🗑 Delete asset: ' + path, sha, branch: STATE.ghBranch })
+  });
+  if (r.ok) { toast('Asset deleted', 'success'); logChange('edit', 'Deleted asset: ' + path); refreshAssets(); }
+  else toast('Delete failed', 'error');
+}
+
+// ══════════════════════════════════════════════
+//  CLIPS EDITOR
+// ══════════════════════════════════════════════
+function renderClipsEditor() {
+  const el = document.getElementById('clips-editor');
+  el.innerHTML = STATE.clips.map((clip, i) => `
+    <div class="clip-editor-card" id="clip-card-${i}">
+      <div class="clip-num">Clip ${i+1}${clip.title ? ' — ' + clip.title : ''}</div>
+      <div class="field">
+        <label>Title</label>
+        <input type="text" value="${clip.title||''}" placeholder="e.g. Insane 1v4 clutch" oninput="STATE.clips[${i}].title=this.value" />
+      </div>
+      <div class="field">
+        <label>Link (Twitch / YouTube / TikTok / Instagram)</label>
+        <div class="flex-row">
+          <input type="text" value="${clip.url||''}" placeholder="Paste video URL..." style="flex:1" oninput="STATE.clips[${i}].url=this.value" />
+          <button class="qa-btn ghost" onclick="document.getElementById('clip-file-${i}').click()">Upload</button>
+          <input type="file" id="clip-file-${i}" accept="video/*" style="display:none" onchange="uploadClipFile(this,${i})" />
+        </div>
+        <div class="input-hint">${clip.url ? (STATE.showFullUrls ? clip.url : clip.url.split('/').pop().split('?')[0] || clip.url) : clip.file ? clip.file : 'No source yet'}</div>
+      </div>
+      ${i > 0 ? `<button class="qa-btn danger" onclick="removeClipSlot(${i})" style="align-self:flex-end">Remove</button>` : ''}
+    </div>
+  `).join('');
+}
+
+function addClipSlot() {
+  STATE.clips.push({url:'',title:'',file:null});
+  renderClipsEditor();
+}
+
+function removeClipSlot(i) {
+  STATE.clips.splice(i,1);
+  renderClipsEditor();
+}
+
+async function uploadClipFile(input, idx) {
+  const file = input.files[0];
+  if (!file || !STATE.ghConnected) { toast('Connect GitHub to upload clips', 'error'); return; }
+  toast('Uploading ' + file.name + '...', 'info');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const path = 'assets/' + file.name;
+    const ok = await commitFile(path, base64, '🎬 Clip upload: ' + file.name, true);
+    if (ok) {
+      STATE.clips[idx].file = file.name;
+      STATE.clips[idx].url  = '';
+      toast(file.name + ' uploaded!', 'success');
+      logChange('edit', 'Uploaded clip: ' + file.name);
+      renderClipsEditor();
+    } else toast('Upload failed', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ══════════════════════════════════════════════
+//  SCHEDULE EDITOR
+// ══════════════════════════════════════════════
+function renderScheduleEditor() {
+  const el = document.getElementById('schedule-editor');
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  el.innerHTML = days.map(d => {
+    const s = STATE.schedule[d];
+    return `
+      <div class="day-editor-card ${s.live?'active':''}" id="day-card-${d}">
+        <div class="day-name-label">${d}</div>
+        <label class="toggle" style="margin:4px 0">
+          <input type="checkbox" ${s.live?'checked':''} onchange="toggleDay('${d}',this.checked)" />
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+        <input class="day-time-input" type="text" value="${s.time||''}" placeholder="8pm" style="width:100%;font-size:0.75rem;padding:0.25rem;text-align:center;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;color:var(--text)" oninput="STATE.schedule['${d}'].time=this.value" ${!s.live?'disabled':''} />
+      </div>`;
+  }).join('');
+}
+
+function toggleDay(day, on) {
+  STATE.schedule[day].live = on;
+  const card = document.getElementById('day-card-' + day);
+  card.classList.toggle('active', on);
+  const timeInput = card.querySelector('input[type="text"]');
+  if (timeInput) timeInput.disabled = !on;
+  renderScheduleEditor();
+}
+
+// ══════════════════════════════════════════════
+//  LIVE BADGE TOGGLE
+// ══════════════════════════════════════════════
+function toggleLiveBadge() {
+  STATE.liveBadgeOn = !STATE.liveBadgeOn;
+  STATE.config.isLive = STATE.liveBadgeOn;
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  document.getElementById('hero-live-badge').checked = STATE.liveBadgeOn;
+  toast('Live badge ' + (STATE.liveBadgeOn ? 'ON' : 'OFF'), STATE.liveBadgeOn ? 'success' : 'info');
+  logChange('edit', 'Live badge toggled ' + (STATE.liveBadgeOn ? 'ON' : 'OFF'));
+}
+
+// ══════════════════════════════════════════════
+//  TWITCH API
+// ══════════════════════════════════════════════
+async function saveTwitchCreds() {
+  STATE.twitchClientId     = document.getElementById('twitch-client-id').value.trim();
+  STATE.twitchClientSecret = document.getElementById('twitch-client-secret').value.trim();
+  STATE.twitchUsername     = document.getElementById('twitch-username').value.trim();
+  saveToStorage();
+  await fetchTwitchToken();
+}
+
+async function fetchTwitchToken() {
+  try {
+    const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${STATE.twitchClientId}&client_secret=${STATE.twitchClientSecret}&grant_type=client_credentials`, { method:'POST' });
+    if (!r.ok) throw new Error('Bad credentials');
+    const d = await r.json();
+    STATE.twitchToken = d.access_token;
+    updateTwitchConnStatus(true);
+    toast('Twitch connected!', 'success');
+    startTwitchPolling();
+  } catch(e) {
+    updateTwitchConnStatus(false);
+    toast('Twitch auth failed: ' + e.message, 'error');
+  }
+}
+
+function updateTwitchConnStatus(ok) {
+  STATE.twitchConnected = ok;
+  const el = document.getElementById('twitch-conn-status');
+  el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
+  el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`;
+  saveToStorage();
+}
+
+function startTwitchPolling() {
+  if (STATE.twitchPollTimer) clearInterval(STATE.twitchPollTimer);
+  const interval = parseInt(document.getElementById('twitch-poll-interval').value || '30') * 1000;
+  checkTwitchLive();
+  STATE.twitchPollTimer = setInterval(checkTwitchLive, interval);
+}
+
+async function checkTwitchLive() {
+  if (!STATE.twitchToken || !STATE.twitchClientId) return;
+  try {
+    const r = await fetch(`https://api.twitch.tv/helix/streams?user_login=${STATE.twitchUsername}`, {
+      headers: { 'Client-ID': STATE.twitchClientId, 'Authorization': 'Bearer ' + STATE.twitchToken }
+    });
+    if (!r.ok) { if (r.status === 401) await fetchTwitchToken(); return; }
+    const d = await r.json();
+    const stream = d.data && d.data[0];
+    const online = !!stream;
+    const indicator = document.getElementById('twitch-status');
+    const statusText = document.getElementById('twitch-status-text');
+    const viewerEl   = document.getElementById('twitch-viewer-count');
+    indicator.className = 'live-indicator ' + (online ? 'online' : 'offline');
+    statusText.textContent = online ? 'LIVE' : 'Offline';
+    if (online && stream.viewer_count !== undefined) {
+      viewerEl.style.display = '';
+      viewerEl.textContent = ' · ' + stream.viewer_count.toLocaleString() + ' viewers';
+      document.getElementById('dash-status').textContent = 'LIVE';
+      document.getElementById('dash-viewers').textContent = stream.viewer_count.toLocaleString() + ' viewers · ' + (stream.game_name || '');
+    } else {
+      viewerEl.style.display = 'none';
+      document.getElementById('dash-status').textContent = 'Offline';
+      document.getElementById('dash-viewers').textContent = 'Not streaming';
+    }
+    STATE.isLive = online;
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════
+//  THEME
+// ══════════════════════════════════════════════
+function liveTheme() {
+  const green = document.getElementById('theme-green').value;
+  const cyan  = document.getElementById('theme-cyan').value;
+  const bg    = document.getElementById('theme-bg').value;
+  document.getElementById('theme-green-hex').value = green;
+  document.getElementById('theme-cyan-hex').value  = cyan;
+  document.getElementById('theme-bg-hex').value    = bg;
+  // Apply to theme preview iframe
+  try {
+    const iframe = document.getElementById('theme-preview-frame');
+    const doc = iframe.contentDocument || iframe.contentWindow.document;
+    const root = doc.documentElement;
+    root.style.setProperty('--green', green);
+    root.style.setProperty('--cyan', cyan);
+    root.style.setProperty('--bg', bg);
+  } catch(e) {}
+}
+
+function syncColorFromText(colorId, textId) {
+  const val = document.getElementById(textId).value;
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) {
+    document.getElementById(colorId).value = val;
+    liveTheme();
+  }
+}
+
+function pushTheme() {
+  STATE.config.accentColor = document.getElementById('theme-green').value;
+  STATE.config.accent2Color = document.getElementById('theme-cyan').value;
+  STATE.config.bgColor = document.getElementById('theme-bg').value;
+  STATE.config.displayFont = document.getElementById('theme-display-font').value;
+  STATE.config.bodyFont = document.getElementById('theme-body-font').value;
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  saveToStorage();
+  toast('Theme pushed to preview — deploy to go live', 'success');
+  logChange('edit', 'Theme updated');
+}
+
+// ══════════════════════════════════════════════
+//  CHANGE LOG
+// ══════════════════════════════════════════════
+function logChange(type, msg, detail = '') {
+  const entry = { ts: new Date().toISOString(), type, msg, detail };
+  STATE.changelog.unshift(entry);
+  if (STATE.changelog.length > 200) STATE.changelog.pop();
+  saveToStorage();
+  renderChangelog();
+  // also update dashboard log
+  const dashLog = document.getElementById('dash-log');
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="log-time">${new Date(entry.ts).toLocaleTimeString()}</span><span class="log-badge ${type}">${type}</span><span class="log-msg">${msg}</span>${detail ? `<span class="log-detail">${detail}</span>` : ''}`;
+  dashLog.insertBefore(div, dashLog.firstChild);
+}
+
+function renderChangelog() {
+  const el = document.getElementById('changelog-body');
+  if (!STATE.changelog.length) { el.innerHTML = '<div style="color:var(--muted);font-size:0.82rem">No changes logged yet.</div>'; return; }
+  el.innerHTML = STATE.changelog.map(e => `
+    <div class="log-entry">
+      <span class="log-time">${new Date(e.ts).toLocaleString()}</span>
+      <span class="log-badge ${e.type}">${e.type}</span>
+      <span class="log-msg">${e.msg}</span>
+      ${e.detail ? `<span class="log-detail">${e.detail}</span>` : ''}
+    </div>`).join('');
+}
+
+function clearLog() {
+  STATE.changelog = [];
+  saveToStorage();
+  renderChangelog();
+  document.getElementById('dash-log').innerHTML = '<div class="log-entry"><span class="log-time">—</span><span class="log-badge edit">Info</span><span class="log-msg">Log cleared.</span></div>';
+}
+
+function exportLog() {
+  const blob = new Blob([JSON.stringify(STATE.changelog, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'controldyn-changelog-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('Log exported', 'success');
+}
+
+// ══════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════
+function updateDashboard() {
+  const d = STATE.config._lastDeploy;
+  if (d) {
+    document.getElementById('dash-deploy').textContent = new Date(d).toLocaleDateString();
+    document.getElementById('dash-deploy-sub').textContent = new Date(d).toLocaleTimeString();
+  }
+  document.getElementById('dash-backup-count').textContent = STATE.backups.length;
+}
+
+// ══════════════════════════════════════════════
+//  PREVIEW
+// ══════════════════════════════════════════════
+function setPreviewSrc(mode) {
+  const frame = document.getElementById('preview-frame');
+  const dot   = document.getElementById('preview-dot');
+  const urlBar = document.getElementById('preview-url-bar');
+  if (mode === 'live') {
+    frame.src = 'https://chazdyn.com';
+    dot.className = 'preview-dot live';
+    urlBar.textContent = 'https://chazdyn.com (live)';
+  } else {
+    frame.src = '../index.html';
+    dot.className = 'preview-dot preview';
+    urlBar.textContent = '../index.html (local preview)';
+  }
+}
+
+// ══════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════
+function toggleVisible(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied: ' + text, 'success')).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    toast('Copied!', 'success');
+  });
+}
+
+function toast(msg, type = 'info') {
+  const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span class="toast-icon">${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(el);
+  setTimeout(() => { el.style.opacity='0'; el.style.transform='translateX(20px)'; el.style.transition='all 0.3s'; setTimeout(()=>el.remove(), 300); }, 3000);
+}
+
+// ══════════════════════════════════════════════
+//  RIGHT-CLICK CONTEXT MENU
+// ══════════════════════════════════════════════
+
+// Map of element selectors/keywords → {section, fieldId, label}
+const CTX_MAP = [
+  // Hero
+  { match: ['hero-title','CHAZDYN','hero title'],       section:'hero',     field:'hero-tagline',    label:'Hero Title' },
+  { match: ['hero-tagline','Always one more match'],    section:'hero',     field:'hero-tagline',    label:'Tagline' },
+  { match: ['hero-eyebrow','Streamer'],                 section:'hero',     field:'hero-eyebrow',    label:'Eyebrow Text' },
+  { match: ['live-badge','Live on Twitch'],             section:'hero',     field:'hero-live-badge', label:'Live Badge' },
+  { match: ['btn-primary','btn-green','Watch Live'],    section:'hero',     field:'hero-twitch-url', label:'Watch Live Button' },
+  { match: ['Join Discord'],                            section:'hero',     field:'hero-discord-url',label:'Discord Button' },
+  // About
+  { match: ['about-name','about-card'],                 section:'about',    field:'about-short-bio', label:'About Card' },
+  { match: ['about-bio','about-text'],                  section:'about',    field:'about-short-bio', label:'Bio Text' },
+  { match: ['about-handle'],                            section:'about',    field:'about-tags',      label:'Handles' },
+  { match: ['avatar-ring','about-avatar'],              section:'about',    field:'about-avatar-url',label:'Avatar Image' },
+  { match: ['tag','Black Ops','Party Games'],           section:'about',    field:'about-tags',      label:'Tags' },
+  // Clips
+  { match: ['clip','clip-card','clip-title','Best Moments'], section:'clips', field:null,            label:'Clips' },
+  // Music
+  { match: ['music','Beyond the Stream','music-video'], section:'music',    field:'music-video-url', label:'Music Section' },
+  { match: ['music-link','YouTube','Spotify','SoundCloud'], section:'music', field:'music-yt-url',   label:'Music Links' },
+  // Schedule
+  { match: ['schedule','day-card','When I\'m Live'],    section:'schedule', field:null,              label:'Schedule' },
+  // Socials
+  { match: ['social-card','Find Me Everywhere','socials-grid'], section:'socials', field:null,       label:'Social Links' },
+  { match: ['twitch.tv'],                               section:'socials',  field:'soc-twitch',      label:'Twitch Link' },
+  { match: ['discord.gg'],                              section:'socials',  field:'soc-discord',     label:'Discord Link' },
+  { match: ['tiktok'],                                  section:'socials',  field:'soc-tiktok',      label:'TikTok Link' },
+  { match: ['instagram'],                               section:'socials',  field:'soc-insta',       label:'Instagram Link' },
+  { match: ['thicc','THICC'],                           section:'socials',  field:'soc-thicc',       label:'THICC Link' },
+  // Theme
+  { match: ['hero-bg-art','orb','background'],          section:'theme',    field:'theme-bg',        label:'Background / Theme' },
+];
+
+function findCtxMatch(text, className, tagName) {
+  const haystack = (text + ' ' + className + ' ' + tagName).toLowerCase();
+  for (const entry of CTX_MAP) {
+    for (const keyword of entry.match) {
+      if (haystack.includes(keyword.toLowerCase())) return entry;
+    }
+  }
+  return null;
+}
+
+function buildCtxActions(match, text, className) {
+  const items = [];
+
+  if (match) {
+    items.push({
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+      label: `Edit: ${match.label}`,
+      action: () => jumpToField(match.section, match.field)
+    });
+  }
+
+  // Always show these
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+    label: 'Edit Theme / Colors',
+    action: () => jumpToField('theme', 'theme-green')
+  });
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+    label: 'Manage Assets',
+    action: () => jumpToField('assets', null)
+  });
+  items.push({ sep: true });
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+    label: 'Reload Preview',
+    action: () => { const f = document.getElementById('preview-frame'); if(f) f.src += ''; }
+  });
+
+  return items;
+}
+
+function jumpToField(section, fieldId) {
+  showSection(section);
+  hideCtxMenu();
+  if (fieldId) {
+    setTimeout(() => {
+      const el = document.getElementById(fieldId);
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.focus();
+        el.style.outline = '2px solid var(--green)';
+        el.style.boxShadow = '0 0 0 4px rgba(57,255,20,0.15)';
+        setTimeout(() => { el.style.outline = ''; el.style.boxShadow = ''; }, 2000);
+      }
+    }, 120);
+  }
+}
+
+function showCtxMenu(x, y, match, elementLabel) {
+  const menu = document.getElementById('ctx-menu');
+  const titleEl = document.getElementById('ctx-title');
+  const labelEl = document.getElementById('ctx-element-label');
+  const itemsEl = document.getElementById('ctx-items');
+
+  titleEl.textContent = match ? match.label : 'Options';
+  labelEl.textContent = elementLabel ? elementLabel.substring(0, 40) : '';
+  labelEl.style.display = elementLabel ? '' : 'none';
+
+  const actions = buildCtxActions(match, '', '');
+  itemsEl.innerHTML = actions.map(a => a.sep
+    ? '<div class="ctx-sep"></div>'
+    : `<button class="ctx-item" onclick="(${a.action.toString()})()">
+        ${a.icon}
+        ${a.label}
+       </button>`
+  ).join('');
+
+  // Position — keep inside viewport
+  menu.style.left = '0'; menu.style.top = '0';
+  menu.classList.add('visible');
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const vw = window.innerWidth,  vh = window.innerHeight;
+  menu.style.left = Math.min(x, vw - mw - 8) + 'px';
+  menu.style.top  = Math.min(y, vh - mh - 8) + 'px';
+}
+
+function hideCtxMenu() {
+  document.getElementById('ctx-menu').classList.remove('visible');
+}
+
+// Right-click on the preview iframe overlay
+function setupPreviewContextMenu() {
+  const previewWrap = document.querySelector('.preview-wrap');
+  if (!previewWrap) return;
+
+  previewWrap.addEventListener('contextmenu', e => {
+    e.preventDefault();
+
+    // Try to read element from iframe at click position
+    let match = null;
+    let elementLabel = '';
+    try {
+      const iframe = document.getElementById('preview-frame');
+      const iRect = iframe.getBoundingClientRect();
+      const ix = e.clientX - iRect.left;
+      const iy = e.clientY - iRect.top;
+      const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+      const el = iDoc.elementFromPoint(ix, iy);
+      if (el) {
+        const text = el.textContent?.trim() || '';
+        const cls  = (el.className || '') + ' ' + (el.id || '');
+        const tag  = el.tagName?.toLowerCase() || '';
+        elementLabel = text.substring(0, 50) || cls.split(' ')[0] || tag;
+        match = findCtxMatch(text, cls, tag);
+        // Walk up if no match
+        if (!match) {
+          let parent = el.parentElement;
+          for (let i = 0; i < 4 && parent; i++, parent = parent.parentElement) {
+            const pt = parent.textContent?.trim() || '';
+            const pc = (parent.className || '') + ' ' + (parent.id || '');
+            match = findCtxMatch(pt, pc, parent.tagName?.toLowerCase() || '');
+            if (match) { elementLabel = pt.substring(0, 50) || pc.split(' ')[0]; break; }
+          }
+        }
+      }
+    } catch(err) {
+      // Cross-origin iframe — use position-based fallback
+      match = null;
+    }
+
+    showCtxMenu(e.clientX, e.clientY, match, elementLabel);
+  });
+}
+
+// Also right-click anywhere in the app itself for quick nav
+document.addEventListener('contextmenu', e => {
+  // Only intercept if not in preview
+  if (e.target.closest('.preview-wrap')) return;
+  if (e.target.closest('#ctx-menu')) return;
+  // Let native context menu show elsewhere
+});
+
+// Close menu on click/scroll
+document.addEventListener('click', e => {
+  if (!e.target.closest('#ctx-menu')) hideCtxMenu();
+});
+document.addEventListener('scroll', hideCtxMenu, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCtxMenu(); });
+
+// ══════════════════════════════════════════════
+//  PWA INSTALL
+// ══════════════════════════════════════════════
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  const btn = document.getElementById('install-btn');
+  if (btn) btn.style.display = '';
+});
+
+function installPWA() {
+  if (!_pwaPrompt) { toast('Open in Chrome and use the address bar install button', 'info'); return; }
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.then(r => {
+    if (r.outcome === 'accepted') { toast('Control.Dyn installed!', 'success'); document.getElementById('install-btn').style.display = 'none'; }
+    _pwaPrompt = null;
+  });
+}
+
+window.addEventListener('appinstalled', () => { toast('Control.Dyn installed as desktop app!', 'success'); logChange('deploy', 'PWA installed'); });
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(e => console.warn('SW:', e));
+}
+
+// ══════════════════════════════════════════════
+//  THICC
+// ══════════════════════════════════════════════
+const DEFAULT_THICC_MEMBERS = [
+  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
+  { id:2, name:'ShyShack',       gamertag:'ShyShack',       rank:'Member', isLeader:false, about:'', photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', socials:[] },
+  { id:3, name:'Mastercardi',    gamertag:'Mastercardi',    rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+  { id:4, name:'SenoritoTaquito',gamertag:'SenoritoTaquito',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+  { id:5, name:'PrincessBayleaf',gamertag:'PrincessBayleaf',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+  { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
+  { id:7, name:'Thomas',         gamertag:'Thomas',         rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] }
+];
+
+function loadTHICC() {
+  const raw = localStorage.getItem('controldyn_thicc');
+  return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_THICC_MEMBERS));
+}
+
+function saveTHICC() {
+  // Collect from editor
+  const members = collectTHICC();
+  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  // Also save clan settings into STATE.config
+  STATE.config.thiccDesc    = document.getElementById('thicc-desc')?.value || '';
+  STATE.config.thiccGame    = document.getElementById('thicc-game')?.value || 'BO6';
+  STATE.config.thiccFounded = document.getElementById('thicc-founded')?.value || '2024';
+  STATE.config.thiccTag     = document.getElementById('thicc-tag')?.value || 'THICC';
+  STATE.config.thiccFullname= document.getElementById('thicc-fullname')?.value || '';
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  saveToStorage();
+  toast('THICC saved to preview', 'success');
+  logChange('edit', 'THICC roster/settings saved');
+}
+
+function collectTHICC() {
+  const cards = document.querySelectorAll('.thicc-member-editor');
+  return Array.from(cards).map(card => {
+    const id = parseInt(card.dataset.id);
+    const socials = Array.from(card.querySelectorAll('.thicc-social-row')).map(row => ({
+      platform: row.querySelector('.thicc-soc-platform').value,
+      url:      row.querySelector('.thicc-soc-url').value,
+      handle:   row.querySelector('.thicc-soc-handle').value
+    })).filter(s => s.url);
+    return {
+      id,
+      name:      card.querySelector('.thicc-name').value,
+      gamertag:  card.querySelector('.thicc-gamertag').value,
+      rank:      card.querySelector('.thicc-rank').value,
+      isLeader:  card.querySelector('.thicc-leader').checked,
+      about:     card.querySelector('.thicc-about').value,
+      photoUrl:  card.querySelector('.thicc-photo-url').value,
+      videoUrl:  card.querySelector('.thicc-video-url').value,
+      socials
+    };
+  });
+}
+
+function renderTHICC() {
+  const members = loadTHICC();
+  const el = document.getElementById('thicc-roster-editor');
+  if (!el) return;
+  el.innerHTML = members.map((m,i) => renderMemberEditor(m,i)).join('');
+}
+
+function renderMemberEditor(m, i) {
+  const socialsHtml = (m.socials||[]).map((s,si) => `
+    <div class="thicc-social-row flex-row" style="gap:0.5rem;margin-top:0.4rem">
+      <select class="thicc-soc-platform" style="width:110px;font-size:0.78rem;padding:0.3rem">
+        ${['Twitch','TikTok','Instagram','YouTube','Twitter','Other'].map(p=>`<option ${s.platform===p?'selected':''}>${p}</option>`).join('')}
+      </select>
+      <input class="thicc-soc-url" type="text" value="${s.url||''}" placeholder="URL" style="flex:1;font-size:0.78rem;padding:0.3rem" />
+      <input class="thicc-soc-handle" type="text" value="${s.handle||''}" placeholder="@handle" style="width:110px;font-size:0.78rem;padding:0.3rem" />
+      <button class="qa-btn danger" onclick="removeSocialRow(this)" style="padding:3px 8px;font-size:0.7rem">✕</button>
+    </div>`).join('');
+
+  return `
+    <div class="thicc-member-editor" data-id="${m.id}" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:1rem;margin-bottom:0.75rem;">
+      <div class="flex-row" style="margin-bottom:0.75rem;justify-content:space-between">
+        <div class="flex-row">
+          <span style="font-family:var(--display);font-size:1.1rem;letter-spacing:0.06em;color:var(--text)">${m.name||'New Member'}</span>
+          <label class="toggle" title="Clan Leader">
+            <input type="checkbox" class="thicc-leader" ${m.isLeader?'checked':''} />
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+          <span style="font-size:0.7rem;color:var(--muted)">Leader</span>
+        </div>
+        <button class="qa-btn danger" onclick="removeMember(${m.id})" style="font-size:0.72rem">Remove</button>
+      </div>
+      <div class="field-row" style="margin-bottom:0.6rem">
+        <div class="field">
+          <label>Display Name</label>
+          <input type="text" class="thicc-name" value="${m.name||''}" placeholder="Name" />
+        </div>
+        <div class="field">
+          <label>Gamertag</label>
+          <input type="text" class="thicc-gamertag" value="${m.gamertag||''}" placeholder="Gamertag" />
+        </div>
+        <div class="field">
+          <label>Rank</label>
+          <input type="text" class="thicc-rank" value="${m.rank||'Member'}" placeholder="Member" />
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0.6rem">
+        <label>Bio</label>
+        <textarea class="thicc-about" style="min-height:56px">${m.about||''}</textarea>
+      </div>
+      <div class="field-row" style="margin-bottom:0.6rem">
+        <div class="field">
+          <label>Photo (filename or URL)</label>
+          <div class="flex-row">
+            <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <button class="qa-btn ghost" onclick="uploadTHICC(this,'photo')" style="font-size:0.72rem">Upload</button>
+            <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'photo')" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Hover Video (filename or URL)</label>
+          <div class="flex-row">
+            <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <button class="qa-btn ghost" onclick="uploadTHICC(this,'video')" style="font-size:0.72rem">Upload</button>
+            <input type="file" accept="video/*" style="display:none" onchange="handleTHICCUpload(this,'video')" />
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label>Social Links</label>
+        <div class="thicc-socials-list">${socialsHtml}</div>
+        <button class="qa-btn ghost" onclick="addSocialRow(this)" style="margin-top:0.4rem;font-size:0.72rem">+ Add Social</button>
+      </div>
+    </div>`;
+}
+
+function addMember() {
+  const members = loadTHICC();
+  const newId = Math.max(0, ...members.map(m=>m.id)) + 1;
+  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] });
+  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  renderTHICC();
+  logChange('edit', 'Added new THICC member');
+}
+
+function removeMember(id) {
+  if (!confirm('Remove this member?')) return;
+  let members = loadTHICC().filter(m => m.id !== id);
+  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  renderTHICC();
+  logChange('edit', 'Removed THICC member #' + id);
+}
+
+function addSocialRow(btn) {
+  const list = btn.previousElementSibling;
+  const div = document.createElement('div');
+  div.className = 'thicc-social-row flex-row';
+  div.style.cssText = 'gap:0.5rem;margin-top:0.4rem';
+  div.innerHTML = `
+    <select class="thicc-soc-platform" style="width:110px;font-size:0.78rem;padding:0.3rem">
+      ${['Twitch','TikTok','Instagram','YouTube','Twitter','Other'].map(p=>`<option>${p}</option>`).join('')}
+    </select>
+    <input class="thicc-soc-url" type="text" placeholder="URL" style="flex:1;font-size:0.78rem;padding:0.3rem" />
+    <input class="thicc-soc-handle" type="text" placeholder="@handle" style="width:110px;font-size:0.78rem;padding:0.3rem" />
+    <button class="qa-btn danger" onclick="removeSocialRow(this)" style="padding:3px 8px;font-size:0.7rem">✕</button>`;
+  list.appendChild(div);
+}
+
+function removeSocialRow(btn) { btn.closest('.thicc-social-row').remove(); }
+
+function uploadTHICC(btn, type) {
+  btn.nextElementSibling.click();
+}
+
+async function handleTHICCUpload(input, type) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!STATE.ghConnected) { toast('Connect GitHub to upload', 'error'); return; }
+  toast('Uploading ' + file.name + '...', 'info');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const ok = await commitFile('assets/' + file.name, base64, '📁 THICC upload: ' + file.name, true);
+    if (ok) {
+      const urlInput = input.closest('.flex-row').querySelector('input[type="text"]');
+      if (urlInput) urlInput.value = STATE.showFullUrls
+        ? `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/${file.name}`
+        : file.name;
+      toast(file.name + ' uploaded!', 'success');
+      logChange('edit', 'Uploaded THICC asset: ' + file.name);
+      refreshAssets();
+    } else toast('Upload failed', 'error');
+  };
+  reader.readAsDataURL(file);
+}
+
+async function deployTHICC() {
+  if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
+  saveTHICC();
+  toast('Creating backup...', 'info');
+
+  // Read current thicc/index.html
+  const html = await readFile('thicc/index.html');
+  if (!html) { toast('Could not read thicc/index.html', 'error'); return; }
+
+  const members = loadTHICC();
+  // Replace DEFAULT_MEMBERS block in thicc/index.html
+  const membersJson = JSON.stringify(members, null, 4);
+  const updated = html.replace(
+    /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
+    'const DEFAULT_MEMBERS = ' + membersJson + ';'
+  );
+
+  const ok = await commitFile('thicc/index.html', updated, '🎮 THICC deploy: ' + new Date().toLocaleString());
+  if (ok) {
+    toast('THICC deployed!', 'success');
+    logChange('deploy', 'THICC roster deployed to live');
+  } else {
+    toast('THICC deploy failed', 'error');
+    logChange('error', 'THICC deploy failed');
+  }
+}
+
+// Boot THICC on section open — patch showSection
+const _origShowSection = showSection;
+window.showSection = function(id) {
+  _origShowSection(id);
+  if (id === 'thicc') renderTHICC();
+};
+
+// ══════════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════════
+init();
+// Setup right-click on preview after DOM ready
+setTimeout(setupPreviewContextMenu, 500);
+</script>
+</body>
+</html>

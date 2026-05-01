@@ -406,9 +406,7 @@
       .hero-title { font-size: clamp(4rem,18vw,7rem); }
     }
   </style>
-
-
-<script data-controldyn>localStorage.setItem('chazdyn_config',"{\"schedule\":{\"Mon\":{\"live\":true,\"time\":\"7:30pm\"},\"Tue\":{\"live\":true,\"time\":\"7:30pm\"},\"Wed\":{\"live\":true,\"time\":\"7:30pm\"},\"Thu\":{\"live\":true,\"time\":\"7:30pm\"},\"Fri\":{\"live\":true,\"time\":\"7:30pm\"},\"Sat\":{\"live\":true,\"time\":\"7pm\"},\"Sun\":{\"live\":true,\"time\":\"7pm\"}},\"_lastDeploy\":\"2026-05-01T18:49:01.415Z\",\"clips\":[{\"url\":\"https://www.twitch.tv/chazdyn/clip/ScaryRepleteAlligatorKreygasm-PIlN1_VBi7DZ7LET\",\"title\":\"Oop... She might be dyin'\",\"file\":null},{\"url\":\"\",\"title\":\"\",\"file\":null},{\"url\":\"\",\"title\":\"\",\"file\":null}]}");</script></head>
+</head>
 <body>
 
 <!-- ── NAV ── -->
@@ -751,25 +749,16 @@
       // schedule
       if (cfg.schedule) {
         const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-        const cards = document.querySelectorAll('#schedule-grid .day-card');
-        days.forEach((day, i) => {
-          const s = cfg.schedule[day];
-          if (!s || !cards[i]) return;
-          const card = cards[i];
-          card.classList.toggle('active', !!s.live);
-          const liveEl = card.querySelector('.day-live');
-          const offEl  = card.querySelector('.day-off');
-          const timeEl = card.querySelector('.day-time');
-          if (s.live) {
-            if (liveEl) liveEl.textContent = 'Live';
-            if (offEl)  offEl.style.display = 'none';
-            if (timeEl) timeEl.textContent = s.time || '';
-          } else {
-            if (liveEl) liveEl.style.display = 'none';
-            if (offEl)  { offEl.style.display = ''; offEl.textContent = s.label || '—'; }
-            if (timeEl) timeEl.textContent = '';
-          }
-        });
+        const grid = document.getElementById('schedule-grid');
+        if (grid) {
+          grid.innerHTML = days.map(day => {
+            const s = cfg.schedule[day] || { live:false, time:'' };
+            if (s.live) {
+              return `<div class="day-card active"><div class="day-name">${day}</div><div class="day-live">Live</div><div class="day-time">${s.time || ''}</div></div>`;
+            }
+            return `<div class="day-card"><div class="day-name">${day}</div><div class="day-off">${s.label || '—'}</div></div>`;
+          }).join('');
+        }
       }
 
     } catch(e) { console.warn('Config error', e); }
