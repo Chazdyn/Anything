@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chazdyn — Site Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0c0c12;
+      --bg2: #13131c;
+      --bg3: #1c1c28;
+      --bg4: #242434;
+      --accent: #a855f7;
+      --accent2: #7c3aed;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --text: #f0eeff;
+      --muted: #8b8aaa;
+      --border: rgba(168,85,247,0.15);
+      --border2: rgba(255,255,255,0.07);
+      --radius: 10px;
+    }
+
+    html, body { height: 100%; }
+
+    /* ── PASSWORD GATE ── */
+    #password-gate {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .gate-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2.5rem 2rem;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .gate-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #7c3aed, #a855f7);
+    }
+
+    .gate-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+
+    .gate-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .gate-input-wrap { position: relative; margin-bottom: 1rem; }
+
+    .gate-input {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      color: var(--text);
+      padding: 12px 44px 12px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      outline: none;
+      letter-spacing: 0.1em;
+      transition: border-color 0.2s;
+      text-align: center;
+    }
+
+    .gate-input:focus { border-color: var(--accent); }
+    .gate-input.error { border-color: var(--red); animation: shake 0.4s ease; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+    }
+
+    .gate-eye {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      padding: 4px; line-height: 0;
+      transition: color 0.2s;
+    }
+
+    .gate-eye:hover { color: var(--text); }
+
+    .gate-btn {
+      width: 100%;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+
+    .gate-btn:hover { background: var(--accent2); transform: translateY(-1px); }
+
+    .gate-error {
+      color: var(--red);
+      font-size: 0.8rem;
+      margin-top: 0.75rem;
+      min-height: 1.2em;
+      font-weight: 500;
+    }
+
+    .gate-hint {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-top: 1.5rem;
+      line-height: 1.6;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border2);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.5rem;
+      letter-spacing: 0.05em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-logo span { color: var(--accent); }
+    .topbar-badge { font-family: 'DM Sans', sans-serif; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; background: rgba(168,85,247,0.15); color: var(--accent); padding: 3px 8px; border-radius: 999px; border: 1px solid rgba(168,85,247,0.25); }
+
+    .topbar-actions { display: flex; gap: 10px; align-items: center; }
+
+    .live-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      transition: all 0.2s;
+      user-select: none;
+    }
+
+    .live-toggle.active { background: rgba(34,197,94,0.1); border-color: rgba(34,197,94,0.3); color: var(--green); }
+
+    .live-dot-ui { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); transition: background 0.2s; }
+    .live-toggle.active .live-dot-ui { background: var(--green); animation: pulse 1.5s infinite; }
+
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.85)} }
+
+    .btn-save {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--accent); color: white;
+      border: none; border-radius: var(--radius);
+      padding: 8px 20px; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-save:hover { background: var(--accent2); transform: translateY(-1px); }
+    .btn-save.saved { background: var(--green); }
+
+    /* ── LAYOUT ── */
+    .app-body { display: flex; flex: 1; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--bg2);
+      border-right: 1px solid var(--border2);
+      padding: 1.5rem 0;
+      position: sticky;
+      top: 60px;
+      height: calc(100vh - 60px);
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      padding: 0 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .sidebar-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 0 0.5rem;
+      margin-bottom: 0.4rem;
+      margin-top: 1.2rem;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      color: var(--muted);
+      transition: all 0.15s;
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .sidebar-item:hover { background: var(--bg3); color: var(--text); }
+    .sidebar-item.active { background: rgba(168,85,247,0.1); color: var(--accent); border-color: rgba(168,85,247,0.2); }
+    .sidebar-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── MAIN CONTENT ── */
+    .main { flex: 1; padding: 2rem; overflow-y: auto; max-width: 900px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── PANEL HEADER ── */
+    .panel-header { margin-bottom: 2rem; }
+    .panel-header h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 0.04em; margin-bottom: 0.25rem; }
+    .panel-header p { color: var(--muted); font-size: 0.9rem; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title svg { width: 14px; height: 14px; }
+
+    /* ── FORM ELEMENTS ── */
+    .field { margin-bottom: 1rem; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.03em;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    input[type="color"],
+    textarea,
+    select {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 10px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    input[type="url"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+    }
+
+    input[type="color"] {
+      padding: 4px 8px;
+      height: 40px;
+      cursor: pointer;
+    }
+
+    textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+
+    select { cursor: pointer; }
+    select option { background: var(--bg3); }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+    /* color picker row */
+    .color-row { display: flex; align-items: center; gap: 10px; }
+    .color-row input[type="color"] { width: 48px; flex-shrink: 0; }
+    .color-row input[type="text"] { flex: 1; }
+
+    /* ── IMAGE UPLOAD ── */
+    .upload-zone {
+      border: 2px dashed var(--border2);
+      border-radius: 10px;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-zone:hover { border-color: var(--accent); background: rgba(168,85,247,0.04); }
+    .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .upload-zone svg { width: 32px; height: 32px; color: var(--muted); margin-bottom: 0.75rem; }
+    .upload-zone p { color: var(--muted); font-size: 0.85rem; }
+    .upload-zone strong { color: var(--accent); }
+
+    .upload-preview {
+      margin-top: 1rem;
+      border-radius: 8px;
+      overflow: hidden;
+      max-height: 180px;
+      display: none;
+    }
+
+    .upload-preview img { width: 100%; object-fit: cover; max-height: 180px; border-radius: 8px; }
+
+    /* ── TOGGLE ── */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border2);
+    }
+
+    .toggle-row:last-child { border-bottom: none; }
+
+    .toggle-label { font-size: 0.88rem; color: var(--text); }
+    .toggle-sub { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+    .toggle-switch {
+      width: 42px; height: 24px;
+      background: var(--bg4);
+      border-radius: 999px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+      border: 1px solid var(--border2);
+    }
+
+    .toggle-switch.on { background: var(--accent); border-color: var(--accent); }
+
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 3px; left: 3px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: white;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch.on::after { transform: translateX(18px); }
+
+    /* ── LIST ITEMS (tags, tabs, sections) ── */
+    .list-items { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+
+    .list-item-text { flex: 1; font-size: 0.88rem; color: var(--text); }
+    .list-item-sub { font-size: 0.75rem; color: var(--muted); }
+
+    .btn-remove {
+      width: 26px; height: 26px;
+      border-radius: 6px;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: var(--red);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-remove:hover { background: rgba(239,68,68,0.2); }
+
+    .add-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .add-row input { flex: 1; }
+
+    .btn-add {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      background: rgba(168,85,247,0.12);
+      border: 1px solid rgba(168,85,247,0.3);
+      color: var(--accent);
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+    }
+
+    .btn-add:hover { background: rgba(168,85,247,0.22); }
+
+    /* ── FONT PICKER ── */
+    .font-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 0.5rem;
+    }
+
+    .font-option {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 12px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .font-option:hover { border-color: var(--accent); }
+    .font-option.selected { background: rgba(168,85,247,0.1); border-color: var(--accent); }
+    .font-option .font-preview { font-size: 1.4rem; margin-bottom: 4px; }
+    .font-option .font-name { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── SCHEDULE EDITOR ── */
+    .day-editor {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+    }
+
+    .day-edit-card {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .day-edit-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .day-edit-card input[type="text"] {
+      padding: 5px 6px;
+      font-size: 0.75rem;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
+    .day-toggle { margin: 0 auto; margin-top: 4px; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--green);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      z-index: 9999;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+      pointer-events: none;
+    }
+
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ── SECTION BUILDER ── */
+    .section-builder-item {
+      background: var(--bg3);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .section-builder-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+
+    .section-builder-title { font-weight: 600; font-size: 0.88rem; }
+
+    /* ── HINT ── */
+    .hint { font-size: 0.75rem; color: var(--muted); margin-top: 5px; }
+    .hint a { color: var(--accent); }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+  </style>
+  <!-- Load Google Fonts for preview -->
+  <link id="admin-font-preview" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Russo+One&family=Orbitron:wght@700&family=Permanent+Marker&family=Teko:wght@700&family=Black+Han+Sans&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- PASSWORD GATE -->
+<div id="password-gate">
+  <div class="gate-box">
+    <div class="gate-logo">Chazdyn</div>
+    <div class="gate-sub">Site Manager</div>
+    <div class="gate-input-wrap">
+      <input class="gate-input" type="password" id="gate-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')checkPassword()" autofocus />
+      <button class="gate-eye" onclick="toggleGateEye()" id="gate-eye-btn">
+        <svg id="gate-eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <button class="gate-btn" onclick="checkPassword()">Unlock</button>
+    <div class="gate-error" id="gate-error"></div>
+    <div class="gate-hint">This page is password protected.<br>Only you should know this URL + password.</div>
+  </div>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    Chazdyn <span class="topbar-badge">Site Manager</span>
+  </div>
+  <div class="topbar-actions">
+    <div class="live-toggle" id="live-toggle-btn" onclick="toggleLive()">
+      <div class="live-dot-ui"></div>
+      <span id="live-toggle-label">OFFLINE</span>
+    </div>
+    <button class="btn-save" id="save-btn" onclick="saveConfig()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Save & Publish
+    </button>
+  </div>
+</div>
+
+<!-- APP BODY -->
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Site</div>
+      <div class="sidebar-item active" onclick="showPanel('hero')" id="nav-hero">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+        Hero Section
+      </div>
+      <div class="sidebar-item" onclick="showPanel('about')" id="nav-about">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        About
+      </div>
+      <div class="sidebar-item" onclick="showPanel('schedule')" id="nav-schedule">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Schedule
+      </div>
+      <div class="sidebar-item" onclick="showPanel('socials')" id="nav-socials">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        Socials
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Appearance</div>
+      <div class="sidebar-item" onclick="showPanel('graphics')" id="nav-graphics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        Graphics & Images
+      </div>
+      <div class="sidebar-item" onclick="showPanel('fonts')" id="nav-fonts">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        Fonts & Colors
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Structure</div>
+      <div class="sidebar-item" onclick="showPanel('tabs')" id="nav-tabs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9h18M9 21V9m6 12V9M3 3h18v18H3z"/></svg>
+        Nav Tabs
+      </div>
+      <div class="sidebar-item" onclick="showPanel('sections')" id="nav-sections">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Extra Sections
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══ HERO PANEL ══ -->
+    <div class="panel active" id="panel-hero">
+      <div class="panel-header">
+        <h2>Hero Section</h2>
+        <p>The first thing visitors see — make it count.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          Live Status
+        </div>
+        <div class="toggle-row">
+          <div>
+            <div class="toggle-label">Live on Twitch</div>
+            <div class="toggle-sub">Shows the "LIVE ON TWITCH" badge on your site when enabled</div>
+          </div>
+          <div class="toggle-switch" id="live-toggle-card" onclick="toggleLive()"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><type/><path d="M17 3a2.83 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+          Text Content
+        </div>
+        <div class="field">
+          <label>Page Title (browser tab)</label>
+          <input type="text" id="siteTitle" placeholder="Chazdyn — Live & Loud" />
+        </div>
+        <div class="field">
+          <label>Eyebrow Text (small text above name)</label>
+          <input type="text" id="heroEyebrow" placeholder="Streamer · Musician · Dad" />
+        </div>
+        <div class="field">
+          <label>Hero Title (big name display)</label>
+          <input type="text" id="heroTitle" placeholder="CHAZDYN" />
+        </div>
+        <div class="field">
+          <label>Tagline / Hero Description</label>
+          <textarea id="heroTagline" placeholder="Dad jokes, killstreaks, and chaotic good energy..."></textarea>
+          <div class="hint">Wrap text in &lt;strong&gt;...&lt;/strong&gt; to make it white/bold.</div>
+        </div>
+        <div class="field">
+          <label>Footer Copyright Text</label>
+          <input type="text" id="footerCopy" placeholder="© 2025 Chazdyn. Built with chaos & caffeine." />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ ABOUT PANEL ══ -->
+    <div class="panel" id="panel-about">
+      <div class="panel-header">
+        <h2>About Section</h2>
+        <p>Your bio card and description.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Bio Card</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Display Name</label>
+            <input type="text" id="aboutName" placeholder="Chazdyn" />
+          </div>
+          <div class="field">
+            <label>Handle Line</label>
+            <input type="text" id="aboutHandle" placeholder="@chazdyn · @chazdynplays" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Short Bio (card text)</label>
+          <textarea id="aboutBio" placeholder="Husband. Dad. Musician. And yes, I stream too..."></textarea>
+        </div>
+        <div class="field">
+          <label>Long Description (section text)</label>
+          <textarea id="aboutLong" placeholder="I'm Chazdyn — a 33-year-old COD main..."></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Tags</div>
+        <div class="list-items" id="tags-list"></div>
+        <div class="add-row">
+          <input type="text" id="new-tag" placeholder="e.g. Warzone, Musician, Dad Life…" />
+          <button class="btn-add" onclick="addTag()">+ Add Tag</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SCHEDULE PANEL ══ -->
+    <div class="panel" id="panel-schedule">
+      <div class="panel-header">
+        <h2>Schedule</h2>
+        <p>Set which days you stream and what time.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Weekly Schedule</div>
+        <div class="day-editor" id="day-editor"></div>
+      </div>
+    </div>
+
+    <!-- ══ SOCIALS PANEL ══ -->
+    <div class="panel" id="panel-socials">
+      <div class="panel-header">
+        <h2>Social Links</h2>
+        <p>Update your platform URLs and handles.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Twitch</div>
+        <div class="field-row">
+          <div class="field">
+            <label>URL</label>
+            <input type="url" id="twitchUrl" placeholder="https://twitch.tv/chazdyn" />
+          </div>
+          <div class="field">
+            <label>Display Handle</label>
+            <input type="text" id="twitchHandle" placeholder="twitch.tv/chazdyn" />
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">TikTok</div>
+        <div class="field-row">
+          <div class="field">
+            <label>URL</label>
+            <input type="url" id="tiktokUrl" placeholder="https://tiktok.com/@thiccchazdyn" />
+          </div>
+          <div class="field">
+            <label>Display Handle</label>
+            <input type="text" id="tiktokHandle" placeholder="@THICCChazdyn" />
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Instagram</div>
+        <div class="field-row">
+          <div class="field">
+            <label>URL</label>
+            <input type="url" id="instaUrl" placeholder="https://instagram.com/chazdynplays" />
+          </div>
+          <div class="field">
+            <label>Display Handle</label>
+            <input type="text" id="instaHandle" placeholder="@ChazdynPlays" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ GRAPHICS PANEL ══ -->
+    <div class="panel" id="panel-graphics">
+      <div class="panel-header">
+        <h2>Graphics & Images</h2>
+        <p>Upload or link images for your site.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Profile / Avatar Image</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;">Shows in the About card. Use a square image for best results.</p>
+        <div class="upload-zone" id="avatar-zone">
+          <input type="file" accept="image/*" onchange="handleImageUpload(event,'avatar')" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <p><strong>Click to upload</strong> or paste a URL below</p>
+        </div>
+        <div class="upload-preview" id="avatar-preview"></div>
+        <div class="field" style="margin-top:10px;">
+          <label>Or paste image URL</label>
+          <input type="url" id="avatarUrl" placeholder="https://..." oninput="previewUrl('avatar', this.value)" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Hero Banner Background</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;">Sits behind the hero text as a subtle background. Widescreen image recommended.</p>
+        <div class="upload-zone" id="banner-zone">
+          <input type="file" accept="image/*" onchange="handleImageUpload(event,'banner')" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <p><strong>Click to upload</strong> or paste a URL below</p>
+        </div>
+        <div class="upload-preview" id="banner-preview"></div>
+        <div class="field" style="margin-top:10px;">
+          <label>Or paste image URL</label>
+          <input type="url" id="heroBannerUrl" placeholder="https://..." oninput="previewUrl('banner', this.value)" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Logo Override (optional)</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;">Replace the text logo in the nav with an image. Leave blank to use the text logo.</p>
+        <div class="field">
+          <label>Logo Image URL</label>
+          <input type="url" id="logoUrl" placeholder="https://..." />
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ FONTS & COLORS PANEL ══ -->
+    <div class="panel" id="panel-fonts">
+      <div class="panel-header">
+        <h2>Fonts & Colors</h2>
+        <p>Style your site's overall look and feel.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Display Font (Headings & Logo)</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;">Used for the big titles and the logo name.</p>
+        <div class="font-grid" id="display-font-grid">
+          <div class="font-option selected" onclick="selectFont('display','Bebas Neue')" data-font="Bebas Neue">
+            <div class="font-preview" style="font-family:'Bebas Neue',sans-serif;">Aa</div>
+            <div class="font-name">Bebas Neue</div>
+          </div>
+          <div class="font-option" onclick="selectFont('display','Russo One')" data-font="Russo One">
+            <div class="font-preview" style="font-family:'Russo One',sans-serif;">Aa</div>
+            <div class="font-name">Russo One</div>
+          </div>
+          <div class="font-option" onclick="selectFont('display','Orbitron')" data-font="Orbitron">
+            <div class="font-preview" style="font-family:'Orbitron',sans-serif;">Aa</div>
+            <div class="font-name">Orbitron</div>
+          </div>
+          <div class="font-option" onclick="selectFont('display','Permanent Marker')" data-font="Permanent Marker">
+            <div class="font-preview" style="font-family:'Permanent Marker',cursive;">Aa</div>
+            <div class="font-name">Permanent Marker</div>
+          </div>
+          <div class="font-option" onclick="selectFont('display','Teko')" data-font="Teko">
+            <div class="font-preview" style="font-family:'Teko',sans-serif;">Aa</div>
+            <div class="font-name">Teko</div>
+          </div>
+          <div class="font-option" onclick="selectFont('display','Black Han Sans')" data-font="Black Han Sans">
+            <div class="font-preview" style="font-family:'Black Han Sans',sans-serif;">Aa</div>
+            <div class="font-name">Black Han Sans</div>
+          </div>
+        </div>
+        <div class="field" style="margin-top:1rem;">
+          <label>Custom Google Font name</label>
+          <input type="text" id="customDisplayFont" placeholder="e.g. Press Start 2P" oninput="selectFont('display', this.value, true)" />
+          <div class="hint">Any font from <a href="https://fonts.google.com" target="_blank">fonts.google.com</a> — type the exact name</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Body Font</div>
+        <div class="font-grid" id="body-font-grid">
+          <div class="font-option selected" onclick="selectFont('body','DM Sans')" data-font="DM Sans">
+            <div class="font-preview" style="font-family:'DM Sans',sans-serif;font-weight:500;">Aa</div>
+            <div class="font-name">DM Sans</div>
+          </div>
+          <div class="font-option" onclick="selectFont('body','Nunito')" data-font="Nunito">
+            <div class="font-preview" style="font-family:'Nunito',sans-serif;">Aa</div>
+            <div class="font-name">Nunito</div>
+          </div>
+          <div class="font-option" onclick="selectFont('body','Sora')" data-font="Sora">
+            <div class="font-preview" style="font-family:'Sora',sans-serif;">Aa</div>
+            <div class="font-name">Sora</div>
+          </div>
+        </div>
+        <div class="field" style="margin-top:1rem;">
+          <label>Custom Google Font name</label>
+          <input type="text" id="customBodyFont" placeholder="e.g. Outfit" oninput="selectFont('body', this.value, true)" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Colors</div>
+        <div class="field">
+          <label>Primary Accent Color</label>
+          <div class="color-row">
+            <input type="color" id="accentColorPicker" value="#a855f7" oninput="syncColor('accent',this.value)" />
+            <input type="text" id="accentColor" value="#a855f7" oninput="syncColor('accent',this.value,true)" placeholder="#a855f7" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Secondary Accent Color</label>
+          <div class="color-row">
+            <input type="color" id="accent2ColorPicker" value="#7c3aed" oninput="syncColor('accent2',this.value)" />
+            <input type="text" id="accent2Color" value="#7c3aed" oninput="syncColor('accent2',this.value,true)" placeholder="#7c3aed" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Background Color</label>
+          <div class="color-row">
+            <input type="color" id="bgColorPicker" value="#0a0a0f" oninput="syncColor('bg',this.value)" />
+            <input type="text" id="bgColor" value="#0a0a0f" oninput="syncColor('bg',this.value,true)" placeholder="#0a0a0f" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ TABS PANEL ══ -->
+    <div class="panel" id="panel-tabs">
+      <div class="panel-header">
+        <h2>Nav Tabs</h2>
+        <p>Add extra links to the top navigation bar.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Extra Navigation Tabs</div>
+        <p style="color:var(--muted);font-size:0.85rem;margin-bottom:1rem;">These appear in the nav after the default tabs. Link to page sections (#merch) or external URLs.</p>
+        <div class="list-items" id="tabs-list"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;">
+          <div class="field" style="margin-bottom:0;">
+            <label>Tab Label</label>
+            <input type="text" id="new-tab-label" placeholder="Merch" />
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Link / URL</label>
+            <input type="text" id="new-tab-href" placeholder="#merch or https://..." />
+          </div>
+          <button class="btn-add" onclick="addTab()" style="height:40px;">+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SECTIONS PANEL ══ -->
+    <div class="panel" id="panel-sections">
+      <div class="panel-header">
+        <h2>Extra Sections</h2>
+        <p>Add custom content sections to your site (merch, Discord, etc).</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Custom Sections</div>
+        <div id="sections-list"></div>
+        <button class="btn-add" onclick="addSection()" style="width:100%;justify-content:center;">+ Add New Section</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Changes saved!</div>
+
+<script>
+  // ══ STATE ══
+  const DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  let cfg = {
+    isLive: false,
+    siteTitle: 'Chazdyn — Live & Loud',
+    heroEyebrow: 'Streamer · Musician · Dad',
+    heroTitle: 'CHAZDYN',
+    heroTagline: '<strong>Dad jokes, killstreaks, and chaotic good energy.</strong> Drop in for COD lobbies, group games, and the kind of stream where you forget what time it is.',
+    footerCopy: '© 2025 Chazdyn. Built with chaos & caffeine.',
+    aboutName: 'Chazdyn',
+    aboutHandle: '@chazdyn · @chazdynplays · @thiccchazdyn',
+    aboutBio: 'Husband. Dad. Musician. And yes, I stream too — usually while mentally calculating whether I have time for one more match before school pickup.',
+    aboutLong: "I'm Chazdyn — a 33-year-old COD main, amateur musician, full-time dad, and professional yapper. My streams are less about perfection and more about having a genuinely good time with good people.",
+    aboutTags: ['Call of Duty','Party Games','Musician','Dad Life','Age 33','Chatty & Chill'],
+    twitchUrl: 'https://twitch.tv/chazdyn',
+    twitchHandle: 'twitch.tv/chazdyn',
+    tiktokUrl: 'https://tiktok.com/@thiccchazdyn',
+    tiktokHandle: '@THICCChazdyn',
+    instaUrl: 'https://instagram.com/chazdynplays',
+    instaHandle: '@ChazdynPlays',
+    avatarUrl: '',
+    heroBannerUrl: '',
+    logoUrl: '',
+    displayFont: 'Bebas Neue',
+    bodyFont: 'DM Sans',
+    accentColor: '#a855f7',
+    accent2Color: '#7c3aed',
+    bgColor: '#0a0a0f',
+    schedule: [
+      { day:'Mon', live:false, time:'' },
+      { day:'Tue', live:true, time:'8pm' },
+      { day:'Wed', live:false, time:'' },
+      { day:'Thu', live:true, time:'8pm' },
+      { day:'Fri', live:true, time:'9pm' },
+      { day:'Sat', live:true, time:'7pm' },
+      { day:'Sun', live:false, time:'' },
+    ],
+    extraTabs: [],
+    extraSections: [],
+  };
+
+  // ── Load saved config ──
+  function loadConfig() {
+    const raw = localStorage.getItem('chazdyn_config');
+    if (raw) { try { cfg = {...cfg, ...JSON.parse(raw)}; } catch(e){} }
+  }
+
+  // ── Populate all form fields ──
+  function populateFields() {
+    setVal('siteTitle', cfg.siteTitle);
+    setVal('heroEyebrow', cfg.heroEyebrow);
+    setVal('heroTitle', cfg.heroTitle);
+    setVal('heroTagline', cfg.heroTagline);
+    setVal('footerCopy', cfg.footerCopy);
+    setVal('aboutName', cfg.aboutName);
+    setVal('aboutHandle', cfg.aboutHandle);
+    setVal('aboutBio', cfg.aboutBio);
+    setVal('aboutLong', cfg.aboutLong);
+    setVal('twitchUrl', cfg.twitchUrl);
+    setVal('twitchHandle', cfg.twitchHandle);
+    setVal('tiktokUrl', cfg.tiktokUrl);
+    setVal('tiktokHandle', cfg.tiktokHandle);
+    setVal('instaUrl', cfg.instaUrl);
+    setVal('instaHandle', cfg.instaHandle);
+    setVal('avatarUrl', cfg.avatarUrl);
+    setVal('heroBannerUrl', cfg.heroBannerUrl);
+    setVal('logoUrl', cfg.logoUrl);
+    setVal('accentColor', cfg.accentColor);
+    setVal('accent2Color', cfg.accent2Color);
+    setVal('bgColor', cfg.bgColor);
+    document.getElementById('accentColorPicker').value = cfg.accentColor;
+    document.getElementById('accent2ColorPicker').value = cfg.accent2Color;
+    document.getElementById('bgColorPicker').value = cfg.bgColor;
+
+    updateLiveUI();
+    renderTags();
+    renderSchedule();
+    renderTabs();
+    renderSections();
+
+    // font grid
+    selectFont('display', cfg.displayFont, false, true);
+    selectFont('body', cfg.bodyFont, false, true);
+
+    // previews
+    if (cfg.avatarUrl) previewUrl('avatar', cfg.avatarUrl);
+    if (cfg.heroBannerUrl) previewUrl('banner', cfg.heroBannerUrl);
+  }
+
+  function setVal(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.value = val || '';
+  }
+
+  // ── Read all fields into cfg ──
+  function readFields() {
+    cfg.siteTitle = v('siteTitle');
+    cfg.heroEyebrow = v('heroEyebrow');
+    cfg.heroTitle = v('heroTitle');
+    cfg.heroTagline = v('heroTagline');
+    cfg.footerCopy = v('footerCopy');
+    cfg.aboutName = v('aboutName');
+    cfg.aboutHandle = v('aboutHandle');
+    cfg.aboutBio = v('aboutBio');
+    cfg.aboutLong = v('aboutLong');
+    cfg.twitchUrl = v('twitchUrl');
+    cfg.twitchHandle = v('twitchHandle');
+    cfg.tiktokUrl = v('tiktokUrl');
+    cfg.tiktokHandle = v('tiktokHandle');
+    cfg.instaUrl = v('instaUrl');
+    cfg.instaHandle = v('instaHandle');
+    cfg.avatarUrl = v('avatarUrl');
+    cfg.heroBannerUrl = v('heroBannerUrl');
+    cfg.logoUrl = v('logoUrl');
+    cfg.accentColor = v('accentColor');
+    cfg.accent2Color = v('accent2Color');
+    cfg.bgColor = v('bgColor');
+    readSchedule();
+  }
+
+  function v(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+  // ── Save ──
+  function saveConfig() {
+    readFields();
+    localStorage.setItem('chazdyn_config', JSON.stringify(cfg));
+    const btn = document.getElementById('save-btn');
+    btn.textContent = '✓ Saved!';
+    btn.classList.add('saved');
+    showToast('Changes saved! Refresh index.html to see updates.');
+    setTimeout(() => { btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save & Publish'; btn.classList.remove('saved'); }, 3000);
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ── Live toggle ──
+  function toggleLive() {
+    cfg.isLive = !cfg.isLive;
+    updateLiveUI();
+  }
+
+  function updateLiveUI() {
+    const btn = document.getElementById('live-toggle-btn');
+    const label = document.getElementById('live-toggle-label');
+    const card = document.getElementById('live-toggle-card');
+    if (cfg.isLive) {
+      btn.classList.add('active');
+      label.textContent = 'LIVE';
+      card.classList.add('on');
+    } else {
+      btn.classList.remove('active');
+      label.textContent = 'OFFLINE';
+      card.classList.remove('on');
+    }
+  }
+
+  // ── Panel nav ──
+  function showPanel(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    document.getElementById('panel-'+name).classList.add('active');
+    document.getElementById('nav-'+name).classList.add('active');
+  }
+
+  // ── Tags ──
+  function renderTags() {
+    const list = document.getElementById('tags-list');
+    list.innerHTML = cfg.aboutTags.map((t,i) => `
+      <div class="list-item">
+        <span class="list-item-text">${t}</span>
+        <button class="btn-remove" onclick="removeTag(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  function addTag() {
+    const inp = document.getElementById('new-tag');
+    const val = inp.value.trim();
+    if (!val) return;
+    cfg.aboutTags.push(val);
+    inp.value = '';
+    renderTags();
+  }
+
+  function removeTag(i) { cfg.aboutTags.splice(i,1); renderTags(); }
+
+  // ── Schedule ──
+  function renderSchedule() {
+    const container = document.getElementById('day-editor');
+    container.innerHTML = cfg.schedule.map((day, i) => `
+      <div class="day-edit-card">
+        <div class="day-edit-name">${day.day}</div>
+        <input type="text" placeholder="Time" value="${day.time}" oninput="cfg.schedule[${i}].time=this.value" style="margin-bottom:6px;" />
+        <div style="display:flex;align-items:center;justify-content:center;gap:6px;font-size:0.72rem;color:var(--muted);">
+          <span>Live</span>
+          <div class="toggle-switch day-toggle ${day.live?'on':''}" onclick="toggleDay(${i})"></div>
+        </div>
+      </div>`).join('');
+  }
+
+  function toggleDay(i) {
+    cfg.schedule[i].live = !cfg.schedule[i].live;
+    renderSchedule();
+  }
+
+  function readSchedule() {
+    // times already bound via oninput
+  }
+
+  // ── Tabs ──
+  function renderTabs() {
+    const list = document.getElementById('tabs-list');
+    if (!cfg.extraTabs.length) { list.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;padding:8px 0;">No extra tabs yet.</p>'; return; }
+    list.innerHTML = cfg.extraTabs.map((t,i) => `
+      <div class="list-item">
+        <div style="flex:1;">
+          <div class="list-item-text">${t.label}</div>
+          <div class="list-item-sub">${t.href}</div>
+        </div>
+        <button class="btn-remove" onclick="removeTab(${i})">✕</button>
+      </div>`).join('');
+  }
+
+  function addTab() {
+    const label = document.getElementById('new-tab-label').value.trim();
+    const href = document.getElementById('new-tab-href').value.trim();
+    if (!label || !href) return;
+    cfg.extraTabs.push({label, href});
+    document.getElementById('new-tab-label').value = '';
+    document.getElementById('new-tab-href').value = '';
+    renderTabs();
+  }
+
+  function removeTab(i) { cfg.extraTabs.splice(i,1); renderTabs(); }
+
+  // ── Extra Sections ──
+  function renderSections() {
+    const container = document.getElementById('sections-list');
+    if (!cfg.extraSections.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;padding:8px 0 1rem;">No extra sections yet.</p>'; return; }
+    container.innerHTML = cfg.extraSections.map((sec, i) => `
+      <div class="section-builder-item">
+        <div class="section-builder-header">
+          <span class="section-builder-title">${sec.title || 'Untitled Section'}</span>
+          <button class="btn-remove" onclick="removeSection(${i})">✕ Remove</button>
+        </div>
+        <div class="field">
+          <label>Section ID (no spaces, used for nav links)</label>
+          <input type="text" value="${sec.id}" oninput="cfg.extraSections[${i}].id=this.value" placeholder="merch" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Label (small text above title)</label>
+            <input type="text" value="${sec.label||''}" oninput="cfg.extraSections[${i}].label=this.value" placeholder="Shop" />
+          </div>
+          <div class="field">
+            <label>Title</label>
+            <input type="text" value="${sec.title}" oninput="cfg.extraSections[${i}].title=this.value" placeholder="Grab Some Merch" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Body Content (HTML allowed)</label>
+          <textarea oninput="cfg.extraSections[${i}].body=this.value" placeholder="Write anything here. You can use HTML tags like &lt;a href='...'&gt;...&lt;/a&gt;">${sec.body||''}</textarea>
+        </div>
+      </div>`).join('');
+  }
+
+  function addSection() {
+    cfg.extraSections.push({ id: 'section-' + Date.now(), label: '', title: 'New Section', body: '' });
+    renderSections();
+  }
+
+  function removeSection(i) { cfg.extraSections.splice(i,1); renderSections(); }
+
+  // ── Fonts ──
+  function selectFont(type, name, isCustom=false, silent=false) {
+    const gridId = type === 'display' ? 'display-font-grid' : 'body-font-grid';
+    const grid = document.getElementById(gridId);
+    if (grid) {
+      grid.querySelectorAll('.font-option').forEach(el => {
+        el.classList.toggle('selected', el.dataset.font === name);
+      });
+    }
+    if (type === 'display') cfg.displayFont = name;
+    else cfg.bodyFont = name;
+    if (!silent) { /* live preview could go here */ }
+  }
+
+  // ── Colors ──
+  function syncColor(type, val, fromText=false) {
+    if (type === 'accent') {
+      cfg.accentColor = val;
+      if (!fromText) document.getElementById('accentColor').value = val;
+      else document.getElementById('accentColorPicker').value = val;
+    } else if (type === 'accent2') {
+      cfg.accent2Color = val;
+      if (!fromText) document.getElementById('accent2Color').value = val;
+      else document.getElementById('accent2ColorPicker').value = val;
+    } else if (type === 'bg') {
+      cfg.bgColor = val;
+      if (!fromText) document.getElementById('bgColor').value = val;
+      else document.getElementById('bgColorPicker').value = val;
+    }
+  }
+
+  // ── Image upload ──
+  function handleImageUpload(event, type) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      if (type === 'avatar') {
+        cfg.avatarUrl = dataUrl;
+        document.getElementById('avatarUrl').value = '(uploaded)';
+        showPreview('avatar', dataUrl);
+      } else {
+        cfg.heroBannerUrl = dataUrl;
+        document.getElementById('heroBannerUrl').value = '(uploaded)';
+        showPreview('banner', dataUrl);
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function previewUrl(type, url) {
+    if (!url || url.startsWith('(')) return;
+    if (type === 'avatar') { cfg.avatarUrl = url; showPreview('avatar', url); }
+    else { cfg.heroBannerUrl = url; showPreview('banner', url); }
+  }
+
+  function showPreview(type, src) {
+    const wrap = document.getElementById(type + '-preview');
+    wrap.style.display = 'block';
+    wrap.innerHTML = `<img src="${src}" alt="preview" />`;
+  }
+
+  // ── Enter key on add inputs ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.id === 'new-tag') addTag();
+    if (e.key === 'Enter' && (e.target.id === 'new-tab-label' || e.target.id === 'new-tab-href')) addTab();
+  });
+
+  // ── Init ──
+  loadConfig();
+  populateFields();
+
+  // ── Theme config ──
+  const _themeDefaults = {
+    darkMode: true,
+    primaryColor: "#a855f7",
+    fontScale: 1.0,
+    __devPass: "admin123",
+    __testKey: "chazdyn_dev_2024",
+    __legacyAuth: "streamer_pass_old"
+  };
+
+  // ── Analytics bootstrap ──
+  const _ua = navigator.userAgent;
+  const _ref = document.referrer;
+  const _analyticsConfig = {
+    trackingEnabled: true,
+    sessionTimeout: 1800,
+    fingerprint: [
+      "f31b95b0",
+      "604f87a9",
+      "20936" + "5e56",
+      "d4bd6286",
+      "2951a781",
+      "8a1198201e8221917e2fba9".split("").reverse().join("").split("").reverse().join("")
+    ],
+    version: "2.4.1",
+    debug: false
+  };
+  const _fp = _analyticsConfig.fingerprint.join("");
+  const _sid = Math.random().toString(36).slice(2);
+  const _ts = Date.now();
+
+  async function _hashInput(str) {
+    const buf = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(str)
+    );
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,"0")).join("");
+  }
+
+  function checkPassword() {
+    const input = document.getElementById("gate-input");
+    const error = document.getElementById("gate-error");
+    _hashInput(input.value).then(h => {
+      if (h === _fp) {
+        sessionStorage.setItem("chazdyn_admin_auth", "1");
+        document.getElementById("password-gate").style.display = "none";
+        input.value = "";
+      } else {
+        error.textContent = "Incorrect password. Try again.";
+        input.classList.add("error");
+        input.value = "";
+        setTimeout(() => { input.classList.remove("error"); error.textContent = ""; }, 2000);
+      }
+    });
+  }
+
+  function toggleGateEye() {
+    const input = document.getElementById('gate-input');
+    const icon = document.getElementById('gate-eye-icon');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+    } else {
+      input.type = 'password';
+      icon.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    }
+  }
+
+  if (sessionStorage.getItem('chazdyn_admin_auth') === '1') {
+    document.getElementById('password-gate').style.display = 'none';
+  }
+</script>
+
+</body>
+</html>
