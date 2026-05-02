@@ -123,6 +123,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Assets
         </a>
+        <a class="nav-item" onclick="showSection('source')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+          Source Editor
+        </a>
         <a class="nav-item" onclick="showSection('backups')" href="#">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Backups
@@ -644,6 +648,88 @@
                 <div class="input-hint">How often to check if you're live (min 10s)</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ SOURCE EDITOR ════ -->
+      <section class="section" id="section-source">
+        <div class="panel" style="display:flex;flex-direction:column;height:100%;">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              Source Editor
+            </div>
+            <div class="flex-row" style="gap:6px;flex-wrap:wrap;">
+              <select id="src-file-select" onchange="loadSourceFile(this.value)" style="background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:5px 8px;border-radius:4px;font-size:0.8rem;font-family:var(--font-mono);">
+                <option value="index.html">index.html (main site)</option>
+                <option value="thicc/index.html">thicc/index.html (clan page)</option>
+                <option value="Control.Dyn.html">Control.Dyn.html (this admin)</option>
+                <option value="control-dyn/Control.Dyn.html">control-dyn/Control.Dyn.html</option>
+              </select>
+              <button class="qa-btn ghost" onclick="srcFormatCode()" title="Format / Prettify">⌥ Format</button>
+              <button class="qa-btn ghost" onclick="srcToggleWrap()" id="src-wrap-btn" title="Toggle word wrap">↵ Wrap</button>
+              <button class="qa-btn ghost" onclick="srcOpenFindReplace()">🔍 Find & Replace</button>
+              <button class="qa-btn ghost" onclick="srcValidateHtml()">✓ Validate</button>
+              <button class="qa-btn primary" onclick="srcSaveToGitHub()" id="src-save-btn" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="5 12 12 5 19 12"/><line x1="12" y1="5" x2="12" y2="19"/></svg>
+                Save to GitHub
+              </button>
+            </div>
+          </div>
+
+          <!-- Find & Replace Bar -->
+          <div id="src-fnr-bar" style="display:none;padding:8px 16px;background:var(--bg3);border-bottom:1px solid var(--border2);display:none;gap:8px;align-items:center;flex-wrap:wrap;">
+            <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;">Find & Replace</span>
+            <input id="src-find" type="text" placeholder="Find..." style="background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:0.78rem;width:200px;"/>
+            <input id="src-replace" type="text" placeholder="Replace with..." style="background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:4px 8px;border-radius:3px;font-family:var(--font-mono);font-size:0.78rem;width:200px;"/>
+            <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;cursor:pointer;"><input type="checkbox" id="src-regex"/>Regex</label>
+            <label style="display:flex;align-items:center;gap:5px;font-size:0.75rem;cursor:pointer;"><input type="checkbox" id="src-case"/>Case</label>
+            <button class="qa-btn ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="srcFindNext()">Next</button>
+            <button class="qa-btn ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="srcReplaceOne()">Replace</button>
+            <button class="qa-btn ghost" style="padding:4px 10px;font-size:0.75rem;" onclick="srcReplaceAll()">Replace All</button>
+            <span id="src-fnr-count" style="font-family:var(--font-mono);font-size:0.7rem;color:var(--muted);"></span>
+            <button class="qa-btn ghost" style="padding:4px 8px;font-size:0.75rem;margin-left:auto;" onclick="srcCloseFindReplace()">✕</button>
+          </div>
+
+          <!-- Stats bar -->
+          <div style="display:flex;align-items:center;gap:1.5rem;padding:5px 16px;background:var(--bg3);border-bottom:1px solid var(--border2);font-family:var(--font-mono);font-size:0.65rem;color:var(--muted);">
+            <span id="src-stat-file" style="color:var(--gold);">No file loaded</span>
+            <span id="src-stat-lines">Lines: —</span>
+            <span id="src-stat-chars">Chars: —</span>
+            <span id="src-stat-cur">Ln 1, Col 1</span>
+            <span id="src-stat-dirty" style="color:var(--red);display:none;">● Unsaved changes</span>
+            <span style="margin-left:auto;" id="src-stat-msg"></span>
+          </div>
+
+          <!-- Editor -->
+          <div style="flex:1;position:relative;min-height:0;">
+            <div id="src-editor-wrap" style="display:flex;height:100%;min-height:500px;">
+              <!-- Line numbers -->
+              <div id="src-line-nums" style="flex-shrink:0;width:52px;background:var(--bg3);border-right:1px solid var(--border2);overflow:hidden;font-family:var(--font-mono);font-size:0.75rem;line-height:1.55;color:var(--muted);padding:12px 0;text-align:right;padding-right:8px;user-select:none;"></div>
+              <!-- Code textarea -->
+              <textarea id="src-code"
+                spellcheck="false"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                style="flex:1;background:var(--bg2);color:var(--text);border:none;outline:none;padding:12px 16px;font-family:var(--font-mono);font-size:0.78rem;line-height:1.55;resize:none;tab-size:2;white-space:pre;overflow:auto;"
+                placeholder="← Select a file above, then click Load ↑"
+                oninput="srcOnChange()"
+                onscroll="srcSyncLineNums()"
+                onkeydown="srcHandleKey(event)"
+                onclick="srcUpdateCursor()"
+                onkeyup="srcUpdateCursor()"
+              ></textarea>
+              <!-- Syntax highlight overlay (read-only, positioned absolutely) -->
+              <div id="src-highlight" style="display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Validation panel -->
+          <div id="src-validation" style="display:none;max-height:160px;overflow-y:auto;border-top:1px solid var(--border2);background:var(--bg3);padding:8px 16px;">
+            <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--gold);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:6px;">Validation</div>
+            <div id="src-validation-results"></div>
           </div>
         </div>
       </section>
@@ -2075,6 +2161,379 @@ window.showSection = function(id) {
   _origShowSection(id);
   if (id === 'thicc') renderTHICC();
 };
+
+// ══════════════════════════════════════════════
+//  SOURCE EDITOR
+// ══════════════════════════════════════════════
+const SRC = {
+  filePath: null,
+  original: '',
+  dirty: false,
+  wrap: false,
+  fnrOpen: false,
+  matchPositions: [],
+  matchIdx: -1,
+};
+
+async function loadSourceFile(path) {
+  if (!path) return;
+  if (SRC.dirty && !confirm('You have unsaved changes. Load a new file anyway?')) {
+    document.getElementById('src-file-select').value = SRC.filePath || '';
+    return;
+  }
+  if (!STATE.ghConnected) {
+    toast('Connect GitHub first in Connections', 'error');
+    document.getElementById('src-stat-msg').textContent = '⚠ GitHub not connected';
+    return;
+  }
+  document.getElementById('src-stat-msg').textContent = 'Loading...';
+  document.getElementById('src-save-btn').disabled = true;
+  try {
+    const content = await readFile(path);
+    if (content === null) { toast('Could not read ' + path, 'error'); document.getElementById('src-stat-msg').textContent = 'Load failed'; return; }
+    SRC.filePath = path;
+    SRC.original = content;
+    SRC.dirty = false;
+    const ta = document.getElementById('src-code');
+    ta.value = content;
+    srcUpdateStats();
+    srcRenderLineNums();
+    srcMarkClean();
+    document.getElementById('src-stat-msg').textContent = '✓ Loaded from GitHub';
+    document.getElementById('src-save-btn').disabled = false;
+    toast('Loaded: ' + path, 'success');
+    logChange('edit', 'Source editor: loaded ' + path);
+  } catch(e) { toast('Error: ' + e.message, 'error'); document.getElementById('src-stat-msg').textContent = 'Error: ' + e.message; }
+}
+
+function srcOnChange() {
+  SRC.dirty = true;
+  document.getElementById('src-stat-dirty').style.display = 'inline';
+  srcUpdateStats();
+  srcRenderLineNums();
+}
+
+function srcMarkClean() {
+  SRC.dirty = false;
+  document.getElementById('src-stat-dirty').style.display = 'none';
+}
+
+function srcUpdateStats() {
+  const ta = document.getElementById('src-code');
+  const val = ta.value;
+  const lines = val.split('\n').length;
+  const chars = val.length;
+  document.getElementById('src-stat-file').textContent = SRC.filePath || 'No file loaded';
+  document.getElementById('src-stat-lines').textContent = 'Lines: ' + lines.toLocaleString();
+  document.getElementById('src-stat-chars').textContent = 'Chars: ' + chars.toLocaleString();
+}
+
+function srcUpdateCursor() {
+  const ta = document.getElementById('src-code');
+  const val = ta.value.substring(0, ta.selectionStart);
+  const lines = val.split('\n');
+  const ln = lines.length;
+  const col = lines[lines.length - 1].length + 1;
+  document.getElementById('src-stat-cur').textContent = `Ln ${ln}, Col ${col}`;
+}
+
+function srcRenderLineNums() {
+  const ta = document.getElementById('src-code');
+  const count = ta.value.split('\n').length;
+  const el = document.getElementById('src-line-nums');
+  let html = '';
+  for (let i = 1; i <= count; i++) {
+    html += `<span class="src-line-num">${i}</span>`;
+  }
+  el.innerHTML = html;
+  el.scrollTop = ta.scrollTop;
+}
+
+function srcSyncLineNums() {
+  const ta = document.getElementById('src-code');
+  document.getElementById('src-line-nums').scrollTop = ta.scrollTop;
+}
+
+function srcHandleKey(e) {
+  // Tab inserts spaces instead of changing focus
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = e.target;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    // If selection, indent/unindent block
+    if (start !== end) {
+      const val = ta.value;
+      const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+      const lineEnd = val.indexOf('\n', end);
+      const block = val.substring(lineStart, lineEnd === -1 ? val.length : lineEnd);
+      const indent = e.shiftKey
+        ? block.replace(/^  /gm, '')
+        : block.replace(/^/gm, '  ');
+      ta.value = val.substring(0, lineStart) + indent + val.substring(lineEnd === -1 ? val.length : lineEnd);
+      ta.selectionStart = lineStart;
+      ta.selectionEnd = lineStart + indent.length;
+    } else {
+      ta.value = ta.value.substring(0, start) + '  ' + ta.value.substring(end);
+      ta.selectionStart = ta.selectionEnd = start + 2;
+    }
+    srcOnChange();
+  }
+  // Ctrl+S / Cmd+S = save
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    srcSaveToGitHub();
+  }
+  // Ctrl+F = find
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    srcOpenFindReplace();
+  }
+  // Escape = close find
+  if (e.key === 'Escape' && SRC.fnrOpen) {
+    srcCloseFindReplace();
+  }
+}
+
+function srcToggleWrap() {
+  SRC.wrap = !SRC.wrap;
+  const ta = document.getElementById('src-code');
+  ta.style.whiteSpace = SRC.wrap ? 'pre-wrap' : 'pre';
+  document.getElementById('src-wrap-btn').style.color = SRC.wrap ? 'var(--gold)' : '';
+}
+
+function srcFormatCode() {
+  const ta = document.getElementById('src-code');
+  if (!ta.value) return;
+  // Simple HTML formatter — re-indents block-level elements
+  try {
+    let html = ta.value;
+    const BLOCK = ['html','head','body','div','section','nav','main','header','footer','article','aside','ul','ol','li','table','tr','td','th','thead','tbody','tfoot','form','fieldset','details','summary','p','h1','h2','h3','h4','h5','h6','script','style','link','meta','title'];
+    let indent = 0;
+    const lines = html.split('\n');
+    const result = [];
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) { result.push(''); continue; }
+      // Decrease indent for closing tags
+      const closingMatch = line.match(/^<\/(\w+)/);
+      if (closingMatch && BLOCK.includes(closingMatch[1].toLowerCase())) indent = Math.max(0, indent - 1);
+      result.push('  '.repeat(indent) + line);
+      // Increase indent after opening tags (not self-closing)
+      const openMatch = line.match(/^<(\w+)[^>]*(?<!\/|[?!])>$/);
+      if (openMatch && BLOCK.includes(openMatch[1].toLowerCase()) && !line.match(/<\/\w+>$/)) indent++;
+    }
+    ta.value = result.join('\n');
+    srcOnChange();
+    toast('Formatted!', 'success');
+  } catch(e) { toast('Format error: ' + e.message, 'error'); }
+}
+
+function srcOpenFindReplace() {
+  SRC.fnrOpen = true;
+  const bar = document.getElementById('src-fnr-bar');
+  bar.style.display = 'flex';
+  document.getElementById('src-find').focus();
+}
+
+function srcCloseFindReplace() {
+  SRC.fnrOpen = false;
+  document.getElementById('src-fnr-bar').style.display = 'none';
+  document.getElementById('src-fnr-count').textContent = '';
+  SRC.matchPositions = [];
+  SRC.matchIdx = -1;
+}
+
+function srcBuildPattern() {
+  const find = document.getElementById('src-find').value;
+  if (!find) return null;
+  const isRegex = document.getElementById('src-regex').checked;
+  const isCase  = document.getElementById('src-case').checked;
+  try {
+    return isRegex ? new RegExp(find, 'g' + (isCase ? '' : 'i')) : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'g' + (isCase ? '' : 'i'));
+  } catch(e) { toast('Invalid regex: ' + e.message, 'error'); return null; }
+}
+
+function srcFindNext() {
+  const ta = document.getElementById('src-code');
+  const pat = srcBuildPattern();
+  if (!pat) return;
+  const val = ta.value;
+  SRC.matchPositions = [];
+  let m;
+  const re = new RegExp(pat.source, pat.flags.includes('g') ? pat.flags : pat.flags + 'g');
+  while ((m = re.exec(val)) !== null) SRC.matchPositions.push({start: m.index, end: m.index + m[0].length});
+  const count = SRC.matchPositions.length;
+  document.getElementById('src-fnr-count').textContent = count ? (SRC.matchIdx + 2 > count ? 1 : SRC.matchIdx + 2) + ' / ' + count + ' matches' : '0 matches';
+  if (!count) return;
+  SRC.matchIdx = (SRC.matchIdx + 1) % count;
+  const match = SRC.matchPositions[SRC.matchIdx];
+  ta.focus();
+  ta.setSelectionRange(match.start, match.end);
+  // Scroll into view
+  const linesBefore = val.substring(0, match.start).split('\n').length;
+  const lineH = parseInt(getComputedStyle(ta).lineHeight);
+  ta.scrollTop = Math.max(0, (linesBefore - 3) * lineH);
+  document.getElementById('src-fnr-count').textContent = (SRC.matchIdx + 1) + ' / ' + count + ' matches';
+}
+
+function srcReplaceOne() {
+  const ta = document.getElementById('src-code');
+  const rep = document.getElementById('src-replace').value;
+  const pat = srcBuildPattern();
+  if (!pat || SRC.matchIdx < 0 || !SRC.matchPositions.length) { srcFindNext(); return; }
+  const match = SRC.matchPositions[SRC.matchIdx];
+  const val = ta.value;
+  ta.value = val.substring(0, match.start) + rep + val.substring(match.end);
+  srcOnChange();
+  srcFindNext();
+}
+
+function srcReplaceAll() {
+  const ta = document.getElementById('src-code');
+  const rep = document.getElementById('src-replace').value;
+  const pat = srcBuildPattern();
+  if (!pat) return;
+  const before = ta.value;
+  const after = before.replace(pat, rep);
+  const count = (before.match(pat) || []).length;
+  ta.value = after;
+  srcOnChange();
+  document.getElementById('src-fnr-count').textContent = count + ' replaced';
+  toast(`Replaced ${count} occurrences`, 'success');
+}
+
+function srcValidateHtml() {
+  const ta = document.getElementById('src-code');
+  const html = ta.value;
+  const issues = [];
+
+  // Check unclosed tags
+  const openTagRe = /<([a-zA-Z][a-zA-Z0-9]*)[^>]*(?<!\/)>/g;
+  const closeTagRe = /<\/([a-zA-Z][a-zA-Z0-9]*)>/g;
+  const selfClose = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+  const stack = [];
+  const lines = html.split('\n');
+  let lineOffsets = [0];
+  for (let l of lines) lineOffsets.push(lineOffsets[lineOffsets.length-1] + l.length + 1);
+
+  function posToLine(pos) {
+    for (let i = lineOffsets.length - 1; i >= 0; i--) {
+      if (pos >= lineOffsets[i]) return i + 1;
+    }
+    return 1;
+  }
+
+  let m;
+  const allTags = [];
+  const openRe2 = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+  while ((m = openRe2.exec(html)) !== null) {
+    allTags.push({ tag: m[1].toLowerCase(), isClose: m[0].startsWith('</'), pos: m.index, full: m[0] });
+  }
+
+  // Check for common issues
+  // 1. Unclosed script/style tags
+  const scriptCount = (html.match(/<script/g) || []).length;
+  const scriptClose = (html.match(/<\/script>/g) || []).length;
+  if (scriptCount !== scriptClose) issues.push({ type:'error', line: '—', msg: `${scriptCount} <script> open, ${scriptClose} </script> close — mismatch` });
+
+  // 2. Missing doctype
+  if (!html.trim().toLowerCase().startsWith('<!doctype')) issues.push({ type:'warn', line: 1, msg: 'Missing <!DOCTYPE html>' });
+
+  // 3. Missing <title>
+  if (!/<title>/i.test(html)) issues.push({ type:'warn', line: '—', msg: 'Missing <title> tag' });
+
+  // 4. Inline style with !important (common mistake)
+  const importantCount = (html.match(/!important/g) || []).length;
+  if (importantCount > 5) issues.push({ type:'warn', line: '—', msg: importantCount + ' uses of !important found' });
+
+  // 5. Check data-godmode scripts
+  const godmodeCount = (html.match(/data-godmode/g) || []).length;
+  const godmodeClose = (html.match(/data-godmode>[\s\S]*?<\/script>/g) || []).length;
+  if (godmodeCount > 1) issues.push({ type:'warn', line: '—', msg: 'Multiple data-godmode scripts found — only 1 will be read' });
+
+  // 6. Empty src/href
+  const emptySrc = html.match(/(src|href)=""/g) || [];
+  if (emptySrc.length) issues.push({ type:'warn', line: '—', msg: emptySrc.length + ' empty src="" or href="" attributes' });
+
+  // Show results
+  const panel = document.getElementById('src-validation');
+  const results = document.getElementById('src-validation-results');
+  panel.style.display = 'block';
+  if (!issues.length) {
+    results.innerHTML = '<span style="color:var(--green);font-family:monospace;font-size:0.78rem;">✓ No obvious issues found</span>';
+  } else {
+    results.innerHTML = issues.map(i =>
+      `<div class="src-err"><span class="${i.type === 'error' ? 'src-err-icon' : 'src-warn-icon'}">${i.type === 'error' ? '✖' : '⚠'}</span><span class="src-err-line">L${i.line}</span><span class="src-err-msg">${i.msg}</span></div>`
+    ).join('');
+  }
+  toast('Validation: ' + (issues.length ? issues.length + ' issues found' : 'No issues'), issues.length ? 'warn' : 'success');
+}
+
+async function srcSaveToGitHub() {
+  if (!SRC.filePath) { toast('No file loaded', 'error'); return; }
+  if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
+  const ta = document.getElementById('src-code');
+  const content = ta.value;
+  if (!content) { toast('Editor is empty', 'error'); return; }
+  // Confirm for sensitive files
+  if (SRC.filePath.includes('Control.Dyn')) {
+    if (!confirm(`⚠️ You're about to overwrite ${SRC.filePath} on GitHub.\n\nThis will replace the admin panel itself.\n\nContinue?`)) return;
+  }
+  document.getElementById('src-stat-msg').textContent = 'Saving to GitHub...';
+  document.getElementById('src-save-btn').disabled = true;
+  try {
+    // Auto-backup before saving
+    await createBackup('Pre-source-edit: ' + SRC.filePath);
+    const ok = await commitFile(SRC.filePath, content, '✏️ Source editor: ' + SRC.filePath + ' — ' + new Date().toLocaleString());
+    if (ok) {
+      SRC.original = content;
+      srcMarkClean();
+      document.getElementById('src-stat-msg').textContent = '✓ Saved to GitHub';
+      toast('Saved: ' + SRC.filePath, 'success');
+      logChange('deploy', 'Source editor saved: ' + SRC.filePath);
+    } else {
+      document.getElementById('src-stat-msg').textContent = 'Save failed';
+      toast('Save failed — check permissions', 'error');
+    }
+  } catch(e) {
+    document.getElementById('src-stat-msg').textContent = 'Error: ' + e.message;
+    toast('Error: ' + e.message, 'error');
+  }
+  document.getElementById('src-save-btn').disabled = false;
+}
+
+// Hook into showSection to auto-load file
+const _srcOrigShow = window.showSection;
+window.showSection = function(id) {
+  _srcOrigShow(id);
+  if (id === 'source') {
+    const sel = document.getElementById('src-file-select');
+    if (sel && STATE.ghConnected && !document.getElementById('src-code').value) {
+      loadSourceFile(sel.value);
+    }
+    // Make editor fill the panel
+    setTimeout(() => {
+      const wrap = document.getElementById('src-editor-wrap');
+      const panel = document.getElementById('section-source');
+      if (wrap && panel) {
+        const avail = panel.clientHeight - 160;
+        wrap.style.minHeight = Math.max(400, avail) + 'px';
+      }
+    }, 50);
+  }
+};
+
+// Keyboard shortcut: Ctrl+S anywhere to save
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    const src = document.getElementById('section-source');
+    if (src && src.classList.contains('active')) {
+      e.preventDefault();
+      srcSaveToGitHub();
+    }
+  }
+});
 
 // ══════════════════════════════════════════════
 //  BOOT
