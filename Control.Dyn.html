@@ -801,8 +801,12 @@ const STATE = {
 //  INIT
 // ══════════════════════════════════════════════
 async function init() {
+  // Load saved connection/settings first so GitHub credentials stay available,
+  // then immediately sync editor content from the deployed pages.
+  // This prevents stale browser localStorage from overwriting live roles, bios, images, and THICC fields.
   loadFromStorage();
-  await hydrateConfigFromDeployedSiteIfNeeded();
+  await hydrateConfigFromDeployedSiteIfNeeded(true);
+  await hydrateTHICCFromDeployedPage(true);
   applyConfigToAdminFields();
   renderClipsEditor();
   renderScheduleEditor();
@@ -856,28 +860,88 @@ function restoreConnectionFields() {
 }
 
 async function hydrateConfigFromDeployedSiteIfNeeded(force = false) {
-  // If this browser already has unsaved/local admin state, keep that. Otherwise pull the last deployed config from index.html.
+  // Pull the last deployed homepage config from index.html.
+  // Local browser storage is treated as a draft/cache, not the source of truth on page load.
   if (!force && localStorage.getItem('chazdyn_config')) return;
   try {
     const res = await fetch('index.html?controldyn=' + Date.now(), { cache: 'no-store' });
     if (!res.ok) return;
     const html = await res.text();
-    const script = html.match(/<script[^>]*data-controldyn[^>]*>([\s\S]*?)<\/script>/i);
-    if (!script) return;
-    const captured = {};
-    const fakeLocalStorage = { setItem: (k, v) => { captured[k] = v; } };
-    new Function('localStorage', script[1])(fakeLocalStorage);
+    const captured = captureLocalStorageSeed(html, 'data-controldyn');
     if (captured.chazdyn_config) {
       const c = JSON.parse(captured.chazdyn_config);
       Object.assign(STATE.config, c);
       if (Array.isArray(c.clips)) STATE.clips = c.clips;
       if (c.schedule) STATE.schedule = c.schedule;
+      if (Array.isArray(c.thiccMembers)) localStorage.setItem('chazdyn_thicc', JSON.stringify(c.thiccMembers));
       STATE.liveBadgeOn = !!c.isLive;
       localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
       saveToStorage();
-      logChange('sync', 'Loaded last deployed site config into Control.Dyn');
+      logChange('sync', 'Loaded last deployed homepage config into Control.Dyn');
     }
   } catch(e) { console.warn('Could not hydrate from deployed index.html:', e); }
+}
+
+async function hydrateTHICCFromDeployedPage(force = false) {
+  // Pull the last deployed clan roster/settings from thicc/index.html.
+  // This is critical because Deploy THICC writes to the THICC page, not only the homepage.
+  if (!force && localStorage.getItem('chazdyn_thicc')) return;
+  try {
+    const res = await fetch('thicc/index.html?controldyn=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const html = await res.text();
+    const captured = captureLocalStorageSeed(html, 'data-thicc-deploy');
+
+    if (captured.chazdyn_config) {
+      const c = JSON.parse(captured.chazdyn_config);
+      Object.assign(STATE.config, c);
+    }
+
+    if (captured.chazdyn_thicc) {
+      const members = JSON.parse(captured.chazdyn_thicc);
+      if (Array.isArray(members) && members.length) {
+        STATE.config.thiccMembers = members;
+        localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
+      }
+    } else {
+      const fallbackMembers = extractTHICCDefaultMembers(html);
+      if (fallbackMembers.length) {
+        STATE.config.thiccMembers = fallbackMembers;
+        localStorage.setItem('chazdyn_thicc', JSON.stringify(fallbackMembers));
+      }
+    }
+
+    localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+    saveToStorage();
+    logChange('sync', 'Loaded last deployed THICC roster into Control.Dyn');
+  } catch(e) { console.warn('Could not hydrate from deployed thicc/index.html:', e); }
+}
+
+function captureLocalStorageSeed(html, attributeName) {
+  const captured = {};
+  const attr = attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp('<script[^>]*' + attr + '[^>]*>([\\s\\S]*?)<\\/script>', 'i');
+  const script = html.match(re);
+  if (!script) return captured;
+  const fakeLocalStorage = {
+    setItem: (k, v) => { captured[k] = v; },
+    getItem: (k) => captured[k] || null,
+    removeItem: (k) => { delete captured[k]; }
+  };
+  new Function('localStorage', script[1])(fakeLocalStorage);
+  return captured;
+}
+
+function extractTHICCDefaultMembers(html) {
+  try {
+    const m = html.match(/const\s+DEFAULT_MEMBERS\s*=\s*(\[[\s\S]*?\]);/);
+    if (!m) return [];
+    const members = new Function('return ' + m[1])();
+    return Array.isArray(members) ? members : [];
+  } catch(e) {
+    console.warn('Could not parse DEFAULT_MEMBERS from thicc/index.html:', e);
+    return [];
+  }
 }
 
 function setFieldValue(id, val) {
@@ -932,12 +996,14 @@ function saveToStorage() {
 
 async function reloadControlDynFromLive() {
   localStorage.removeItem('chazdyn_config');
+  localStorage.removeItem('chazdyn_thicc');
   await hydrateConfigFromDeployedSiteIfNeeded(true);
+  await hydrateTHICCFromDeployedPage(true);
   applyConfigToAdminFields();
   renderClipsEditor();
   renderScheduleEditor();
   renderTHICC();
-  toast('Control.Dyn fields synced from deployed index.html', 'success');
+  toast('Control.Dyn fields synced from deployed site files', 'success');
 }
 
 // ══════════════════════════════════════════════
@@ -2008,14 +2074,15 @@ const DEFAULT_THICC_MEMBERS = [
 
 function loadTHICC() {
   try {
+    // Prefer the config object after live sync. localStorage is only the cached copy.
+    if (Array.isArray(STATE.config.thiccMembers) && STATE.config.thiccMembers.length > 0) {
+      localStorage.setItem('chazdyn_thicc', JSON.stringify(STATE.config.thiccMembers));
+      return STATE.config.thiccMembers;
+    }
     const raw = localStorage.getItem('chazdyn_thicc');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-    if (Array.isArray(STATE.config.thiccMembers) && STATE.config.thiccMembers.length > 0) {
-      localStorage.setItem('chazdyn_thicc', JSON.stringify(STATE.config.thiccMembers));
-      return STATE.config.thiccMembers;
     }
   } catch(e) {
     console.warn('chazdyn_thicc corrupt, clearing:', e);
@@ -2056,8 +2123,10 @@ function collectTHICC() {
       rank:        card.querySelector('.thicc-rank').value,
       isLeader:    card.querySelector('.thicc-leader').checked,
       about:       card.querySelector('.thicc-about').value,
+      bio:         card.querySelector('.thicc-bio')?.value || card.querySelector('.thicc-about').value,
       photoUrl:    card.querySelector('.thicc-photo-url').value,
       videoUrl:    card.querySelector('.thicc-video-url').value,
+      bannerUrl:   card.querySelector('.thicc-banner-url')?.value || '',
       accentColor: card.querySelector('.thicc-accent-color').value,
       socials
     };
@@ -2110,10 +2179,14 @@ function renderMemberEditor(m, i) {
           <input type="text" class="thicc-rank" value="${m.rank||'Member'}" placeholder="Member" />
         </div>
       </div>
-      <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-end">
+      <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-start">
         <div class="field" style="flex:1">
-          <label>Bio</label>
-          <textarea class="thicc-about" style="min-height:56px">${m.about||''}</textarea>
+          <label>Short Bio / Card Bio</label>
+          <textarea class="thicc-about" style="min-height:56px" placeholder="Short bio shown on the roster card">${m.about||''}</textarea>
+        </div>
+        <div class="field" style="flex:1">
+          <label>Long Bio / Popout Bio</label>
+          <textarea class="thicc-bio" style="min-height:90px" placeholder="Longer bio shown inside the profile popout">${m.bio||m.about||''}</textarea>
         </div>
         <div class="field" style="flex:0 0 auto;min-width:130px">
           <label>Profile Accent Color</label>
@@ -2143,6 +2216,15 @@ function renderMemberEditor(m, i) {
           </div>
         </div>
       </div>
+      <div class="field" style="margin-bottom:0.6rem">
+        <label>Popout Banner Image (filename or URL)</label>
+        <div class="flex-row">
+          <input type="text" class="thicc-banner-url" value="${m.bannerUrl||''}" placeholder="../assets/banner.jpg" style="flex:1;font-size:0.8rem" />
+          <button class="qa-btn ghost" onclick="pickTHICC(this,'banner')" style="font-size:0.72rem">Pick</button>
+          <button class="qa-btn ghost" onclick="uploadTHICC(this,'banner')" style="font-size:0.72rem">Upload</button>
+          <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'banner')" />
+        </div>
+      </div>
       <div class="field">
         <label>Social Links</label>
         <div class="thicc-socials-list">${socialsHtml}</div>
@@ -2154,7 +2236,7 @@ function renderMemberEditor(m, i) {
 function addMember() {
   const members = loadTHICC();
   const newId = Math.max(0, ...members.map(m=>m.id)) + 1;
-  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#f5a623', socials:[] });
+  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', bannerUrl:'', accentColor:'#f5a623', socials:[] });
   localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   renderTHICC();
   logChange('edit', 'Added new THICC member');
@@ -2192,7 +2274,7 @@ function uploadTHICC(btn, type) {
 
 function pickTHICC(btn, type) {
   const textInput = btn.parentElement.querySelector('input[type="text"]');
-  openAssetPicker(type === 'photo' ? 'image' : 'video', '../assets/', path => {
+  openAssetPicker((type === 'photo' || type === 'banner') ? 'image' : 'video', '../assets/', path => {
     if (textInput) textInput.value = path;
   });
 }
@@ -2205,7 +2287,7 @@ async function handleTHICCUpload(input, type) {
     await finishTHICCUpload(input, processedFile);
     if (input.value !== undefined) input.value = '';
   };
-  if (type === 'photo' && isCropCapableImage(file)) {
+  if ((type === 'photo' || type === 'banner') && isCropCapableImage(file)) {
     openImageCropper(file, go);
     return;
   }
@@ -2246,9 +2328,18 @@ async function deployTHICC() {
     'const DEFAULT_MEMBERS = ' + membersJson + ';'
   );
 
-  // 2. Inject a seed script that always overwrites localStorage on page load
+  // 2. Inject a seed script that always overwrites localStorage on page load.
+  // This includes both the roster and clan settings; otherwise the tag/full name boxes save in Control.Dyn but never update the THICC page.
   const membersJsonStr = JSON.stringify(members);
-  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');';
+  const thiccConfig = {
+    thiccDesc: STATE.config.thiccDesc || '',
+    thiccGame: STATE.config.thiccGame || 'BO6',
+    thiccFounded: STATE.config.thiccFounded || '2025',
+    thiccTag: STATE.config.thiccTag || '[THICC]',
+    thiccFullname: STATE.config.thiccFullname || 'The Hooligans in Chaos Crew'
+  };
+  const thiccConfigJsonStr = JSON.stringify(thiccConfig);
+  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');localStorage.setItem("chazdyn_config",' + JSON.stringify(thiccConfigJsonStr) + ');';
   const _sc = '\u003c/script>';
   const seedScript = '\n<script data-thicc-deploy>' + seedInner + _sc;
   updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
@@ -2256,6 +2347,10 @@ async function deployTHICC() {
 
   const ok = await commitFile('thicc/index.html', updated, '🎮 THICC deploy: ' + new Date().toLocaleString());
   if (ok) {
+    STATE.config.thiccMembers = members;
+    localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
+    localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+    saveToStorage();
     toast('THICC deployed! ✓', 'success');
     logChange('deploy', 'THICC roster deployed to live');
   } else {

@@ -32,7 +32,7 @@
     .hero-eyebrow { display:flex; align-items:center; gap:12px; font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--gold); letter-spacing:0.2em; text-transform:uppercase; margin-bottom:1.5rem; opacity:0.8; }
     .hero-eyebrow::before,.hero-eyebrow::after { content:''; display:block; width:40px; height:1px; background:var(--gold); opacity:0.4; }
     .hero-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(6rem,20vw,14rem); line-height:0.85; letter-spacing:0.06em; color:var(--text); position:relative; margin-bottom:0.5rem; }
-    .hero-title::after { content:'THICC'; position:absolute; inset:0; color:transparent; -webkit-text-stroke:1px rgba(245,166,35,0.15); transform:translate(3px,3px); z-index:-1; }
+    .hero-title::after { content:attr(data-text); position:absolute; inset:0; color:transparent; -webkit-text-stroke:1px rgba(245,166,35,0.15); transform:translate(3px,3px); z-index:-1; }
     .hero-subtitle { font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:var(--gold); letter-spacing:0.25em; text-transform:uppercase; margin-bottom:2rem; opacity:0.7; }
     .hero-desc { max-width:520px; color:var(--muted); font-size:1rem; line-height:1.8; font-weight:500; margin-bottom:2.5rem; }
     .hero-stats { display:flex; gap:3rem; justify-content:center; }
@@ -174,9 +174,7 @@
 
 
 
-
-
-<script data-thicc-deploy>localStorage.setItem("chazdyn_thicc","[{\"id\":1,\"name\":\"Chazdyn\",\"gamertag\":\"Chazdyn\",\"rank\":\"Dyn\",\"isLeader\":true,\"about\":\"PNW dad, musician, and the guy who pauses games to read chat. Come hang.\",\"photoUrl\":\"../assets/Chazdyn-Avatar-cropped-square-20260502223832.jpg\",\"videoUrl\":\"https://youtu.be/-b_m0kA4ry4\",\"accentColor\":\"#f5a623\",\"socials\":[{\"platform\":\"Twitch\",\"url\":\"https://twitch.tv/chazdyn\",\"handle\":\"Chazdyn\"},{\"platform\":\"TikTok\",\"url\":\"https://tiktok.com/@thiccchazdyn\",\"handle\":\"@THICCChazdyn\"},{\"platform\":\"Instagram\",\"url\":\"https://instagram.com/chazdynplays\",\"handle\":\"@ChazdynPlays\"}]},{\"id\":2,\"name\":\"ShyShackle\",\"gamertag\":\"ShyShackle\",\"rank\":\"Wifey\",\"isLeader\":false,\"about\":\"Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends 🖤\",\"photoUrl\":\"../assets/ShyShack-Avatar-cropped-square-20260502223809.jpg\",\"videoUrl\":\"https://youtu.be/qfVqeQwABFE\",\"accentColor\":\"#c0392b\",\"socials\":[{\"platform\":\"Twitch\",\"url\":\"https://twitch.tv/shyshackle\",\"handle\":\"ShyShackle\"},{\"platform\":\"TikTok\",\"url\":\"https://tiktok.com/@shyshackle\",\"handle\":\"@shyshackle\"},{\"platform\":\"Instagram\",\"url\":\"https://instagram.com/shyshackle\",\"handle\":\"@shyshackle\"}]},{\"id\":3,\"name\":\"Mastercardi\",\"gamertag\":\"Mastercardi\",\"rank\":\"Everyone's Mod\",\"isLeader\":false,\"about\":\"\",\"photoUrl\":\"../assets/cardi-avatar-cropped-square-20260503175015.jpg\",\"videoUrl\":\"\",\"accentColor\":\"#22c55e\",\"socials\":[]},{\"id\":4,\"name\":\"SenoritoTaquito\",\"gamertag\":\"SenoritoTaquito\",\"rank\":\"The Mouth\",\"isLeader\":false,\"about\":\"\",\"photoUrl\":\"\",\"videoUrl\":\"\",\"accentColor\":\"#fb923c\",\"socials\":[]},{\"id\":5,\"name\":\"PrincessBayleaf\",\"gamertag\":\"PrincessBayleaf\",\"rank\":\"Rave Pincess\",\"isLeader\":false,\"about\":\"\",\"photoUrl\":\"\",\"videoUrl\":\"\",\"accentColor\":\"#f472b6\",\"socials\":[]},{\"id\":6,\"name\":\"NeighborGuyBri\",\"gamertag\":\"NeighborGuyBri\",\"rank\":\"Neighbor\",\"isLeader\":false,\"about\":\"\",\"photoUrl\":\"\",\"videoUrl\":\"\",\"accentColor\":\"#2dd4bf\",\"socials\":[]},{\"id\":7,\"name\":\"Thomas\",\"gamertag\":\"Thomas\",\"rank\":\"Community Dad\",\"isLeader\":false,\"about\":\"An AC&R Technician with the Navy, Thomas's age is somehow both 26 and 56. Formerly being the youngest member of OGB(Old Grumpy Bastards), Thomas's demeanor, mechanical skills, and ability to somehow always be in the process of cooking bacon keeps him old at heart. He may be the youngest of the THICCums, but he wears the mustache well.\\nKey Highlights:\\n-Chazdyn once called Thomas for help fixing a lawnmower.\\n-Chazdyn called Thomas once again when the outdoor heater wasn't working.\\n-Thomas once gave a discord seminar on the states of water regarding pressure versus temperature.\\n-Thomas has remotely assisted in fixing Cardi and Taquito's garbage disposal.\",\"photoUrl\":\"\",\"videoUrl\":\"\",\"accentColor\":\"#a78bfa\",\"socials\":[]}]");</script>
+<script data-thicc-deploy>localStorage.setItem("chazdyn_thicc","[{\"id\": 1, \"name\": \"Chazdyn\", \"gamertag\": \"Chazdyn\", \"rank\": \"Clan Leader\", \"isLeader\": true, \"about\": \"PNW dad, musician, and the guy who pauses games to read chat. Come hang.\", \"bio\": \"Pacific Northwest content creator, dad, musician, and the chaos coordinator behind THICC.\", \"bannerUrl\": \"\", \"photoUrl\": \"../assets/Chazdyn Avatar.JPG\", \"videoUrl\": \"https://youtu.be/-b_m0kA4ry4\", \"accentColor\": \"#f5a623\", \"socials\": [{\"platform\": \"Twitch\", \"url\": \"https://twitch.tv/chazdyn\", \"handle\": \"Chazdyn\"}, {\"platform\": \"TikTok\", \"url\": \"https://tiktok.com/@thiccchazdyn\", \"handle\": \"@THICCChazdyn\"}, {\"platform\": \"Instagram\", \"url\": \"https://instagram.com/chazdynplays\", \"handle\": \"@ChazdynPlays\"}]}, {\"id\": 2, \"name\": \"ShyShackle\", \"gamertag\": \"ShyShackle\", \"rank\": \"Wifey\", \"isLeader\": false, \"about\": \"Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends 🖤\", \"bio\": \"Horror games, shooters, chaos comms, jump scares, and a dark aesthetic with a smart mouth.\", \"bannerUrl\": \"\", \"photoUrl\": \"../assets/ShyShack Avatar.png\", \"videoUrl\": \"https://youtu.be/qfVqeQwABFE\", \"accentColor\": \"#c0392b\", \"socials\": [{\"platform\": \"Twitch\", \"url\": \"https://twitch.tv/shyshackle\", \"handle\": \"ShyShackle\"}, {\"platform\": \"TikTok\", \"url\": \"https://tiktok.com/@shyshackle\", \"handle\": \"@shyshackle\"}, {\"platform\": \"Instagram\", \"url\": \"https://instagram.com/shyshackle\", \"handle\": \"@shyshackle\"}]}, {\"id\": 3, \"name\": \"Mastercardi\", \"gamertag\": \"Mastercardi\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"accentColor\": \"#22c55e\", \"socials\": [], \"bio\": \"\", \"bannerUrl\": \"\"}, {\"id\": 4, \"name\": \"SenoritoTaquito\", \"gamertag\": \"SenoritoTaquito\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"accentColor\": \"#fb923c\", \"socials\": [], \"bio\": \"\", \"bannerUrl\": \"\"}, {\"id\": 5, \"name\": \"PrincessBayleaf\", \"gamertag\": \"PrincessBayleaf\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"accentColor\": \"#f472b6\", \"socials\": [], \"bio\": \"\", \"bannerUrl\": \"\"}, {\"id\": 6, \"name\": \"NeighborGuyBri\", \"gamertag\": \"NeighborGuyBri\", \"rank\": \"Neighbor\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"accentColor\": \"#2dd4bf\", \"socials\": [], \"bio\": \"\", \"bannerUrl\": \"\"}, {\"id\": 7, \"name\": \"Thomas\", \"gamertag\": \"Thomas\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"accentColor\": \"#a78bfa\", \"socials\": [], \"bio\": \"\", \"bannerUrl\": \"\"}]");localStorage.setItem("chazdyn_config","{\"thiccDesc\": \"We're not a tryhard clan. We're a group of friends who happen to be pretty decent at COD — and extremely good at talking over each other on comms.\", \"thiccGame\": \"BO6\", \"thiccFounded\": \"2025\", \"thiccTag\": \"[THICC]\", \"thiccFullname\": \"The Hooligans in Chaos Crew\"}");</script>
 </head>
 <body>
 
@@ -187,7 +185,7 @@
       Chazdyn.com
     </a>
     <div class="nav-divider"></div>
-    <a class="nav-logo" href="#">THICC</a>
+    <a class="nav-logo" href="#" id="nav-clan-tag">THICC</a>
     <span class="nav-tag">COD Clan</span>
   </div>
   <span class="nav-member-count" id="nav-member-count">07 MEMBERS</span>
@@ -197,8 +195,8 @@
   <div class="hero-lines"></div>
   <div class="hero-glow"></div>
   <div class="hero-eyebrow">Chazdyn's COD Clan</div>
-  <h1 class="hero-title">THICC</h1>
-  <div class="hero-subtitle">Totally Humble Insanely Cracked Champions</div>
+  <h1 class="hero-title" id="hero-clan-tag" data-text="THICC">THICC</h1>
+  <div class="hero-subtitle" id="hero-clan-fullname">Totally Humble Insanely Cracked Champions</div>
   <p class="hero-desc" id="hero-desc">We're not a tryhard clan. We're a group of friends who happen to be pretty decent at COD — and extremely good at talking over each other on comms.</p>
   <div class="hero-stats">
     <div class="hero-stat"><span class="hero-stat-num" id="stat-members">7</span><span class="hero-stat-label">Members</span></div>
@@ -273,10 +271,12 @@ const DEFAULT_MEMBERS = [
     "id": 1,
     "name": "Chazdyn",
     "gamertag": "Chazdyn",
-    "rank": "Dyn",
+    "rank": "Clan Leader",
     "isLeader": true,
     "about": "PNW dad, musician, and the guy who pauses games to read chat. Come hang.",
-    "photoUrl": "../assets/Chazdyn-Avatar-cropped-square-20260502223832.jpg",
+    "bio": "Pacific Northwest content creator, dad, musician, and the chaos coordinator behind THICC.",
+    "bannerUrl": "",
+    "photoUrl": "../assets/Chazdyn Avatar.JPG",
     "videoUrl": "https://youtu.be/-b_m0kA4ry4",
     "accentColor": "#f5a623",
     "socials": [
@@ -304,7 +304,9 @@ const DEFAULT_MEMBERS = [
     "rank": "Wifey",
     "isLeader": false,
     "about": "Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends 🖤",
-    "photoUrl": "../assets/ShyShack-Avatar-cropped-square-20260502223809.jpg",
+    "bio": "Horror games, shooters, chaos comms, jump scares, and a dark aesthetic with a smart mouth.",
+    "bannerUrl": "",
+    "photoUrl": "../assets/ShyShack Avatar.png",
     "videoUrl": "https://youtu.be/qfVqeQwABFE",
     "accentColor": "#c0392b",
     "socials": [
@@ -329,37 +331,43 @@ const DEFAULT_MEMBERS = [
     "id": 3,
     "name": "Mastercardi",
     "gamertag": "Mastercardi",
-    "rank": "Everyone's Mod",
+    "rank": "Member",
     "isLeader": false,
     "about": "",
-    "photoUrl": "../assets/cardi-avatar-cropped-square-20260503175015.jpg",
+    "photoUrl": "",
     "videoUrl": "",
     "accentColor": "#22c55e",
-    "socials": []
+    "socials": [],
+    "bio": "",
+    "bannerUrl": ""
   },
   {
     "id": 4,
     "name": "SenoritoTaquito",
     "gamertag": "SenoritoTaquito",
-    "rank": "The Mouth",
+    "rank": "Member",
     "isLeader": false,
     "about": "",
     "photoUrl": "",
     "videoUrl": "",
     "accentColor": "#fb923c",
-    "socials": []
+    "socials": [],
+    "bio": "",
+    "bannerUrl": ""
   },
   {
     "id": 5,
     "name": "PrincessBayleaf",
     "gamertag": "PrincessBayleaf",
-    "rank": "Rave Pincess",
+    "rank": "Member",
     "isLeader": false,
     "about": "",
     "photoUrl": "",
     "videoUrl": "",
     "accentColor": "#f472b6",
-    "socials": []
+    "socials": [],
+    "bio": "",
+    "bannerUrl": ""
   },
   {
     "id": 6,
@@ -371,19 +379,23 @@ const DEFAULT_MEMBERS = [
     "photoUrl": "",
     "videoUrl": "",
     "accentColor": "#2dd4bf",
-    "socials": []
+    "socials": [],
+    "bio": "",
+    "bannerUrl": ""
   },
   {
     "id": 7,
     "name": "Thomas",
     "gamertag": "Thomas",
-    "rank": "Community Dad",
+    "rank": "Member",
     "isLeader": false,
-    "about": "An AC&R Technician with the Navy, Thomas's age is somehow both 26 and 56. Formerly being the youngest member of OGB(Old Grumpy Bastards), Thomas's demeanor, mechanical skills, and ability to somehow always be in the process of cooking bacon keeps him old at heart. He may be the youngest of the THICCums, but he wears the mustache well.\nKey Highlights:\n-Chazdyn once called Thomas for help fixing a lawnmower.\n-Chazdyn called Thomas once again when the outdoor heater wasn't working.\n-Thomas once gave a discord seminar on the states of water regarding pressure versus temperature.\n-Thomas has remotely assisted in fixing Cardi and Taquito's garbage disposal.",
+    "about": "",
     "photoUrl": "",
     "videoUrl": "",
     "accentColor": "#a78bfa",
-    "socials": []
+    "socials": [],
+    "bio": "",
+    "bannerUrl": ""
   }
 ];
 
@@ -451,7 +463,7 @@ function buildModal(m){
   const bio=m.bio||m.about;
   return`
     <div class="modal-hero">
-      <div class="modal-hero-bg" style="background:${t.gr}"></div>
+      ${m.bannerUrl ? `<div class="modal-hero-bg" style="background:linear-gradient(90deg,rgba(5,5,6,.72),rgba(5,5,6,.42)),url('${m.bannerUrl}') center/cover no-repeat"></div>` : `<div class="modal-hero-bg" style="background:${t.gr}"></div>`}
       <div class="modal-hero-lines"></div>
       <div class="modal-hero-scanlines"></div>
       <div class="modal-hero-glow" style="background:radial-gradient(ellipse,${t.g} 0%,transparent 70%)"></div>
@@ -520,7 +532,23 @@ function loadAndRender(){
   const raw=localStorage.getItem('chazdyn_thicc');
   const members=raw?JSON.parse(raw):DEFAULT_MEMBERS;
   const cfg=localStorage.getItem('chazdyn_config');
-  if(cfg){try{const c=JSON.parse(cfg);if(c.thiccDesc)document.getElementById('hero-desc').textContent=c.thiccDesc;if(c.thiccFounded)document.getElementById('stat-founded').textContent=c.thiccFounded;if(c.thiccGame)document.getElementById('stat-game').textContent=c.thiccGame;}catch(e){}}
+  if(cfg){try{
+    const c=JSON.parse(cfg);
+    if(c.thiccDesc)document.getElementById('hero-desc').textContent=c.thiccDesc;
+    if(c.thiccFounded)document.getElementById('stat-founded').textContent=c.thiccFounded;
+    if(c.thiccGame)document.getElementById('stat-game').textContent=c.thiccGame;
+    if(c.thiccTag){
+      const cleanTag=String(c.thiccTag).replace(/^\[/,'').replace(/\]$/,'');
+      const navTag=document.getElementById('nav-clan-tag');
+      const heroTag=document.getElementById('hero-clan-tag');
+      if(navTag) navTag.textContent=cleanTag;
+      if(heroTag){ heroTag.textContent=cleanTag; heroTag.setAttribute('data-text', cleanTag); }
+    }
+    if(c.thiccFullname){
+      const full=document.getElementById('hero-clan-fullname');
+      if(full) full.textContent=c.thiccFullname;
+    }
+  }catch(e){}}
   const grid=document.getElementById('member-grid');
   const sorted=[...members].sort((a,b)=>(b.isLeader?1:0)-(a.isLeader?1:0));
   grid.innerHTML=sorted.map(renderCard).join('');
