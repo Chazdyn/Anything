@@ -1149,45 +1149,83 @@ async function readFile(path) {
 // ══════════════════════════════════════════════
 //  DEPLOY
 // ══════════════════════════════════════════════
+function buildTHICCPageHtml(html, members = loadTHICC()) {
+  const safeMembers = Array.isArray(members) && members.length ? members : loadTHICC();
+  const membersJson = JSON.stringify(safeMembers, null, 2);
+  let updated = html.replace(
+    /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
+    'const DEFAULT_MEMBERS = ' + membersJson + ';'
+  );
+
+  const thiccConfig = {
+    thiccDesc: STATE.config.thiccDesc || '',
+    thiccGame: STATE.config.thiccGame || 'BO6',
+    thiccFounded: STATE.config.thiccFounded || '2025',
+    thiccTag: STATE.config.thiccTag || '[THICC]',
+    thiccFullname: STATE.config.thiccFullname || 'The Hooligans in Chaos Crew'
+  };
+  const membersJsonStr = JSON.stringify(safeMembers);
+  const thiccConfigJsonStr = JSON.stringify(thiccConfig);
+  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');localStorage.setItem("chazdyn_config",' + JSON.stringify(thiccConfigJsonStr) + ');';
+  const _sc = '\u003c/script>';
+  const seedScript = '\n<script data-thicc-deploy>' + seedInner + _sc;
+  updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
+  updated = updated.replace('</head>', seedScript + '\n</head>');
+  return updated;
+}
+
 async function deployToLive() {
-  // Auto-save every editor field before deploying, so reopening Control.Dyn matches the live deployment.
+  // GO LIVE means: save every current admin input, then deploy homepage + THICC page together.
   Object.assign(STATE.config, STATE.pendingChanges);
   STATE.pendingChanges = {};
   ['hero','about','clips','music','schedule','socials'].forEach(captureSectionFields);
   pushThemeValuesOnly();
-  captureTHICCSettings();
+  captureTHICCSettings(true);
   STATE.config.thiccMembers = loadTHICC();
   STATE.config._lastDeploy = new Date().toISOString();
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
+
   if (!STATE.ghConnected) { toast('Connect GitHub first in Connections', 'error'); return; }
   toast('Creating backup...', 'info');
-  await createBackup('Pre-deploy backup');
+  await createBackup('Pre-Go-Live backup');
 
-  toast('Deploying to GitHub...', 'info');
+  toast('Deploying homepage + THICC to GitHub...', 'info');
   try {
-    // Read current index.html and inject config
     const html = await readFile('index.html');
     if (!html) { toast('Could not read index.html from GitHub', 'error'); return; }
 
-    // Inject config as a localStorage pre-seed script
     const configJsonStr = JSON.stringify(STATE.config);
     const _sc = '\u003c/script>';
     const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');' + _sc;
     let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
     updated = updated.replace('</head>', configScript + '</head>');
 
-    const ok = await commitFile('index.html', updated, '🚀 Control.Dyn deploy: ' + new Date().toLocaleString());
-    if (ok) {
-      toast('Deployed successfully!', 'success');
-      logChange('deploy', 'Deployed to live', new Date().toLocaleString());
+    const homeOk = await commitFile('index.html', updated, '🚀 Control.Dyn GO LIVE homepage: ' + new Date().toLocaleString());
+
+    let thiccOk = true;
+    const thiccHtml = await readFile('thicc/index.html');
+    if (thiccHtml) {
+      const thiccUpdated = buildTHICCPageHtml(thiccHtml, STATE.config.thiccMembers);
+      thiccOk = await commitFile('thicc/index.html', thiccUpdated, '🚀 Control.Dyn GO LIVE THICC: ' + new Date().toLocaleString());
+    } else {
+      thiccOk = false;
+      logChange('error', 'Could not read thicc/index.html during Go Live');
+    }
+
+    if (homeOk && thiccOk) {
+      toast('GO LIVE complete — homepage + THICC deployed!', 'success');
+      logChange('deploy', 'GO LIVE deployed homepage + THICC', new Date().toLocaleString());
       STATE.config._lastDeploy = new Date().toISOString();
       saveToStorage(); updateDashboard();
+    } else if (homeOk && !thiccOk) {
+      toast('Homepage deployed, but THICC deploy failed', 'warning');
+      logChange('error', 'Partial Go Live: homepage ok, THICC failed');
     } else {
-      toast('Deploy failed — check GitHub permissions', 'error');
-      logChange('error', 'Deploy failed');
+      toast('GO LIVE failed — check GitHub permissions', 'error');
+      logChange('error', 'Go Live failed');
     }
-  } catch(e) { toast('Deploy error: ' + e.message, 'error'); logChange('error', e.message); }
+  } catch(e) { toast('GO LIVE error: ' + e.message, 'error'); logChange('error', e.message); }
 }
 
 async function forceDeploy() {
@@ -2092,19 +2130,41 @@ function loadTHICC() {
 }
 
 function saveTHICC() {
-  // Collect from editor
-  const members = collectTHICC();
-  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
-  // Also save clan settings into STATE.config
-  STATE.config.thiccDesc    = document.getElementById('thicc-desc')?.value || '';
-  STATE.config.thiccGame    = document.getElementById('thicc-game')?.value || 'BO6';
-  STATE.config.thiccFounded = document.getElementById('thicc-founded')?.value || '2025';
-  STATE.config.thiccTag     = document.getElementById('thicc-tag')?.value || 'THICC';
-  STATE.config.thiccFullname= document.getElementById('thicc-fullname')?.value || '';
-  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
-  saveToStorage();
+  // Collect from editor only when the roster editor is actually rendered.
+  // This prevents Go Live / Save from wiping the roster when the THICC tab has not been opened yet.
+  captureTHICCSettings(true);
   toast('THICC saved to preview', 'success');
   logChange('edit', 'THICC roster/settings saved');
+}
+
+function captureTHICCSettings(allowRosterCapture = true) {
+  // Save clan-level settings whenever their inputs exist.
+  const descEl = document.getElementById('thicc-desc');
+  const gameEl = document.getElementById('thicc-game');
+  const foundedEl = document.getElementById('thicc-founded');
+  const tagEl = document.getElementById('thicc-tag');
+  const fullnameEl = document.getElementById('thicc-fullname');
+
+  if (descEl) STATE.config.thiccDesc = descEl.value || '';
+  if (gameEl) STATE.config.thiccGame = gameEl.value || 'BO6';
+  if (foundedEl) STATE.config.thiccFounded = foundedEl.value || '2025';
+  if (tagEl) STATE.config.thiccTag = tagEl.value || '[THICC]';
+  if (fullnameEl) STATE.config.thiccFullname = fullnameEl.value || '';
+
+  const rosterEl = document.getElementById('thicc-roster-editor');
+  const rosterIsRendered = !!(rosterEl && rosterEl.querySelector('.thicc-member-editor'));
+  if (allowRosterCapture && rosterIsRendered) {
+    const members = collectTHICC();
+    if (Array.isArray(members) && members.length > 0) {
+      STATE.config.thiccMembers = members;
+      localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
+    }
+  } else if (Array.isArray(STATE.config.thiccMembers) && STATE.config.thiccMembers.length > 0) {
+    localStorage.setItem('chazdyn_thicc', JSON.stringify(STATE.config.thiccMembers));
+  }
+
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  saveToStorage();
 }
 
 function collectTHICC() {
@@ -2312,39 +2372,14 @@ async function finishTHICCUpload(input, file) {
 
 async function deployTHICC() {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
-  saveTHICC();
-  toast('Creating backup...', 'info');
+  captureTHICCSettings(true);
+  toast('Deploying THICC to GitHub...', 'info');
 
-  // Read current thicc/index.html
   const html = await readFile('thicc/index.html');
   if (!html) { toast('Could not read thicc/index.html', 'error'); return; }
 
   const members = loadTHICC();
-
-  // 1. Replace DEFAULT_MEMBERS source block so fallback is always correct
-  const membersJson = JSON.stringify(members, null, 2);
-  let updated = html.replace(
-    /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
-    'const DEFAULT_MEMBERS = ' + membersJson + ';'
-  );
-
-  // 2. Inject a seed script that always overwrites localStorage on page load.
-  // This includes both the roster and clan settings; otherwise the tag/full name boxes save in Control.Dyn but never update the THICC page.
-  const membersJsonStr = JSON.stringify(members);
-  const thiccConfig = {
-    thiccDesc: STATE.config.thiccDesc || '',
-    thiccGame: STATE.config.thiccGame || 'BO6',
-    thiccFounded: STATE.config.thiccFounded || '2025',
-    thiccTag: STATE.config.thiccTag || '[THICC]',
-    thiccFullname: STATE.config.thiccFullname || 'The Hooligans in Chaos Crew'
-  };
-  const thiccConfigJsonStr = JSON.stringify(thiccConfig);
-  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');localStorage.setItem("chazdyn_config",' + JSON.stringify(thiccConfigJsonStr) + ');';
-  const _sc = '\u003c/script>';
-  const seedScript = '\n<script data-thicc-deploy>' + seedInner + _sc;
-  updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
-  updated = updated.replace('</head>', seedScript + '\n</head>');
-
+  const updated = buildTHICCPageHtml(html, members);
   const ok = await commitFile('thicc/index.html', updated, '🎮 THICC deploy: ' + new Date().toLocaleString());
   if (ok) {
     STATE.config.thiccMembers = members;
@@ -2352,7 +2387,7 @@ async function deployTHICC() {
     localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
     saveToStorage();
     toast('THICC deployed! ✓', 'success');
-    logChange('deploy', 'THICC roster deployed to live');
+    logChange('deploy', 'THICC roster/settings deployed to live');
   } else {
     toast('THICC deploy failed', 'error');
     logChange('error', 'THICC deploy failed');
