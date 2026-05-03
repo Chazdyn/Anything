@@ -975,7 +975,8 @@ async function deployToLive() {
 
     // Inject config as a localStorage pre-seed script
     const configJsonStr = JSON.stringify(STATE.config);
-    const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');<' + '/script>';
+    const _sc = '\u003c/script>';
+    const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');' + _sc;
     let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
     updated = updated.replace('</head>', configScript + '</head>');
 
@@ -2098,10 +2099,10 @@ async function deployTHICC() {
   );
 
   // 2. Inject a seed script that always overwrites localStorage on page load
-  //    Built with string concat so </script> never appears literally in JS source
   const membersJsonStr = JSON.stringify(members);
   const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');';
-  const seedScript = '\n<script data-thicc-deploy>' + seedInner + '<' + '/script>';
+  const _sc = '\u003c/script>';
+  const seedScript = '\n<script data-thicc-deploy>' + seedInner + _sc;
   updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
   updated = updated.replace('</head>', seedScript + '\n</head>');
 
