@@ -1842,13 +1842,13 @@ if ('serviceWorker' in navigator) {
 //  THICC
 // ══════════════════════════════════════════════
 const DEFAULT_THICC_MEMBERS = [
-  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
-  { id:2, name:'ShyShack',       gamertag:'ShyShack',       rank:'Member', isLeader:false, about:'', photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', socials:[] },
-  { id:3, name:'Mastercardi',    gamertag:'Mastercardi',    rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:4, name:'SenoritoTaquito',gamertag:'SenoritoTaquito',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:5, name:'PrincessBayleaf',gamertag:'PrincessBayleaf',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:7, name:'Thomas',         gamertag:'Thomas',         rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] }
+  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', accentColor:'#f5a623', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
+  { id:2, name:'ShyShackle',      gamertag:'ShyShackle',      rank:'Member', isLeader:false, about:'Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends. Come hang... if you can handle it 🖤', photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', accentColor:'#c0392b', socials:[{platform:'Twitch',url:'https://twitch.tv/shyshackle',handle:'ShyShackle'},{platform:'TikTok',url:'https://tiktok.com/@shyshackle',handle:'@shyshackle'},{platform:'Instagram',url:'https://instagram.com/shyshackle',handle:'@shyshackle'}] },
+  { id:3, name:'Mastercardi',    gamertag:'Mastercardi',    rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#22c55e', socials:[] },
+  { id:4, name:'SenoritoTaquito',gamertag:'SenoritoTaquito',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#fb923c', socials:[] },
+  { id:5, name:'PrincessBayleaf',gamertag:'PrincessBayleaf',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#f472b6', socials:[] },
+  { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#2dd4bf', socials:[] },
+  { id:7, name:'Thomas',         gamertag:'Thomas',         rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#a78bfa', socials:[] }
 ];
 
 function loadTHICC() {
@@ -1883,13 +1883,14 @@ function collectTHICC() {
     })).filter(s => s.url);
     return {
       id,
-      name:      card.querySelector('.thicc-name').value,
-      gamertag:  card.querySelector('.thicc-gamertag').value,
-      rank:      card.querySelector('.thicc-rank').value,
-      isLeader:  card.querySelector('.thicc-leader').checked,
-      about:     card.querySelector('.thicc-about').value,
-      photoUrl:  card.querySelector('.thicc-photo-url').value,
-      videoUrl:  card.querySelector('.thicc-video-url').value,
+      name:        card.querySelector('.thicc-name').value,
+      gamertag:    card.querySelector('.thicc-gamertag').value,
+      rank:        card.querySelector('.thicc-rank').value,
+      isLeader:    card.querySelector('.thicc-leader').checked,
+      about:       card.querySelector('.thicc-about').value,
+      photoUrl:    card.querySelector('.thicc-photo-url').value,
+      videoUrl:    card.querySelector('.thicc-video-url').value,
+      accentColor: card.querySelector('.thicc-accent-color').value,
       socials
     };
   });
@@ -1941,9 +1942,18 @@ function renderMemberEditor(m, i) {
           <input type="text" class="thicc-rank" value="${m.rank||'Member'}" placeholder="Member" />
         </div>
       </div>
-      <div class="field" style="margin-bottom:0.6rem">
-        <label>Bio</label>
-        <textarea class="thicc-about" style="min-height:56px">${m.about||''}</textarea>
+      <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-end">
+        <div class="field" style="flex:1">
+          <label>Bio</label>
+          <textarea class="thicc-about" style="min-height:56px">${m.about||''}</textarea>
+        </div>
+        <div class="field" style="flex:0 0 auto;min-width:130px">
+          <label>Profile Accent Color</label>
+          <div class="flex-row" style="gap:0.4rem;align-items:center">
+            <input type="color" class="thicc-accent-color" value="${m.accentColor||'#f5a623'}" style="width:36px;height:36px;padding:2px;cursor:pointer;border:1px solid var(--border2);background:transparent" oninput="document.getElementById('accent-hex-${m.id}').textContent=this.value" />
+            <span style="font-family:monospace;font-size:0.75rem;color:var(--muted)" id="accent-hex-${m.id}">${m.accentColor||'#f5a623'}</span>
+          </div>
+        </div>
       </div>
       <div class="field-row" style="margin-bottom:0.6rem">
         <div class="field">
@@ -1974,7 +1984,7 @@ function renderMemberEditor(m, i) {
 function addMember() {
   const members = loadTHICC();
   const newId = Math.max(0, ...members.map(m=>m.id)) + 1;
-  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] });
+  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#f5a623', socials:[] });
   localStorage.setItem('controldyn_thicc', JSON.stringify(members));
   renderTHICC();
   logChange('edit', 'Added new THICC member');
@@ -2031,11 +2041,10 @@ async function finishTHICCUpload(input, file) {
     const ok = await commitFile('assets/' + file.name, base64, '📁 THICC upload: ' + file.name, true);
     if (ok) {
       const urlInput = input.closest('.flex-row').querySelector('input[type="text"]');
-      if (urlInput) {
-        // Always use the correct relative path from thicc/index.html's perspective
-        urlInput.value = '../assets/' + file.name;
-      }
-      toast(file.name + ' uploaded! ✓', 'success');
+      if (urlInput) urlInput.value = STATE.showFullUrls
+        ? `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/${file.name}`
+        : file.name;
+      toast(file.name + ' uploaded!', 'success');
       logChange('edit', 'Uploaded THICC asset: ' + file.name);
       refreshAssets();
     } else toast('Upload failed', 'error');
@@ -2053,24 +2062,16 @@ async function deployTHICC() {
   if (!html) { toast('Could not read thicc/index.html', 'error'); return; }
 
   const members = loadTHICC();
-
-  // Fix 1: Update DEFAULT_MEMBERS in source so fallback is always correct
+  // Replace DEFAULT_MEMBERS block in thicc/index.html
   const membersJson = JSON.stringify(members, null, 4);
-  let updated = html.replace(
+  const updated = html.replace(
     /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
     'const DEFAULT_MEMBERS = ' + membersJson + ';'
   );
 
-  // Fix 2: Inject a <script> that ALWAYS seeds localStorage on page load,
-  // so stale localStorage never overrides the deployed roster.
-  const seedScript = `\n<script data-thicc-deploy>localStorage.setItem('chazdyn_thicc',${JSON.stringify(JSON.stringify(members))});<\/script>`;
-  // Remove any previous seed script first
-  updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
-  updated = updated.replace('</head>', seedScript + '\n</head>');
-
   const ok = await commitFile('thicc/index.html', updated, '🎮 THICC deploy: ' + new Date().toLocaleString());
   if (ok) {
-    toast('THICC deployed! ✓ Roster + localStorage seeded', 'success');
+    toast('THICC deployed!', 'success');
     logChange('deploy', 'THICC roster deployed to live');
   } else {
     toast('THICC deploy failed', 'error');
