@@ -756,7 +756,26 @@
       const cfg = JSON.parse(raw);
 
       // live status
-      if (cfg.isLive) document.getElementById('live-badge').classList.add('is-live');
+      const liveBadge = document.getElementById('live-badge');
+      if (liveBadge) liveBadge.classList.toggle('is-live', !!cfg.isLive);
+
+      // hero text
+      if (cfg.heroEyebrow) { const el = document.querySelector('.hero-eyebrow'); if (el) el.textContent = cfg.heroEyebrow; }
+      if (cfg.heroTagline) { const el = document.querySelector('.hero-tagline'); if (el) el.textContent = cfg.heroTagline; }
+
+      // about section
+      if (cfg.avatarUrl) { const el = document.getElementById('about-avatar'); if (el) el.src = cfg.avatarUrl; }
+      if (cfg.aboutBio) { const el = document.querySelector('.about-bio'); if (el) el.textContent = cfg.aboutBio; }
+      if (cfg.aboutLong) { const el = document.querySelector('.about-text'); if (el) el.textContent = cfg.aboutLong; }
+      if (cfg.aboutTags && Array.isArray(cfg.aboutTags)) {
+        const tagWrap = document.querySelector('.tags');
+        if (tagWrap) tagWrap.innerHTML = cfg.aboutTags.map(t => `<span class="tag">${t}</span>`).join('');
+      }
+
+      // theme values
+      if (cfg.accentColor) document.documentElement.style.setProperty('--green', cfg.accentColor);
+      if (cfg.accent2Color) document.documentElement.style.setProperty('--cyan', cfg.accent2Color);
+      if (cfg.bgColor) document.documentElement.style.setProperty('--bg', cfg.bgColor);
 
       // social links
       if (cfg.twitchUrl) document.querySelectorAll('a[href*="twitch.tv"]').forEach(a => a.href = cfg.twitchUrl);

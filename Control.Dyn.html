@@ -236,9 +236,9 @@
           <div class="preview-wrap" style="border-radius:0">
             <div class="preview-bar">
               <span class="preview-dot preview" id="preview-dot"></span>
-              <span id="preview-url-bar" style="font-family:monospace;font-size:0.72rem;">../index.html</span>
+              <span id="preview-url-bar" style="font-family:monospace;font-size:0.72rem;">index.html</span>
             </div>
-            <iframe id="preview-frame" src="../index.html" style="height:70vh"></iframe>
+            <iframe id="preview-frame" src="index.html" style="height:70vh"></iframe>
           </div>
         </div>
       </section>
@@ -303,6 +303,7 @@
               <label>Avatar Image</label>
               <div class="flex-row">
                 <input type="text" id="about-avatar-url" placeholder="assets/Chazdyn Avatar.JPG" value="assets/Chazdyn Avatar.JPG" oninput="onFieldChange('avatarUrl', this.value)" style="flex:1" />
+                <button class="qa-btn ghost" onclick="openAssetPicker('image','assets/', path => { document.getElementById('about-avatar-url').value = path; onFieldChange('avatarUrl', path); })">Browse</button>
                 <button class="qa-btn ghost" onclick="document.getElementById('avatar-file-input').click()">Upload</button>
                 <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAsset(this, 'about-avatar-url', 'avatarUrl')" />
               </div>
@@ -357,6 +358,7 @@
               <label>Feature Video (YouTube URL or upload)</label>
               <div class="flex-row">
                 <input type="text" id="music-video-url" placeholder="https://youtube.com/watch?v=..." oninput="onFieldChange('musicVideoUrl', this.value)" style="flex:1" />
+                <button class="qa-btn ghost" onclick="openAssetPicker('video','assets/', path => { document.getElementById('music-video-url').value = path; onFieldChange('musicVideoUrl', path); })">Browse</button>
                 <button class="qa-btn ghost" onclick="document.getElementById('music-file-input').click()">Upload</button>
                 <input type="file" id="music-file-input" accept="video/*" style="display:none" onchange="uploadAsset(this, 'music-video-url', 'musicVideoUrl')" />
               </div>
@@ -486,7 +488,7 @@
               <label>Preview (live in iframe)</label>
               <div class="preview-wrap" style="margin-top:0.25rem">
                 <div class="preview-bar"><span class="preview-dot preview"></span><span style="font-family:monospace;font-size:0.72rem">Theme preview</span></div>
-                <iframe id="theme-preview-frame" src="../index.html" style="height:300px"></iframe>
+                <iframe id="theme-preview-frame" src="index.html" style="height:300px"></iframe>
               </div>
             </div>
           </div>
@@ -700,7 +702,7 @@
             </div>
             <div class="field">
               <label>Full Name (acronym)</label>
-              <input type="text" id="thicc-fullname" value="" />
+              <input type="text" id="thicc-fullname" value="The Hooligans in Chaos Crew" />
             </div>
           </div>
         </div>
@@ -798,8 +800,10 @@ const STATE = {
 // ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
-function init() {
+async function init() {
   loadFromStorage();
+  await hydrateConfigFromDeployedSiteIfNeeded();
+  applyConfigToAdminFields();
   renderClipsEditor();
   renderScheduleEditor();
   renderChangelog();
@@ -808,12 +812,14 @@ function init() {
 
   // drag-and-drop on asset zone
   const zone = document.getElementById('asset-drop-zone');
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('drag-over');
-    handleFileDrop(e.dataTransfer.files);
-  });
+  if (zone) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault(); zone.classList.remove('drag-over');
+      handleFileDrop(e.dataTransfer.files);
+    });
+  }
 }
 
 function loadFromStorage() {
@@ -822,24 +828,116 @@ function loadFromStorage() {
     try {
       const s = JSON.parse(saved);
       Object.assign(STATE, s);
-      // restore UI
-      if (STATE.ghPat) document.getElementById('gh-pat').value = STATE.ghPat;
-      if (STATE.ghOwner) document.getElementById('gh-owner').value = STATE.ghOwner;
-      if (STATE.ghRepo)  document.getElementById('gh-repo').value  = STATE.ghRepo;
-      if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
-      if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
-      if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
+      restoreConnectionFields();
       if (STATE.ghConnected) updateGhStatus(true);
       if (STATE.twitchConnected && STATE.twitchClientId) startTwitchPolling();
-    } catch(e) {}
+    } catch(e) { console.warn('controldyn_state parse error:', e); }
   }
+
+  const rawConfig = localStorage.getItem('chazdyn_config');
+  if (rawConfig) {
+    try {
+      const c = JSON.parse(rawConfig);
+      Object.assign(STATE.config, c);
+      if (Array.isArray(c.clips)) STATE.clips = c.clips;
+      if (c.schedule) STATE.schedule = c.schedule;
+      STATE.liveBadgeOn = !!c.isLive;
+    } catch(e) { console.warn('chazdyn_config parse error:', e); }
+  }
+}
+
+function restoreConnectionFields() {
+  if (STATE.ghPat) document.getElementById('gh-pat').value = STATE.ghPat;
+  if (STATE.ghOwner) document.getElementById('gh-owner').value = STATE.ghOwner;
+  if (STATE.ghRepo)  document.getElementById('gh-repo').value  = STATE.ghRepo;
+  if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
+  if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
+  if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
+}
+
+async function hydrateConfigFromDeployedSiteIfNeeded(force = false) {
+  // If this browser already has unsaved/local admin state, keep that. Otherwise pull the last deployed config from index.html.
+  if (!force && localStorage.getItem('chazdyn_config')) return;
+  try {
+    const res = await fetch('index.html?controldyn=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const html = await res.text();
+    const script = html.match(/<script[^>]*data-controldyn[^>]*>([\s\S]*?)<\/script>/i);
+    if (!script) return;
+    const captured = {};
+    const fakeLocalStorage = { setItem: (k, v) => { captured[k] = v; } };
+    new Function('localStorage', script[1])(fakeLocalStorage);
+    if (captured.chazdyn_config) {
+      const c = JSON.parse(captured.chazdyn_config);
+      Object.assign(STATE.config, c);
+      if (Array.isArray(c.clips)) STATE.clips = c.clips;
+      if (c.schedule) STATE.schedule = c.schedule;
+      STATE.liveBadgeOn = !!c.isLive;
+      localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+      saveToStorage();
+      logChange('sync', 'Loaded last deployed site config into Control.Dyn');
+    }
+  } catch(e) { console.warn('Could not hydrate from deployed index.html:', e); }
+}
+
+function setFieldValue(id, val) {
+  const el = document.getElementById(id);
+  if (!el || val === undefined || val === null) return;
+  if (el.type === 'checkbox') el.checked = !!val;
+  else el.value = Array.isArray(val) ? val.join(', ') : val;
+}
+
+function applyConfigToAdminFields() {
+  const c = STATE.config || {};
+  setFieldValue('hero-live-badge', c.isLive);
+  setFieldValue('hero-eyebrow', c.heroEyebrow);
+  setFieldValue('hero-tagline', c.heroTagline);
+  setFieldValue('hero-twitch-url', c.twitchUrl);
+  setFieldValue('hero-discord-url', c.discordUrl);
+  setFieldValue('about-avatar-url', c.avatarUrl);
+  setFieldValue('about-short-bio', c.aboutBio);
+  setFieldValue('about-long-bio', c.aboutLong);
+  setFieldValue('about-tags', c.aboutTags);
+  setFieldValue('music-video-url', c.musicVideoUrl);
+  setFieldValue('music-yt-url', c.musicYtUrl);
+  setFieldValue('music-spotify-url', c.musicSpotUrl);
+  setFieldValue('music-sc-url', c.musicScUrl);
+  setFieldValue('soc-twitch', c.twitchUrl);
+  setFieldValue('soc-discord', c.discordUrl);
+  setFieldValue('soc-tiktok', c.tiktokUrl);
+  setFieldValue('soc-insta', c.instaUrl);
+  setFieldValue('soc-thicc', c.thiccUrl);
+  setFieldValue('theme-green', c.accentColor);
+  setFieldValue('theme-green-hex', c.accentColor);
+  setFieldValue('theme-cyan', c.accent2Color);
+  setFieldValue('theme-cyan-hex', c.accent2Color);
+  setFieldValue('theme-bg', c.bgColor);
+  setFieldValue('theme-bg-hex', c.bgColor);
+  setFieldValue('theme-display-font', c.displayFont);
+  setFieldValue('theme-body-font', c.bodyFont);
+  setFieldValue('thicc-desc', c.thiccDesc);
+  setFieldValue('thicc-game', c.thiccGame || 'BO6');
+  setFieldValue('thicc-founded', c.thiccFounded || '2025');
+  setFieldValue('thicc-tag', c.thiccTag || '[THICC]');
+  setFieldValue('thicc-fullname', c.thiccFullname || 'The Hooligans in Chaos Crew');
+  liveTheme();
 }
 
 function saveToStorage() {
   const toSave = {...STATE};
-  // don't save token in memory — just creds
   delete toSave.twitchToken;
   localStorage.setItem('controldyn_state', JSON.stringify(toSave));
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config || {}));
+}
+
+async function reloadControlDynFromLive() {
+  localStorage.removeItem('chazdyn_config');
+  await hydrateConfigFromDeployedSiteIfNeeded(true);
+  applyConfigToAdminFields();
+  renderClipsEditor();
+  renderScheduleEditor();
+  renderTHICC();
+  toast('Control.Dyn fields synced from deployed index.html', 'success');
 }
 
 // ══════════════════════════════════════════════
@@ -872,6 +970,8 @@ function setMode(mode) {
 // ══════════════════════════════════════════════
 function onFieldChange(key, value) {
   STATE.pendingChanges[key] = value;
+  STATE.config[key] = value;
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   logChange('edit', `${key} updated`, typeof value === 'string' ? value.substring(0, 60) : JSON.stringify(value).substring(0, 60));
 }
 
@@ -881,15 +981,44 @@ function onFieldChange(key, value) {
 function saveSection(section) {
   Object.assign(STATE.config, STATE.pendingChanges);
   STATE.pendingChanges = {};
-  // apply clips & schedule from editors
-  if (section === 'clips') STATE.config.clips = STATE.clips;
-  if (section === 'schedule') STATE.config.schedule = STATE.schedule;
-  if (section === 'hero') STATE.config.isLive = document.getElementById('hero-live-badge').checked;
+  captureSectionFields(section);
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
-  toast('Changes saved to preview', 'success');
+  toast('Changes saved and remembered', 'success');
   logChange('edit', section + ' section saved');
   updateDashboard();
+}
+
+function captureSectionFields(section) {
+  if (section === 'hero') {
+    STATE.config.isLive = !!document.getElementById('hero-live-badge')?.checked;
+    STATE.config.heroEyebrow = document.getElementById('hero-eyebrow')?.value || STATE.config.heroEyebrow;
+    STATE.config.heroTagline = document.getElementById('hero-tagline')?.value || STATE.config.heroTagline;
+    STATE.config.twitchUrl = document.getElementById('hero-twitch-url')?.value || STATE.config.twitchUrl;
+    STATE.config.discordUrl = document.getElementById('hero-discord-url')?.value || STATE.config.discordUrl;
+  }
+  if (section === 'about') {
+    STATE.config.avatarUrl = document.getElementById('about-avatar-url')?.value || STATE.config.avatarUrl;
+    STATE.config.aboutBio = document.getElementById('about-short-bio')?.value || STATE.config.aboutBio;
+    STATE.config.aboutLong = document.getElementById('about-long-bio')?.value || STATE.config.aboutLong;
+    const tags = document.getElementById('about-tags')?.value;
+    if (tags !== undefined) STATE.config.aboutTags = tags.split(',').map(t => t.trim()).filter(Boolean);
+  }
+  if (section === 'clips') STATE.config.clips = STATE.clips;
+  if (section === 'schedule') STATE.config.schedule = STATE.schedule;
+  if (section === 'music') {
+    STATE.config.musicVideoUrl = document.getElementById('music-video-url')?.value || STATE.config.musicVideoUrl;
+    STATE.config.musicYtUrl = document.getElementById('music-yt-url')?.value || STATE.config.musicYtUrl;
+    STATE.config.musicSpotUrl = document.getElementById('music-spotify-url')?.value || STATE.config.musicSpotUrl;
+    STATE.config.musicScUrl = document.getElementById('music-sc-url')?.value || STATE.config.musicScUrl;
+  }
+  if (section === 'socials') {
+    STATE.config.twitchUrl = document.getElementById('soc-twitch')?.value || STATE.config.twitchUrl;
+    STATE.config.discordUrl = document.getElementById('soc-discord')?.value || STATE.config.discordUrl;
+    STATE.config.tiktokUrl = document.getElementById('soc-tiktok')?.value || STATE.config.tiktokUrl;
+    STATE.config.instaUrl = document.getElementById('soc-insta')?.value || STATE.config.instaUrl;
+    STATE.config.thiccUrl = document.getElementById('soc-thicc')?.value || STATE.config.thiccUrl;
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -955,12 +1084,14 @@ async function readFile(path) {
 //  DEPLOY
 // ══════════════════════════════════════════════
 async function deployToLive() {
-  // Auto-save any pending editor state before deploying
+  // Auto-save every editor field before deploying, so reopening Control.Dyn matches the live deployment.
   Object.assign(STATE.config, STATE.pendingChanges);
   STATE.pendingChanges = {};
-  STATE.config.clips = STATE.clips;
-  STATE.config.schedule = STATE.schedule;
-  STATE.config.isLive = STATE.liveBadgeOn || !!(document.getElementById('hero-live-badge') && document.getElementById('hero-live-badge').checked);
+  ['hero','about','clips','music','schedule','socials'].forEach(captureSectionFields);
+  pushThemeValuesOnly();
+  captureTHICCSettings();
+  STATE.config.thiccMembers = loadTHICC();
+  STATE.config._lastDeploy = new Date().toISOString();
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
   if (!STATE.ghConnected) { toast('Connect GitHub first in Connections', 'error'); return; }
@@ -1277,8 +1408,9 @@ async function finishAssetUpload(file, targetInputId, configKey) {
     const ok = await commitFile(path, base64, '📁 Asset upload: ' + file.name, true);
     if (ok) {
       toast(file.name + ' uploaded!', 'success');
-      if (targetInputId) document.getElementById(targetInputId).value = file.name;
-      if (configKey) onFieldChange(configKey, file.name);
+      const assignedPath = 'assets/' + file.name;
+      if (targetInputId) document.getElementById(targetInputId).value = assignedPath;
+      if (configKey) onFieldChange(configKey, assignedPath);
       logChange('edit', 'Uploaded asset: ' + file.name);
       refreshAssets();
     } else toast('Upload failed', 'error');
@@ -1514,12 +1646,16 @@ function syncColorFromText(colorId, textId) {
   }
 }
 
-function pushTheme() {
+function pushThemeValuesOnly() {
   STATE.config.accentColor = document.getElementById('theme-green').value;
   STATE.config.accent2Color = document.getElementById('theme-cyan').value;
   STATE.config.bgColor = document.getElementById('theme-bg').value;
   STATE.config.displayFont = document.getElementById('theme-display-font').value;
   STATE.config.bodyFont = document.getElementById('theme-body-font').value;
+}
+
+function pushTheme() {
+  pushThemeValuesOnly();
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
   toast('Theme pushed to preview — deploy to go live', 'success');
@@ -1595,9 +1731,9 @@ function setPreviewSrc(mode) {
     dot.className = 'preview-dot live';
     urlBar.textContent = 'https://chazdyn.com (live)';
   } else {
-    frame.src = '../index.html';
+    frame.src = 'index.html';
     dot.className = 'preview-dot preview';
-    urlBar.textContent = '../index.html (local preview)';
+    urlBar.textContent = 'index.html (local preview)';
   }
 }
 
@@ -1877,6 +2013,10 @@ function loadTHICC() {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
+    if (Array.isArray(STATE.config.thiccMembers) && STATE.config.thiccMembers.length > 0) {
+      localStorage.setItem('chazdyn_thicc', JSON.stringify(STATE.config.thiccMembers));
+      return STATE.config.thiccMembers;
+    }
   } catch(e) {
     console.warn('chazdyn_thicc corrupt, clearing:', e);
     localStorage.removeItem('chazdyn_thicc');
@@ -1987,7 +2127,8 @@ function renderMemberEditor(m, i) {
         <div class="field">
           <label>Photo (filename or URL)</label>
           <div class="flex-row">
-            <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="../assets/..." style="flex:1;font-size:0.8rem" />
+            <button class="qa-btn ghost" onclick="pickTHICC(this,'photo')" style="font-size:0.72rem">Pick</button>
             <button class="qa-btn ghost" onclick="uploadTHICC(this,'photo')" style="font-size:0.72rem">Upload</button>
             <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'photo')" />
           </div>
@@ -1995,7 +2136,8 @@ function renderMemberEditor(m, i) {
         <div class="field">
           <label>Hover Video (filename or URL)</label>
           <div class="flex-row">
-            <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="../assets/..." style="flex:1;font-size:0.8rem" />
+            <button class="qa-btn ghost" onclick="pickTHICC(this,'video')" style="font-size:0.72rem">Pick</button>
             <button class="qa-btn ghost" onclick="uploadTHICC(this,'video')" style="font-size:0.72rem">Upload</button>
             <input type="file" accept="video/*" style="display:none" onchange="handleTHICCUpload(this,'video')" />
           </div>
@@ -2044,7 +2186,15 @@ function addSocialRow(btn) {
 function removeSocialRow(btn) { btn.closest('.thicc-social-row').remove(); }
 
 function uploadTHICC(btn, type) {
-  btn.nextElementSibling.click();
+  const input = btn.parentElement.querySelector('input[type="file"]');
+  if (input) input.click();
+}
+
+function pickTHICC(btn, type) {
+  const textInput = btn.parentElement.querySelector('input[type="text"]');
+  openAssetPicker(type === 'photo' ? 'image' : 'video', '../assets/', path => {
+    if (textInput) textInput.value = path;
+  });
 }
 
 async function handleTHICCUpload(input, type) {
@@ -2069,9 +2219,7 @@ async function finishTHICCUpload(input, file) {
     const ok = await commitFile('assets/' + file.name, base64, '📁 THICC upload: ' + file.name, true);
     if (ok) {
       const urlInput = input.closest('.flex-row').querySelector('input[type="text"]');
-      if (urlInput) urlInput.value = STATE.showFullUrls
-        ? `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/${file.name}`
-        : file.name;
+      if (urlInput) urlInput.value = '../assets/' + file.name;
       toast(file.name + ' uploaded!', 'success');
       logChange('edit', 'Uploaded THICC asset: ' + file.name);
       refreshAssets();
@@ -2116,14 +2264,110 @@ async function deployTHICC() {
   }
 }
 
+
+// ══════════════════════════════════════════════
+//  ASSET PICKER (browse existing repo assets)
+// ══════════════════════════════════════════════
+const ASSET_PICKER = { type:'any', prefix:'assets/', callback:null, assets:[], selected:null };
+
+function openAssetPicker(type='any', prefix='assets/', callback=null) {
+  ASSET_PICKER.type = type;
+  ASSET_PICKER.prefix = prefix;
+  ASSET_PICKER.callback = callback;
+  ASSET_PICKER.selected = null;
+  const modal = document.getElementById('asset-picker-modal');
+  if (!modal) return;
+  document.getElementById('asset-picker-title').textContent = type === 'image' ? 'Choose Image Asset' : type === 'video' ? 'Choose Video Asset' : 'Choose Asset';
+  document.getElementById('asset-picker-search').value = '';
+  document.getElementById('asset-picker-confirm').disabled = true;
+  document.getElementById('asset-picker-grid').innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:1rem">Loading assets…</div>';
+  modal.classList.remove('hidden');
+  loadPickerAssets();
+}
+
+function closeAssetPicker() {
+  const modal = document.getElementById('asset-picker-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function loadPickerAssets() {
+  if (!STATE.ghConnected) {
+    document.getElementById('asset-picker-grid').innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:1rem">Connect GitHub first, then reopen this picker.</div>';
+    return;
+  }
+  try {
+    const r = await fetch(`${ghBase()}/contents/assets?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    if (!r.ok) throw new Error('Could not read assets folder');
+    ASSET_PICKER.assets = (await r.json()).filter(a => a.type === 'file');
+    renderPickerAssets();
+  } catch(e) {
+    document.getElementById('asset-picker-grid').innerHTML = `<div style="grid-column:1/-1;color:var(--muted);padding:1rem">${e.message}</div>`;
+  }
+}
+
+function renderPickerAssets() {
+  const q = (document.getElementById('asset-picker-search')?.value || '').toLowerCase();
+  const rawBase = `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/`;
+  let items = ASSET_PICKER.assets.filter(a => !q || a.name.toLowerCase().includes(q));
+  if (ASSET_PICKER.type === 'image') items = items.filter(a => /\.(png|jpe?g|webp|gif|svg)$/i.test(a.name));
+  if (ASSET_PICKER.type === 'video') items = items.filter(a => /\.(mp4|webm|mov|m4v)$/i.test(a.name));
+  const grid = document.getElementById('asset-picker-grid');
+  if (!items.length) { grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:1rem">No matching assets found.</div>'; return; }
+  grid.innerHTML = items.map(a => {
+    const raw = rawBase + encodeURIComponent(a.name).replace(/%2F/g,'/');
+    const rel = ASSET_PICKER.prefix + a.name;
+    const isImg = /\.(png|jpe?g|webp|gif|svg)$/i.test(a.name);
+    const thumb = isImg ? `<img src="${raw}" alt="" style="width:100%;height:84px;object-fit:cover;border-radius:6px 6px 0 0" loading="lazy">` : `<div style="height:84px;display:grid;place-items:center;font-size:2rem;background:var(--bg3)">🎬</div>`;
+    return `<button type="button" class="asset-picker-card" data-rel="${rel}" onclick="selectPickerAsset(this)" title="${a.name}">${thumb}<span>${a.name}</span></button>`;
+  }).join('');
+}
+
+function selectPickerAsset(card) {
+  document.querySelectorAll('.asset-picker-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  ASSET_PICKER.selected = card.dataset.rel;
+  document.getElementById('asset-picker-confirm').disabled = false;
+  document.getElementById('asset-picker-selected').textContent = ASSET_PICKER.selected;
+}
+
+function confirmPickerAsset() {
+  if (!ASSET_PICKER.selected) return;
+  if (ASSET_PICKER.callback) ASSET_PICKER.callback(ASSET_PICKER.selected);
+  closeAssetPicker();
+}
+
 // ══════════════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════════════
-init();
-// Render THICC roster after init so DOM is ready
-renderTHICC();
-// Setup right-click on preview after DOM ready
-setTimeout(setupPreviewContextMenu, 500);
+init().then(() => {
+  renderTHICC();
+  setTimeout(setupPreviewContextMenu, 500);
+});
 </script>
+
+<!-- Asset Picker Modal -->
+<div id="asset-picker-modal" class="asset-picker-modal hidden" aria-hidden="true">
+  <div class="asset-picker-dialog">
+    <div class="crop-head">
+      <div>
+        <div class="crop-title" id="asset-picker-title">Choose Asset</div>
+        <div class="crop-subtitle">Pick an existing file from GitHub assets/ without re-uploading it.</div>
+      </div>
+      <button class="qa-btn ghost" type="button" onclick="closeAssetPicker()">Close</button>
+    </div>
+    <div style="padding:0.85rem;border-bottom:1px solid var(--border2);display:flex;gap:0.6rem;align-items:center;">
+      <input id="asset-picker-search" type="text" placeholder="Search assets…" oninput="renderPickerAssets()" style="flex:1" />
+      <button id="asset-picker-confirm" class="qa-btn primary" type="button" onclick="confirmPickerAsset()" disabled>Use Selected</button>
+    </div>
+    <div id="asset-picker-grid" class="asset-picker-grid"></div>
+    <div id="asset-picker-selected" style="padding:0.75rem;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border2);">Nothing selected</div>
+  </div>
+</div>
+<style>
+.asset-picker-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:1rem;backdrop-filter:blur(6px)}
+.asset-picker-modal.hidden{display:none}.asset-picker-dialog{width:min(920px,96vw);max-height:88vh;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6)}
+.asset-picker-grid{padding:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.75rem;overflow:auto}.asset-picker-card{appearance:none;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:8px;padding:0;text-align:left;overflow:hidden;cursor:pointer}.asset-picker-card span{display:block;padding:.45rem;font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}.asset-picker-card.selected{border-color:var(--green);box-shadow:0 0 0 2px rgba(57,255,20,.18)}
+</style>
+
 </body>
 </html>
