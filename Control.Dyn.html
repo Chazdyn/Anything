@@ -855,6 +855,7 @@ function showSection(id) {
     if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
   });
   if (id === 'assets') refreshAssets();
+  if (id === 'thicc') renderTHICC();
 }
 
 // ══════════════════════════════════════════════
@@ -2114,18 +2115,11 @@ async function deployTHICC() {
   }
 }
 
-// Boot THICC on section open — patch showSection
-const _origShowSection = showSection;
-window.showSection = function(id) {
-  _origShowSection(id);
-  if (id === 'thicc') renderTHICC();
-};
-
 // ══════════════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════════════
 init();
-// Render THICC roster on boot so it's ready when you navigate to it
+// Render THICC roster after init so DOM is ready
 renderTHICC();
 // Setup right-click on preview after DOM ready
 setTimeout(setupPreviewContextMenu, 500);
