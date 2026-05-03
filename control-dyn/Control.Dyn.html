@@ -691,7 +691,7 @@
               </div>
               <div class="field">
                 <label>Founded Year</label>
-                <input type="text" id="thicc-founded" value="2024" placeholder="2024" />
+                <input type="text" id="thicc-founded" value="2025" placeholder="2025" />
               </div>
               <div class="field">
                 <label>Clan Tag</label>
@@ -771,29 +771,90 @@ function init() {
 }
 
 function loadFromStorage() {
+  // ── 1. Restore STATE (GitHub creds, Twitch, etc.) ──
   const saved = localStorage.getItem('controldyn_state');
   if (saved) {
     try {
       const s = JSON.parse(saved);
       Object.assign(STATE, s);
-      // restore UI
-      if (STATE.ghPat) document.getElementById('gh-pat').value = STATE.ghPat;
-      if (STATE.ghOwner) document.getElementById('gh-owner').value = STATE.ghOwner;
-      if (STATE.ghRepo)  document.getElementById('gh-repo').value  = STATE.ghRepo;
-      if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
+      if (STATE.ghPat)          document.getElementById('gh-pat').value = STATE.ghPat;
+      if (STATE.ghOwner)        document.getElementById('gh-owner').value = STATE.ghOwner;
+      if (STATE.ghRepo)         document.getElementById('gh-repo').value = STATE.ghRepo;
+      if (STATE.ghBranch)       document.getElementById('gh-branch').value = STATE.ghBranch;
       if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
       if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
-      if (STATE.ghConnected) updateGhStatus(true);
+      if (STATE.ghConnected)    updateGhStatus(true);
       if (STATE.twitchConnected && STATE.twitchClientId) startTwitchPolling();
-    } catch(e) {}
+    } catch(e) { console.warn('controldyn_state parse error:', e); }
   }
+
+  // ── 2. Restore CONFIG (site content fields) ──
+  const rawConfig = localStorage.getItem('chazdyn_config');
+  if (rawConfig) {
+    try {
+      const c = JSON.parse(rawConfig);
+      Object.assign(STATE.config, c);
+
+      function setField(id, val) {
+        const el = document.getElementById(id);
+        if (!el || val === undefined || val === null) return;
+        if (el.type === 'checkbox') el.checked = !!val;
+        else el.value = val;
+      }
+
+      // Hero
+      setField('hero-live-badge',  c.isLive);
+      setField('hero-eyebrow',     c.heroEyebrow);
+      setField('hero-tagline',     c.heroTagline);
+      setField('hero-twitch-url',  c.twitchUrl);
+      setField('hero-discord-url', c.discordUrl);
+
+      // About
+      setField('about-avatar-url', c.avatarUrl);
+      setField('about-short-bio',  c.aboutBio);
+      setField('about-long-bio',   c.aboutLong);
+      setField('about-tags',       Array.isArray(c.aboutTags) ? c.aboutTags.join(', ') : c.aboutTags);
+
+      // Theme
+      if (c.accentColor) {
+        setField('theme-green',     c.accentColor);
+        setField('theme-green-hex', c.accentColor);
+      }
+      if (c.accent2Color) {
+        setField('theme-cyan',      c.accent2Color);
+        setField('theme-cyan-hex',  c.accent2Color);
+      }
+      if (c.bgColor) {
+        setField('theme-bg',        c.bgColor);
+        setField('theme-bg-hex',    c.bgColor);
+      }
+      setField('theme-display-font', c.displayFont);
+      setField('theme-body-font',    c.bodyFont);
+
+      // THICC settings
+      setField('thicc-desc',    c.thiccDesc);
+      setField('thicc-game',    c.thiccGame    || 'BO6');
+      setField('thicc-founded', c.thiccFounded || '2025');
+      setField('thicc-tag',     c.thiccTag     || 'THICC');
+      setField('thicc-fullname',c.thiccFullname || '');
+
+      // Apply live theme colors immediately
+      liveTheme();
+    } catch(e) { console.warn('chazdyn_config parse error:', e); }
+  }
+
+  // ── 3. Restore THICC roster ──
+  // chazdyn_thicc is loaded by loadTHICC() / renderTHICC() — nothing extra needed here
 }
 
 function saveToStorage() {
+  // Save STATE (creds, connection status)
   const toSave = {...STATE};
-  // don't save token in memory — just creds
-  delete toSave.twitchToken;
+  delete toSave.twitchToken; // never persist the token
   localStorage.setItem('controldyn_state', JSON.stringify(toSave));
+
+  // Also persist current config so it survives refresh
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
 }
 
 // ══════════════════════════════════════════════
@@ -804,11 +865,11 @@ function showSection(id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const sec = document.getElementById('section-' + id);
   if (sec) sec.classList.add('active');
-  // highlight nav
   document.querySelectorAll('.nav-item').forEach(n => {
     if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
   });
   if (id === 'assets') refreshAssets();
+  if (id === 'thicc') renderTHICC();
 }
 
 // ══════════════════════════════════════════════
@@ -825,6 +886,9 @@ function setMode(mode) {
 // ══════════════════════════════════════════════
 function onFieldChange(key, value) {
   STATE.pendingChanges[key] = value;
+  STATE.config[key] = value;
+  // Persist immediately so refresh doesn't lose edits
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   logChange('edit', `${key} updated`, typeof value === 'string' ? value.substring(0, 60) : JSON.stringify(value).substring(0, 60));
 }
 
@@ -1632,28 +1696,45 @@ if ('serviceWorker' in navigator) {
 //  THICC
 // ══════════════════════════════════════════════
 const DEFAULT_THICC_MEMBERS = [
-  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
-  { id:2, name:'ShyShack',       gamertag:'ShyShack',       rank:'Member', isLeader:false, about:'', photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', socials:[] },
-  { id:3, name:'Mastercardi',    gamertag:'Mastercardi',    rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:4, name:'SenoritoTaquito',gamertag:'SenoritoTaquito',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:5, name:'PrincessBayleaf',gamertag:'PrincessBayleaf',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-  { id:7, name:'Thomas',         gamertag:'Thomas',         rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] }
+  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true,
+    about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.',
+    bio:'Pacific Northwest content creator, dad, and musician who somehow finds time to lead a COD clan. Chazdyn built THICC from the ground up — it\'s not about K/D ratios, it\'s about vibes and good comms.',
+    photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', accentColor:'#f5a623',
+    socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
+  { id:2, name:'ShyShackle', gamertag:'ShyShackle', rank:'Member', isLeader:false,
+    about:'Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends 🖤',
+    bio:'New Affiliate 🎉 Horror games, jump scares, shooters and constant chaos. She talks trash, screams, laughs — it\'s a whole mess. Dark aesthetic, smart mouth, soft spot for making new friends. Come hang... if you can handle it 🖤',
+    photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', accentColor:'#c0392b',
+    socials:[{platform:'Twitch',url:'https://twitch.tv/shyshackle',handle:'ShyShackle'},{platform:'TikTok',url:'https://tiktok.com/@shyshackle',handle:'@shyshackle'},{platform:'Instagram',url:'https://instagram.com/shyshackle',handle:'@shyshackle'}] },
+  { id:3, name:'Mastercardi',     gamertag:'Mastercardi',     rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#22c55e', socials:[] },
+  { id:4, name:'SenoritoTaquito', gamertag:'SenoritoTaquito', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#fb923c', socials:[] },
+  { id:5, name:'PrincessBayleaf', gamertag:'PrincessBayleaf', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#f472b6', socials:[] },
+  { id:6, name:'NeighborGuyBri',  gamertag:'NeighborGuyBri',  rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#2dd4bf', socials:[] },
+  { id:7, name:'Thomas',          gamertag:'Thomas',          rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#a78bfa', socials:[] }
 ];
 
 function loadTHICC() {
-  const raw = localStorage.getItem('controldyn_thicc');
-  return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_THICC_MEMBERS));
+  try {
+    const raw = localStorage.getItem('chazdyn_thicc');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch(e) {
+    console.warn('chazdyn_thicc corrupt, resetting:', e);
+    localStorage.removeItem('chazdyn_thicc');
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_THICC_MEMBERS));
 }
 
 function saveTHICC() {
   // Collect from editor
   const members = collectTHICC();
-  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   // Also save clan settings into STATE.config
   STATE.config.thiccDesc    = document.getElementById('thicc-desc')?.value || '';
   STATE.config.thiccGame    = document.getElementById('thicc-game')?.value || 'BO6';
-  STATE.config.thiccFounded = document.getElementById('thicc-founded')?.value || '2024';
+  STATE.config.thiccFounded = document.getElementById('thicc-founded')?.value || '2025';
   STATE.config.thiccTag     = document.getElementById('thicc-tag')?.value || 'THICC';
   STATE.config.thiccFullname= document.getElementById('thicc-fullname')?.value || '';
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
@@ -1673,13 +1754,15 @@ function collectTHICC() {
     })).filter(s => s.url);
     return {
       id,
-      name:      card.querySelector('.thicc-name').value,
-      gamertag:  card.querySelector('.thicc-gamertag').value,
-      rank:      card.querySelector('.thicc-rank').value,
-      isLeader:  card.querySelector('.thicc-leader').checked,
-      about:     card.querySelector('.thicc-about').value,
-      photoUrl:  card.querySelector('.thicc-photo-url').value,
-      videoUrl:  card.querySelector('.thicc-video-url').value,
+      name:        card.querySelector('.thicc-name').value,
+      gamertag:    card.querySelector('.thicc-gamertag').value,
+      rank:        card.querySelector('.thicc-rank').value,
+      isLeader:    card.querySelector('.thicc-leader').checked,
+      about:       card.querySelector('.thicc-about').value,
+      bio:         card.querySelector('.thicc-bio').value,
+      photoUrl:    card.querySelector('.thicc-photo-url').value,
+      videoUrl:    card.querySelector('.thicc-video-url').value,
+      accentColor: card.querySelector('.thicc-accent').value,
       socials
     };
   });
@@ -1690,9 +1773,17 @@ function renderTHICC() {
   const el = document.getElementById('thicc-roster-editor');
   if (!el) return;
   el.innerHTML = members.map((m,i) => renderMemberEditor(m,i)).join('');
+  initDragReorder();
 }
 
 function renderMemberEditor(m, i) {
+  const photoPreview = m.photoUrl
+    ? `<img src="${m.photoUrl}" style="width:52px;height:52px;object-fit:cover;border-radius:4px;border:1px solid var(--border2);flex-shrink:0;" onerror="this.style.display='none'" />`
+    : `<div style="width:52px;height:52px;border-radius:4px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--muted);flex-shrink:0;">👤</div>`;
+  const videoPreview = m.videoUrl
+    ? `<video src="${m.videoUrl}" style="width:80px;height:52px;object-fit:cover;border-radius:4px;border:1px solid var(--border2);flex-shrink:0;" muted loop playsinline onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0" onerror="this.style.display='none'"></video>`
+    : `<div style="width:80px;height:52px;border-radius:4px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);flex-shrink:0;text-align:center;padding:4px;">No video</div>`;
+
   const socialsHtml = (m.socials||[]).map((s,si) => `
     <div class="thicc-social-row flex-row" style="gap:0.5rem;margin-top:0.4rem">
       <select class="thicc-soc-platform" style="width:110px;font-size:0.78rem;padding:0.3rem">
@@ -1704,76 +1795,208 @@ function renderMemberEditor(m, i) {
     </div>`).join('');
 
   return `
-    <div class="thicc-member-editor" data-id="${m.id}" style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:1rem;margin-bottom:0.75rem;">
-      <div class="flex-row" style="margin-bottom:0.75rem;justify-content:space-between">
-        <div class="flex-row">
-          <span style="font-family:var(--display);font-size:1.1rem;letter-spacing:0.06em;color:var(--text)">${m.name||'New Member'}</span>
-          <label class="toggle" title="Clan Leader">
-            <input type="checkbox" class="thicc-leader" ${m.isLeader?'checked':''} />
-            <div class="toggle-track"></div>
-            <div class="toggle-thumb"></div>
-          </label>
-          <span style="font-size:0.7rem;color:var(--muted)">Leader</span>
-        </div>
-        <button class="qa-btn danger" onclick="removeMember(${m.id})" style="font-size:0.72rem">Remove</button>
-      </div>
-      <div class="field-row" style="margin-bottom:0.6rem">
-        <div class="field">
-          <label>Display Name</label>
-          <input type="text" class="thicc-name" value="${m.name||''}" placeholder="Name" />
-        </div>
-        <div class="field">
-          <label>Gamertag</label>
-          <input type="text" class="thicc-gamertag" value="${m.gamertag||''}" placeholder="Gamertag" />
-        </div>
-        <div class="field">
-          <label>Rank</label>
-          <input type="text" class="thicc-rank" value="${m.rank||'Member'}" placeholder="Member" />
-        </div>
-      </div>
-      <div class="field" style="margin-bottom:0.6rem">
-        <label>Bio</label>
-        <textarea class="thicc-about" style="min-height:56px">${m.about||''}</textarea>
-      </div>
-      <div class="field-row" style="margin-bottom:0.6rem">
-        <div class="field">
-          <label>Photo (filename or URL)</label>
-          <div class="flex-row">
-            <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
-            <button class="qa-btn ghost" onclick="uploadTHICC(this,'photo')" style="font-size:0.72rem">Upload</button>
-            <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'photo')" />
+    <div class="thicc-member-editor" data-id="${m.id}" draggable="true"
+      style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;margin-bottom:0.6rem;overflow:hidden;">
+
+      <!-- COLLAPSED HEADER (always visible) -->
+      <div class="thicc-card-header flex-row" style="padding:0.6rem 0.75rem;cursor:pointer;gap:0.75rem;align-items:center;justify-content:space-between;"
+        onclick="toggleMemberCard(this)">
+        <div class="flex-row" style="gap:0.75rem;align-items:center;min-width:0;">
+          <div class="drag-handle" title="Drag to reorder"
+            style="cursor:grab;color:var(--muted);font-size:1rem;padding:0 2px;flex-shrink:0;"
+            onmousedown="event.stopPropagation()">⣿</div>
+          ${photoPreview}
+          <div style="min-width:0;">
+            <div style="font-family:var(--display);font-size:1rem;letter-spacing:0.05em;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${m.name||'New Member'}
+              ${m.isLeader ? '<span style="font-size:0.6rem;background:rgba(245,166,35,0.15);color:#f5a623;border:1px solid rgba(245,166,35,0.3);padding:1px 6px;border-radius:3px;margin-left:6px;">Leader</span>' : ''}
+            </div>
+            <div style="font-size:0.7rem;color:var(--muted);">// ${m.gamertag||'—'} &middot; ${m.rank||'Member'}</div>
           </div>
         </div>
-        <div class="field">
-          <label>Hover Video (filename or URL)</label>
-          <div class="flex-row">
-            <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
-            <button class="qa-btn ghost" onclick="uploadTHICC(this,'video')" style="font-size:0.72rem">Upload</button>
-            <input type="file" accept="video/*" style="display:none" onchange="handleTHICCUpload(this,'video')" />
-          </div>
+        <div class="flex-row" style="gap:8px;align-items:center;flex-shrink:0;">
+          <div style="width:16px;height:16px;border-radius:3px;background:${m.accentColor||'#f5a623'};border:1px solid rgba(255,255,255,0.15);" title="Accent color"></div>
+          <svg style="width:14px;height:14px;color:var(--muted);transition:transform 0.2s;" class="thicc-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
       </div>
-      <div class="field">
-        <label>Social Links</label>
-        <div class="thicc-socials-list">${socialsHtml}</div>
-        <button class="qa-btn ghost" onclick="addSocialRow(this)" style="margin-top:0.4rem;font-size:0.72rem">+ Add Social</button>
+
+      <!-- EXPANDED BODY -->
+      <div class="thicc-card-body" style="display:none;padding:0.75rem;border-top:1px solid var(--border2);">
+
+        <!-- ROW 1: Identity -->
+        <div class="field-row" style="margin-bottom:0.6rem">
+          <div class="field">
+            <label>Display Name</label>
+            <input type="text" class="thicc-name" value="${m.name||''}" placeholder="Name"
+              oninput="this.closest('.thicc-member-editor').querySelector('.thicc-card-header .thicc-chevron').parentElement.previousElementSibling.querySelector('div:first-child').firstChild.textContent=this.value||'New Member'" />
+          </div>
+          <div class="field">
+            <label>Gamertag</label>
+            <input type="text" class="thicc-gamertag" value="${m.gamertag||''}" placeholder="Gamertag" />
+          </div>
+          <div class="field">
+            <label>Rank / Title</label>
+            <input type="text" class="thicc-rank" value="${m.rank||'Member'}" placeholder="Member" />
+          </div>
+          <div class="field" style="max-width:120px;">
+            <label>Clan Leader</label>
+            <div class="flex-row" style="margin-top:8px;gap:8px;align-items:center;">
+              <label class="toggle" title="Clan Leader">
+                <input type="checkbox" class="thicc-leader" ${m.isLeader?'checked':''} />
+                <div class="toggle-track"></div>
+                <div class="toggle-thumb"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 2: Photo + Video with previews -->
+        <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-start;">
+          <div class="field">
+            <label>Profile Photo</label>
+            <div class="flex-row" style="gap:6px;align-items:flex-start;">
+              <div class="thicc-photo-preview-wrap" style="flex-shrink:0;">
+                ${photoPreview.replace('52px;height:52px', '64px;height:64px')}
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="../assets/photo.jpg"
+                  style="font-size:0.78rem"
+                  oninput="updatePhotoPreview(this)" />
+                <div class="flex-row" style="gap:4px;">
+                  <button class="qa-btn ghost" onclick="uploadTHICC(this,'photo')" style="font-size:0.7rem;flex:1;">🖼 Pick / Upload</button>
+                  <button class="qa-btn ghost" onclick="clearTHICCField(this,'photo')" style="font-size:0.7rem;">✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Hover Video</label>
+            <div class="flex-row" style="gap:6px;align-items:flex-start;">
+              <div class="thicc-video-preview-wrap" style="flex-shrink:0;">
+                ${videoPreview.replace('80px;height:52px', '100px;height:64px')}
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+                <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="../assets/clip.mp4"
+                  style="font-size:0.78rem"
+                  oninput="updateVideoPreview(this)" />
+                <div class="flex-row" style="gap:4px;">
+                  <button class="qa-btn ghost" onclick="uploadTHICC(this,'video')" style="font-size:0.7rem;flex:1;">🎬 Pick / Upload</button>
+                  <button class="qa-btn ghost" onclick="clearTHICCField(this,'video')" style="font-size:0.7rem;">✕</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 3: Popout theme (accent color) -->
+        <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-start;">
+          <div class="field" style="max-width:200px;">
+            <label>Popout Accent Color</label>
+            <div class="flex-row" style="gap:6px;align-items:center;margin-top:4px;">
+              <input type="color" class="thicc-accent" value="${m.accentColor||'#f5a623'}"
+                style="width:40px;height:34px;padding:2px;cursor:pointer;border-radius:4px;"
+                oninput="this.nextElementSibling.value=this.value;this.closest('.thicc-member-editor').querySelector('.thicc-card-header [title=\'Accent color\']').style.background=this.value" />
+              <input type="text" value="${m.accentColor||'#f5a623'}" placeholder="#f5a623"
+                style="width:90px;font-family:var(--font-mono,monospace);font-size:0.8rem;"
+                oninput="this.previousElementSibling.value=this.value;this.closest('.thicc-member-editor').querySelector('.thicc-card-header [title=\'Accent color\']').style.background=this.value;this.previousElementSibling.className='thicc-accent'" />
+              <span style="font-size:0.7rem;color:var(--muted);">Used for modal glow, badges, links</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ROW 4: Bio fields -->
+        <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-start;">
+          <div class="field">
+            <label>Short About <span style="font-size:0.65rem;color:var(--muted);">(shown on card hover)</span></label>
+            <textarea class="thicc-about" style="min-height:52px;resize:vertical">${m.about||''}</textarea>
+          </div>
+          <div class="field">
+            <label>Full Bio <span style="font-size:0.65rem;color:var(--muted);">(shown in popout modal)</span></label>
+            <textarea class="thicc-bio" style="min-height:52px;resize:vertical">${m.bio||''}</textarea>
+          </div>
+        </div>
+
+        <!-- ROW 5: Socials -->
+        <div class="field" style="margin-bottom:0.5rem;">
+          <label>Social Links</label>
+          <div class="thicc-socials-list">${socialsHtml}</div>
+          <button class="qa-btn ghost" onclick="addSocialRow(this)" style="margin-top:0.4rem;font-size:0.72rem">+ Add Social</button>
+        </div>
+
+        <!-- ROW 6: Danger zone -->
+        <div class="flex-row" style="justify-content:flex-end;padding-top:0.5rem;border-top:1px solid var(--border2);">
+          <button class="qa-btn danger" onclick="removeMember(${m.id})" style="font-size:0.72rem">Remove Member</button>
+        </div>
+
       </div>
     </div>`;
+}
+
+function toggleMemberCard(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.thicc-chevron');
+  const open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  if (chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function updatePhotoPreview(input) {
+  const wrap = input.closest('.field').querySelector('.thicc-photo-preview-wrap');
+  if (!wrap) return;
+  const url = input.value;
+  if (url) {
+    wrap.innerHTML = `<img src="${url}" style="width:64px;height:64px;object-fit:cover;border-radius:4px;border:1px solid var(--border2);" onerror="this.parentElement.innerHTML='<div style=width:64px;height:64px;border-radius:4px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);text-align:center;padding:4px>Bad URL</div>'" />`;
+    // Also update collapsed header preview
+    const card = input.closest('.thicc-member-editor');
+    const headerThumb = card.querySelector('.thicc-card-header img');
+    if (headerThumb) headerThumb.src = url;
+  } else {
+    wrap.innerHTML = `<div style="width:64px;height:64px;border-radius:4px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:var(--muted);">👤</div>`;
+  }
+}
+
+function updateVideoPreview(input) {
+  const wrap = input.closest('.field').querySelector('.thicc-video-preview-wrap');
+  if (!wrap) return;
+  const url = input.value;
+  if (url) {
+    wrap.innerHTML = `<video src="${url}" style="width:100px;height:64px;object-fit:cover;border-radius:4px;border:1px solid var(--border2);" muted loop playsinline onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0" onerror="this.parentElement.innerHTML='<div style=width:100px;height:64px;border-radius:4px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);text-align:center;padding:4px>Bad URL</div>'"></video>`;
+  } else {
+    wrap.innerHTML = `<div style="width:100px;height:64px;border-radius:4px;border:1px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);text-align:center;padding:4px;">No video</div>`;
+  }
+}
+
+function clearTHICCField(btn, type) {
+  const row = btn.closest('.flex-row').previousElementSibling;
+  if (type === 'photo') {
+    btn.closest('.field').querySelector('.thicc-photo-url').value = '';
+    updatePhotoPreview(btn.closest('.field').querySelector('.thicc-photo-url'));
+  } else {
+    btn.closest('.field').querySelector('.thicc-video-url').value = '';
+    updateVideoPreview(btn.closest('.field').querySelector('.thicc-video-url'));
+  }
 }
 
 function addMember() {
   const members = loadTHICC();
   const newId = Math.max(0, ...members.map(m=>m.id)) + 1;
-  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] });
-  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false,
+    about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#f5a623', socials:[] });
+  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   renderTHICC();
+  // Auto-expand the new card
+  setTimeout(() => {
+    const cards = document.querySelectorAll('.thicc-member-editor');
+    const last = cards[cards.length - 1];
+    if (last) toggleMemberCard(last.querySelector('.thicc-card-header'));
+  }, 50);
   logChange('edit', 'Added new THICC member');
 }
 
 function removeMember(id) {
-  if (!confirm('Remove this member?')) return;
+  if (!confirm('Remove this member from the roster?')) return;
   let members = loadTHICC().filter(m => m.id !== id);
-  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   renderTHICC();
   logChange('edit', 'Removed THICC member #' + id);
 }
@@ -1796,7 +2019,46 @@ function addSocialRow(btn) {
 function removeSocialRow(btn) { btn.closest('.thicc-social-row').remove(); }
 
 function uploadTHICC(btn, type) {
-  btn.nextElementSibling.click();
+  btn.nextElementSibling.nextElementSibling.click();
+}
+
+// ── DRAG-TO-REORDER ──
+let _dragSrc = null;
+
+function initDragReorder() {
+  const cards = document.querySelectorAll('.thicc-member-editor');
+  cards.forEach(card => {
+    card.addEventListener('dragstart', e => {
+      _dragSrc = card;
+      card.style.opacity = '0.4';
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '';
+      document.querySelectorAll('.thicc-member-editor').forEach(c => c.style.borderTop = '');
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (card !== _dragSrc) card.style.borderTop = '2px solid var(--gold,#f5a623)';
+    });
+    card.addEventListener('dragleave', () => { card.style.borderTop = ''; });
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.style.borderTop = '';
+      if (_dragSrc && _dragSrc !== card) {
+        const el = document.getElementById('thicc-roster-editor');
+        const srcIdx = Array.from(el.children).indexOf(_dragSrc);
+        const tgtIdx = Array.from(el.children).indexOf(card);
+        if (srcIdx > tgtIdx) el.insertBefore(_dragSrc, card);
+        else el.insertBefore(_dragSrc, card.nextSibling);
+        // Save new order immediately
+        const members = collectTHICC();
+        localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
+        toast('Order saved', 'success');
+      }
+    });
+  });
 }
 
 async function handleTHICCUpload(input, type) {
@@ -1809,11 +2071,16 @@ async function handleTHICCUpload(input, type) {
     const base64 = e.target.result.split(',')[1];
     const ok = await commitFile('assets/' + file.name, base64, '📁 THICC upload: ' + file.name, true);
     if (ok) {
-      const urlInput = input.closest('.flex-row').querySelector('input[type="text"]');
-      if (urlInput) urlInput.value = STATE.showFullUrls
-        ? `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/${file.name}`
-        : file.name;
-      toast(file.name + ' uploaded!', 'success');
+      // Always use ../assets/ relative path — THICC page is in thicc/ subfolder
+      const correctPath = '../assets/' + file.name;
+      const urlInput = input.closest('.flex-row') ? input.closest('.flex-row').querySelector('input[type="text"]') : null;
+      if (urlInput) {
+        urlInput.value = correctPath;
+        // Trigger preview update
+        if (type === 'photo') updatePhotoPreview(urlInput);
+        else updateVideoPreview(urlInput);
+      }
+      toast(file.name + ' uploaded! ✓', 'success');
       logChange('edit', 'Uploaded THICC asset: ' + file.name);
       refreshAssets();
     } else toast('Upload failed', 'error');
@@ -1824,23 +2091,30 @@ async function handleTHICCUpload(input, type) {
 async function deployTHICC() {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
   saveTHICC();
-  toast('Creating backup...', 'info');
 
-  // Read current thicc/index.html
   const html = await readFile('thicc/index.html');
   if (!html) { toast('Could not read thicc/index.html', 'error'); return; }
 
   const members = loadTHICC();
-  // Replace DEFAULT_MEMBERS block in thicc/index.html
-  const membersJson = JSON.stringify(members, null, 4);
-  const updated = html.replace(
+
+  // Update DEFAULT_MEMBERS source fallback
+  const membersJson = JSON.stringify(members, null, 2);
+  let updated = html.replace(
     /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
     'const DEFAULT_MEMBERS = ' + membersJson + ';'
   );
 
-  const ok = await commitFile('thicc/index.html', updated, '🎮 THICC deploy: ' + new Date().toLocaleString());
+  // Inject localStorage seed script
+  const membersJsonStr = JSON.stringify(members);
+  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');';
+  const closeTag = '\u003c/script>';
+  const seedScript = '\n<script data-thicc-deploy>' + seedInner + closeTag;
+  updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
+  updated = updated.replace('</head>', seedScript + '\n</head>');
+
+  const ok = await commitFile('thicc/index.html', updated, '\uD83C\uDFAE THICC deploy: ' + new Date().toLocaleString());
   if (ok) {
-    toast('THICC deployed!', 'success');
+    toast('THICC deployed! \u2713', 'success');
     logChange('deploy', 'THICC roster deployed to live');
   } else {
     toast('THICC deploy failed', 'error');
@@ -1848,19 +2122,306 @@ async function deployTHICC() {
   }
 }
 
-// Boot THICC on section open — patch showSection
-const _origShowSection = showSection;
-window.showSection = function(id) {
-  _origShowSection(id);
-  if (id === 'thicc') renderTHICC();
+// ══════════════════════════════════════════════
+//  ASSET PICKER
+// ══════════════════════════════════════════════
+const AP = {
+  callback: null,       // fn(relPath) called when user confirms
+  type: 'image',        // 'image' | 'video' | 'any'
+  selected: null,       // { name, rawUrl, relPath }
+  allAssets: [],
 };
+
+function openAssetPicker(type, callback) {
+  AP.type = type || 'any';
+  AP.callback = callback;
+  AP.selected = null;
+
+  const overlay = document.getElementById('asset-picker-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('ap-title').textContent = type === 'image' ? 'Pick Photo' : type === 'video' ? 'Pick Video' : 'Pick Asset';
+  document.getElementById('ap-subtitle').textContent = 'Select from your GitHub assets folder, or upload a new file';
+  document.getElementById('ap-search').value = '';
+  document.getElementById('ap-confirm-btn').disabled = true;
+  document.getElementById('ap-crop-btn').style.display = 'none';
+  document.getElementById('ap-upload-status').textContent = '';
+  document.getElementById('ap-file-input').accept = type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : '*/*';
+
+  // Update selected preview
+  apUpdateSelectedPreview();
+
+  // Load assets
+  apLoadAssets();
+}
+
+function closeAssetPicker() {
+  document.getElementById('asset-picker-overlay').style.display = 'none';
+  AP.selected = null;
+  AP.callback = null;
+}
+
+async function apLoadAssets() {
+  const grid = document.getElementById('ap-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:0.82rem;padding:2rem;text-align:center;">Loading assets...</div>';
+  document.getElementById('ap-count').textContent = '';
+
+  if (!STATE.ghConnected) {
+    grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:0.82rem;padding:2rem;text-align:center;">⚠ Connect GitHub first (Connections tab)</div>';
+    return;
+  }
+
+  try {
+    const r = await fetch(`${ghBase()}/contents/assets?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    if (!r.ok) { grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);font-size:0.82rem;padding:2rem;text-align:center;">Could not load assets folder.</div>'; return; }
+    AP.allAssets = (await r.json()).filter(a => a.type === 'file');
+    // Also refresh the main assets panel if loaded
+    STATE.assets = AP.allAssets;
+    apRenderGrid(AP.allAssets);
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--muted);font-size:0.82rem;padding:2rem;text-align:center;">Error: ${e.message}</div>`;
+  }
+}
+
+function apRenderGrid(assets) {
+  const rawBase = `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/`;
+  const grid = document.getElementById('ap-grid');
+
+  // Filter by type
+  let filtered = assets;
+  if (AP.type === 'image') filtered = assets.filter(a => /\.(jpe?g|png|gif|webp|svg)$/i.test(a.name));
+  if (AP.type === 'video') filtered = assets.filter(a => /\.(mp4|webm|mov|avi)$/i.test(a.name));
+
+  document.getElementById('ap-count').textContent = `${filtered.length} file${filtered.length !== 1 ? 's' : ''}`;
+
+  if (!filtered.length) {
+    grid.innerHTML = `<div style="grid-column:1/-1;color:var(--muted);font-size:0.82rem;padding:2rem;text-align:center;">
+      No ${AP.type === 'any' ? '' : AP.type + ' '}files in assets/ folder yet.<br><br>Upload one using the button above.
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(a => {
+    const rawUrl = rawBase + a.path;
+    const relPath = '../assets/' + a.name;
+    const isImage = /\.(jpe?g|png|gif|webp|svg)$/i.test(a.name);
+    const isVideo = /\.(mp4|webm|mov|avi)$/i.test(a.name);
+    const shortName = a.name.length > 18 ? a.name.slice(0, 15) + '...' : a.name;
+
+    const thumb = isImage
+      ? `<img src="${rawUrl}" style="width:100%;height:80px;object-fit:cover;display:block;border-radius:3px 3px 0 0;" loading="lazy" onerror="this.parentElement.innerHTML='<div style=height:80px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;>🖼️</div>'" />`
+      : isVideo
+        ? `<div style="height:80px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:var(--bg3);border-radius:3px 3px 0 0;">🎬</div>`
+        : `<div style="height:80px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:var(--bg3);border-radius:3px 3px 0 0;">📄</div>`;
+
+    return `
+      <div class="ap-asset-card" data-name="${a.name}" data-raw="${rawUrl}" data-rel="${relPath}"
+        onclick="apSelectAsset(this)"
+        style="background:var(--bg3);border:2px solid var(--border2);border-radius:6px;cursor:pointer;
+          transition:border-color 0.15s,transform 0.1s;overflow:hidden;"
+        onmouseenter="this.style.borderColor='var(--accent,#39ff14)';this.style.transform='scale(1.02)'"
+        onmouseleave="this.style.borderColor=this.classList.contains('ap-selected')?'var(--accent,#39ff14)':'var(--border2)';this.style.transform=''">
+        ${thumb}
+        <div style="padding:5px 6px;font-size:0.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${a.name}">${shortName}</div>
+      </div>`;
+  }).join('');
+}
+
+function apSelectAsset(card) {
+  // Deselect all
+  document.querySelectorAll('.ap-asset-card').forEach(c => {
+    c.classList.remove('ap-selected');
+    c.style.borderColor = 'var(--border2)';
+  });
+  // Select this one
+  card.classList.add('ap-selected');
+  card.style.borderColor = 'var(--accent,#39ff14)';
+
+  AP.selected = {
+    name: card.dataset.name,
+    rawUrl: card.dataset.raw,
+    relPath: card.dataset.rel,
+  };
+
+  apUpdateSelectedPreview();
+  document.getElementById('ap-confirm-btn').disabled = false;
+
+  // Show crop button only for images
+  const isImage = /\.(jpe?g|png|gif|webp|svg)$/i.test(AP.selected.name);
+  document.getElementById('ap-crop-btn').style.display = isImage ? 'inline-flex' : 'none';
+}
+
+function apUpdateSelectedPreview() {
+  const el = document.getElementById('ap-selected-preview');
+  if (!AP.selected) {
+    el.innerHTML = '<span style="font-size:0.75rem;color:var(--muted);">Nothing selected</span>';
+    return;
+  }
+  const isImage = /\.(jpe?g|png|gif|webp|svg)$/i.test(AP.selected.name);
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;">
+      ${isImage ? `<img src="${AP.selected.rawUrl}" style="width:36px;height:36px;object-fit:cover;border-radius:3px;border:1px solid var(--border2);" />` : '<span style="font-size:1.2rem;">🎬</span>'}
+      <div>
+        <div style="font-size:0.75rem;color:var(--text);font-weight:600;">${AP.selected.name}</div>
+        <div style="font-size:0.65rem;color:var(--muted);">${AP.selected.relPath}</div>
+      </div>
+    </div>`;
+}
+
+function filterAssetPicker(query) {
+  const q = query.toLowerCase();
+  const filtered = q ? AP.allAssets.filter(a => a.name.toLowerCase().includes(q)) : AP.allAssets;
+  apRenderGrid(filtered);
+}
+
+function apConfirmSelection() {
+  if (!AP.selected) return;
+  if (AP.callback) AP.callback(AP.selected.relPath, AP.selected.rawUrl);
+  closeAssetPicker();
+}
+
+async function apUploadFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
+
+  const status = document.getElementById('ap-upload-status');
+  status.textContent = 'Uploading ' + file.name + '...';
+  status.style.color = 'var(--accent,#39ff14)';
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1];
+    const ok = await commitFile('assets/' + file.name, base64, '📁 Asset upload: ' + file.name, true);
+    if (ok) {
+      status.textContent = '✓ ' + file.name + ' uploaded!';
+      logChange('edit', 'Uploaded asset: ' + file.name);
+      // Reload grid and auto-select the new file
+      await apLoadAssets();
+      // Find and select the newly uploaded card
+      setTimeout(() => {
+        const cards = document.querySelectorAll('.ap-asset-card');
+        cards.forEach(c => {
+          if (c.dataset.name === file.name) apSelectAsset(c);
+        });
+      }, 100);
+    } else {
+      status.textContent = '✗ Upload failed';
+      status.style.color = 'var(--red,#ef4444)';
+    }
+  };
+  reader.readAsDataURL(file);
+  // Reset input so same file can be re-uploaded
+  input.value = '';
+}
+
+function apOpenCrop() {
+  if (!AP.selected) return;
+  if (!AP.selected.rawUrl) return;
+  // Use the existing crop system if available, otherwise open in new window
+  if (typeof openCrop === 'function') {
+    closeAssetPicker();
+    openCrop(AP.selected.rawUrl, function(croppedFile) {
+      // Re-open picker logic is complex — instead just upload cropped file directly
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const base64 = e.target.result.split(',')[1];
+        const croppedName = AP.selected.name.replace(/(\.[^.]+)$/, '-cropped$1');
+        const ok = await commitFile('assets/' + croppedName, base64, '✂ Cropped asset: ' + croppedName, true);
+        if (ok) {
+          toast('Cropped asset saved as ' + croppedName, 'success');
+          if (AP.callback) AP.callback('../assets/' + croppedName, e.target.result);
+        } else toast('Failed to save cropped asset', 'error');
+      };
+      reader.readAsDataURL(croppedFile);
+    });
+  } else {
+    // Fallback: just confirm current selection
+    apConfirmSelection();
+  }
+}
+
+// ══ Replace the old uploadTHICC and handleTHICCUpload ══
+function uploadTHICC(btn, type) {
+  // Find the url input in this field
+  const field = btn.closest('.field');
+  const urlInput = field.querySelector('.thicc-photo-url, .thicc-video-url');
+  const previewFn = type === 'photo' ? updatePhotoPreview : updateVideoPreview;
+
+  openAssetPicker(type === 'photo' ? 'image' : 'video', (relPath, rawUrl) => {
+    if (urlInput) {
+      urlInput.value = relPath;
+      previewFn(urlInput);
+    }
+  });
+}
 
 // ══════════════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════════════
 init();
-// Setup right-click on preview after DOM ready
+renderTHICC();
 setTimeout(setupPreviewContextMenu, 500);
 </script>
+<!-- ══ ASSET PICKER MODAL ══ -->
+<div id="asset-picker-overlay" style="
+  display:none;position:fixed;inset:0;z-index:9000;
+  background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;">
+  <div style="
+    background:var(--bg2);border:1px solid var(--border2);border-radius:10px;
+    width:min(860px,96vw);max-height:88vh;display:flex;flex-direction:column;
+    box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:1rem 1.25rem;border-bottom:1px solid var(--border2);flex-shrink:0;">
+      <div>
+        <div style="font-family:var(--display);font-size:1.3rem;letter-spacing:0.06em;" id="ap-title">Pick Asset</div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:2px;" id="ap-subtitle">Select from your assets folder or upload a new file</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="ap-search" placeholder="Search assets..." style="width:180px;font-size:0.8rem;padding:5px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--text);" oninput="filterAssetPicker(this.value)" />
+        <button class="qa-btn ghost" onclick="closeAssetPicker()" style="padding:6px 10px;">✕</button>
+      </div>
+    </div>
+
+    <!-- Upload strip -->
+    <div style="display:flex;align-items:center;gap:10px;padding:0.75rem 1.25rem;
+      background:var(--bg3);border-bottom:1px solid var(--border2);flex-shrink:0;">
+      <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+        padding:6px 14px;background:var(--accent,#39ff14);color:#000;border-radius:4px;
+        font-size:0.78rem;font-weight:600;transition:opacity 0.15s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity=''">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        Upload New File
+        <input type="file" id="ap-file-input" style="display:none" onchange="apUploadFile(this)" />
+      </label>
+      <span id="ap-upload-status" style="font-size:0.75rem;color:var(--muted);"></span>
+      <span style="margin-left:auto;font-size:0.72rem;color:var(--muted);" id="ap-count"></span>
+    </div>
+
+    <!-- Asset grid -->
+    <div id="ap-grid" style="
+      flex:1;overflow-y:auto;padding:1rem;
+      display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;">
+      <div style="grid-column:1/-1;color:var(--muted);font-size:0.82rem;padding:2rem;text-align:center;">
+        Loading assets...
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="display:flex;align-items:center;justify-content:space-between;
+      padding:0.75rem 1.25rem;border-top:1px solid var(--border2);flex-shrink:0;background:var(--bg3);">
+      <div id="ap-selected-preview" style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:0.75rem;color:var(--muted);">Nothing selected</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="qa-btn ghost" id="ap-crop-btn" onclick="apOpenCrop()" style="display:none">✂ Crop Selected</button>
+        <button class="qa-btn ghost" onclick="closeAssetPicker()">Cancel</button>
+        <button class="qa-btn primary" id="ap-confirm-btn" onclick="apConfirmSelection()" disabled>Use This Asset</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
