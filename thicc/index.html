@@ -7,603 +7,165 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #080808;
-      --bg2: #0f0f0f;
-      --bg3: #161616;
-      --bg4: #1e1e1e;
-      --gold: #f5a623;
-      --gold2: #e8941a;
-      --gold-dim: rgba(245,166,35,0.15);
-      --gold-border: rgba(245,166,35,0.25);
-      --red: #c0392b;
-      --text: #f0ede8;
-      --muted: #7a7570;
-      --border: rgba(245,166,35,0.12);
+      --bg: #080808; --bg2: #0f0f0f; --bg3: #161616; --bg4: #1e1e1e;
+      --gold: #f5a623; --gold2: #e8941a; --gold-dim: rgba(245,166,35,0.15);
+      --gold-border: rgba(245,166,35,0.25); --red: #c0392b;
+      --text: #f0ede8; --muted: #7a7570; --border: rgba(245,166,35,0.12);
     }
-
     html { scroll-behavior: smooth; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Rajdhani', sans-serif;
-      font-size: 16px;
-      line-height: 1.6;
-      overflow-x: hidden;
-    }
-
-    /* scanline overlay */
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* noise */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.5;
-    }
-
-    /* NAV */
-    nav {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 3rem;
-      height: 58px;
-      background: rgba(8,8,8,0.92);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
-    }
-
-    .nav-left { display: flex; align-items: center; gap: 2rem; }
-
-    .nav-back {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.78rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      transition: color 0.2s;
-    }
-
-    .nav-back:hover { color: var(--gold); }
-    .nav-back svg { width: 14px; height: 14px; }
-
-    .nav-divider { width: 1px; height: 20px; background: var(--border); }
-
-    .nav-logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.6rem;
-      letter-spacing: 0.1em;
-      color: var(--gold);
-      text-decoration: none;
-    }
-
-    .nav-tag {
-      font-size: 0.65rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 3px 8px;
-      border-radius: 2px;
-    }
-
-    .nav-member-count {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--gold);
-      opacity: 0.7;
-    }
-
-    /* HERO */
-    .hero {
-      position: relative;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 6rem 3rem 4rem;
-      overflow: hidden;
-      z-index: 1;
-    }
-
-    /* diagonal gold lines bg */
-    .hero-lines {
-      position: absolute;
-      inset: 0;
-      background:
-        repeating-linear-gradient(
-          -55deg,
-          transparent,
-          transparent 40px,
-          rgba(245,166,35,0.02) 40px,
-          rgba(245,166,35,0.02) 41px
-        );
-      pointer-events: none;
-    }
-
-    .hero-glow {
-      position: absolute;
-      width: 800px; height: 400px;
-      background: radial-gradient(ellipse, rgba(245,166,35,0.06) 0%, transparent 70%);
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      pointer-events: none;
-    }
-
-    .hero-eyebrow {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--gold);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 1.5rem;
-      opacity: 0.8;
-    }
-
-    .hero-eyebrow::before,
-    .hero-eyebrow::after {
-      content: '';
-      display: block;
-      width: 40px; height: 1px;
-      background: var(--gold);
-      opacity: 0.4;
-    }
-
-    .hero-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(6rem, 20vw, 14rem);
-      line-height: 0.85;
-      letter-spacing: 0.06em;
-      color: var(--text);
-      position: relative;
-      margin-bottom: 0.5rem;
-    }
-
-    .hero-title::after {
-      content: 'THICC';
-      position: absolute;
-      inset: 0;
-      color: transparent;
-      -webkit-text-stroke: 1px rgba(245,166,35,0.15);
-      transform: translate(3px, 3px);
-      z-index: -1;
-    }
-
-    .hero-subtitle {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.8rem;
-      color: var(--gold);
-      letter-spacing: 0.25em;
-      text-transform: uppercase;
-      margin-bottom: 2rem;
-      opacity: 0.7;
-    }
-
-    .hero-desc {
-      max-width: 520px;
-      color: var(--muted);
-      font-size: 1rem;
-      line-height: 1.8;
-      font-weight: 500;
-      margin-bottom: 2.5rem;
-    }
-
-    .hero-stats {
-      display: flex;
-      gap: 3rem;
-      justify-content: center;
-    }
-
-    .hero-stat { text-align: center; }
-
-    .hero-stat-num {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 2.5rem;
-      color: var(--gold);
-      line-height: 1;
-      display: block;
-    }
-
-    .hero-stat-label {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.65rem;
-      color: var(--muted);
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-    }
-
-    .hero-scroll {
-      position: absolute;
-      bottom: 2rem;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      color: var(--muted);
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      animation: bounce 2s infinite;
-    }
-
+    body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: 16px; line-height: 1.6; overflow-x: hidden; }
+    body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events:none; z-index:0; }
+    body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; opacity:0.5; }
+    nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:0 3rem; height:58px; background:rgba(8,8,8,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); }
+    .nav-left { display:flex; align-items:center; gap:2rem; }
+    .nav-back { display:flex; align-items:center; gap:8px; color:var(--muted); text-decoration:none; font-size:0.78rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; transition:color 0.2s; }
+    .nav-back:hover { color:var(--gold); }
+    .nav-back svg { width:14px; height:14px; }
+    .nav-divider { width:1px; height:20px; background:var(--border); }
+    .nav-logo { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:0.1em; color:var(--gold); text-decoration:none; }
+    .nav-tag { font-size:0.65rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--muted); border:1px solid var(--border); padding:3px 8px; border-radius:2px; }
+    .nav-member-count { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--gold); opacity:0.7; }
+    .hero { position:relative; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:6rem 3rem 4rem; overflow:hidden; z-index:1; }
+    .hero-lines { position:absolute; inset:0; background:repeating-linear-gradient(-55deg,transparent,transparent 40px,rgba(245,166,35,0.02) 40px,rgba(245,166,35,0.02) 41px); pointer-events:none; }
+    .hero-glow { position:absolute; width:800px; height:400px; background:radial-gradient(ellipse,rgba(245,166,35,0.06) 0%,transparent 70%); top:50%; left:50%; transform:translate(-50%,-50%); pointer-events:none; }
+    .hero-eyebrow { display:flex; align-items:center; gap:12px; font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--gold); letter-spacing:0.2em; text-transform:uppercase; margin-bottom:1.5rem; opacity:0.8; }
+    .hero-eyebrow::before,.hero-eyebrow::after { content:''; display:block; width:40px; height:1px; background:var(--gold); opacity:0.4; }
+    .hero-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(6rem,20vw,14rem); line-height:0.85; letter-spacing:0.06em; color:var(--text); position:relative; margin-bottom:0.5rem; }
+    .hero-title::after { content:'THICC'; position:absolute; inset:0; color:transparent; -webkit-text-stroke:1px rgba(245,166,35,0.15); transform:translate(3px,3px); z-index:-1; }
+    .hero-subtitle { font-family:'Share Tech Mono',monospace; font-size:0.8rem; color:var(--gold); letter-spacing:0.25em; text-transform:uppercase; margin-bottom:2rem; opacity:0.7; }
+    .hero-desc { max-width:520px; color:var(--muted); font-size:1rem; line-height:1.8; font-weight:500; margin-bottom:2.5rem; }
+    .hero-stats { display:flex; gap:3rem; justify-content:center; }
+    .hero-stat { text-align:center; }
+    .hero-stat-num { font-family:'Bebas Neue',sans-serif; font-size:2.5rem; color:var(--gold); line-height:1; display:block; }
+    .hero-stat-label { font-family:'Share Tech Mono',monospace; font-size:0.65rem; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; }
+    .hero-scroll { position:absolute; bottom:2rem; left:50%; transform:translateX(-50%); display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--muted); font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.15em; text-transform:uppercase; animation:bounce 2s infinite; }
     @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(6px)} }
+    .hero-scroll svg { width:16px; height:16px; }
+    .section { position:relative; z-index:1; padding:6rem 3rem; }
+    .section-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:3rem; padding-bottom:1rem; border-bottom:1px solid var(--border); position:relative; }
+    .section-header::after { content:''; position:absolute; bottom:-1px; left:0; width:80px; height:2px; background:var(--gold); }
+    .section-label { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--gold); letter-spacing:0.2em; text-transform:uppercase; margin-bottom:0.4rem; opacity:0.7; }
+    .section-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(2rem,4vw,3.5rem); letter-spacing:0.06em; line-height:1; color:var(--text); }
+    .section-count { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--muted); letter-spacing:0.1em; }
+    .member-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1.5rem; }
+    .member-card { background:var(--bg2); border:1px solid var(--border); position:relative; overflow:hidden; transition:border-color 0.3s,transform 0.3s; cursor:default; }
+    .member-card:hover { border-color:rgba(245,166,35,0.4); transform:translateY(-4px); }
+    .member-card::before { content:''; position:absolute; top:0; left:0; width:20px; height:20px; border-top:2px solid var(--gold); border-left:2px solid var(--gold); z-index:3; opacity:0.6; transition:opacity 0.3s; }
+    .member-card::after { content:''; position:absolute; bottom:0; right:0; width:20px; height:20px; border-bottom:2px solid var(--gold); border-right:2px solid var(--gold); z-index:3; opacity:0.6; transition:opacity 0.3s; }
+    .member-card:hover::before,.member-card:hover::after { opacity:1; }
+    .card-media { position:relative; width:100%; aspect-ratio:16/9; background:var(--bg3); overflow:hidden; cursor:pointer; }
+    .card-photo { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity 0.4s,transform 0.5s; z-index:1; }
+    .card-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.4s; z-index:2; }
+    .member-card:hover .card-video { opacity:1; }
+    .member-card:hover .card-photo { opacity:0; transform:scale(1.04); }
+    .card-placeholder { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg3); z-index:1; }
+    .card-placeholder-text { font-family:'Bebas Neue',sans-serif; font-size:4rem; color:rgba(245,166,35,0.12); letter-spacing:0.1em; }
+    /* VIEW PROFILE hover overlay */
+    .card-open-hint { position:absolute; inset:0; background:rgba(0,0,0,0.6); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; opacity:0; transition:opacity 0.2s; z-index:6; pointer-events:none; }
+    .card-open-hint-icon { width:50px; height:50px; border:2px solid var(--gold); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--gold); transform:scale(0.75); transition:transform 0.25s; }
+    .card-open-hint-icon svg { width:22px; height:22px; }
+    .card-open-hint-label { font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); }
+    .card-media:hover .card-open-hint { opacity:1; }
+    .card-media:hover .card-open-hint-icon { transform:scale(1); }
+    .card-rank { position:absolute; top:10px; right:10px; background:rgba(8,8,8,0.85); border:1px solid var(--gold-border); color:var(--gold); font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.1em; padding:3px 8px; z-index:5; text-transform:uppercase; }
+    .card-body { padding:1.25rem 1.25rem 1rem; }
+    .card-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:0.5rem; }
+    .card-name { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:0.06em; color:var(--text); line-height:1; }
+    .card-gamertag { font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:var(--gold); letter-spacing:0.08em; margin-bottom:0.75rem; opacity:0.8; }
+    .card-about { font-size:0.88rem; color:var(--muted); line-height:1.7; margin-bottom:1rem; font-weight:500; min-height:2.5em; }
+    .card-divider { height:1px; background:var(--border); margin:0.75rem 0; position:relative; }
+    .card-divider::after { content:''; position:absolute; left:0; top:0; width:30px; height:1px; background:var(--gold); opacity:0.5; }
+    .card-socials { display:flex; flex-wrap:wrap; gap:6px; }
+    .card-social-link { display:inline-flex; align-items:center; gap:5px; background:var(--bg3); border:1px solid var(--border); color:var(--muted); text-decoration:none; font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:0.05em; padding:4px 10px; transition:all 0.2s; }
+    .card-social-link:hover { border-color:var(--gold-border); color:var(--gold); background:var(--gold-dim); }
+    .card-social-link svg { width:11px; height:11px; flex-shrink:0; }
+    .card-no-socials { font-family:'Share Tech Mono',monospace; font-size:0.68rem; color:var(--muted); opacity:0.4; letter-spacing:0.08em; }
+    .member-card.leader { border-color:rgba(245,166,35,0.3); background:linear-gradient(135deg,#0f0f0f 0%,#141208 100%); }
+    .leader-crown { position:absolute; top:10px; left:10px; z-index:5; background:var(--gold); color:#000; font-family:'Share Tech Mono',monospace; font-size:0.6rem; font-weight:700; letter-spacing:0.1em; padding:3px 8px; text-transform:uppercase; }
+    footer { border-top:1px solid var(--border); padding:2rem 3rem; display:flex; align-items:center; justify-content:space-between; position:relative; z-index:1; }
+    .footer-logo { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:0.1em; color:var(--gold); opacity:0.5; text-decoration:none; }
+    .footer-copy { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--muted); letter-spacing:0.08em; opacity:0.5; }
+    .fade-up { opacity:0; transform:translateY(20px); transition:opacity 0.5s ease,transform 0.5s ease; }
+    .fade-up.visible { opacity:1; transform:translateY(0); }
 
-    .hero-scroll svg { width: 16px; height: 16px; }
-
-    /* SECTION */
-    .section {
-      position: relative;
-      z-index: 1;
-      padding: 6rem 3rem;
+    /* ═══════════════════════════════
+       PROFILE MODAL
+    ═══════════════════════════════ */
+    .modal-backdrop {
+      position:fixed; inset:0; background:rgba(0,0,0,0.87); backdrop-filter:blur(8px);
+      z-index:1000; display:flex; align-items:center; justify-content:center; padding:1.5rem;
+      opacity:0; pointer-events:none; transition:opacity 0.3s ease;
     }
-
-    .section-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      margin-bottom: 3rem;
-      padding-bottom: 1rem;
-      border-bottom: 1px solid var(--border);
-      position: relative;
+    .modal-backdrop.open { opacity:1; pointer-events:all; }
+    .modal-window {
+      position:relative; width:100%; max-width:880px; max-height:90vh; overflow-y:auto;
+      background:var(--bg2); border:1px solid var(--border);
+      transform:translateY(28px) scale(0.97);
+      transition:transform 0.38s cubic-bezier(0.16,1,0.3,1), opacity 0.35s ease;
+      opacity:0;
+      scrollbar-width:thin; scrollbar-color:rgba(245,166,35,0.2) transparent;
     }
-
-    .section-header::after {
-      content: '';
-      position: absolute;
-      bottom: -1px; left: 0;
-      width: 80px; height: 2px;
-      background: var(--gold);
-    }
-
-    .section-label {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--gold);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 0.4rem;
-      opacity: 0.7;
-    }
-
-    .section-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(2rem, 4vw, 3.5rem);
-      letter-spacing: 0.06em;
-      line-height: 1;
-      color: var(--text);
-    }
-
-    .section-count {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--muted);
-      letter-spacing: 0.1em;
-    }
-
-    /* MEMBER GRID */
-    .member-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1.5rem;
-    }
-
-    /* MEMBER CARD */
-    .member-card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      position: relative;
-      overflow: hidden;
-      transition: border-color 0.3s, transform 0.3s;
-      cursor: default;
-    }
-
-    .member-card:hover {
-      border-color: rgba(245,166,35,0.4);
-      transform: translateY(-4px);
-    }
-
+    .modal-window::-webkit-scrollbar { width:4px; }
+    .modal-window::-webkit-scrollbar-track { background:transparent; }
+    .modal-window::-webkit-scrollbar-thumb { background:rgba(245,166,35,0.2); border-radius:2px; }
+    .modal-backdrop.open .modal-window { transform:translateY(0) scale(1); opacity:1; }
     /* corner accents */
-    .member-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0;
-      width: 20px; height: 20px;
-      border-top: 2px solid var(--gold);
-      border-left: 2px solid var(--gold);
-      z-index: 3;
-      opacity: 0.6;
-      transition: opacity 0.3s;
-    }
+    .modal-window::before { content:''; position:absolute; top:0; left:0; width:36px; height:36px; border-top:2px solid var(--m-accent,var(--gold)); border-left:2px solid var(--m-accent,var(--gold)); z-index:2; pointer-events:none; }
+    .modal-window::after { content:''; position:absolute; bottom:0; right:0; width:36px; height:36px; border-bottom:2px solid var(--m-accent,var(--gold)); border-right:2px solid var(--m-accent,var(--gold)); z-index:2; pointer-events:none; }
+    .modal-close { position:absolute; top:14px; right:14px; width:36px; height:36px; background:rgba(8,8,8,0.8); border:1px solid rgba(255,255,255,0.1); color:var(--muted); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:20; transition:all 0.2s; }
+    .modal-close:hover { background:var(--m-accent,var(--gold)); color:#000; border-color:var(--m-accent,var(--gold)); }
+    .modal-close svg { width:14px; height:14px; }
+    /* HERO BAND */
+    .modal-hero { position:relative; width:100%; height:260px; overflow:hidden; }
+    .modal-hero-bg { position:absolute; inset:0; z-index:0; }
+    .modal-hero-lines { position:absolute; inset:0; background:repeating-linear-gradient(-55deg,transparent,transparent 30px,rgba(255,255,255,0.01) 30px,rgba(255,255,255,0.01) 31px); z-index:1; pointer-events:none; }
+    .modal-hero-scanlines { position:absolute; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.06) 3px,rgba(0,0,0,0.06) 4px); z-index:1; pointer-events:none; }
+    .modal-hero-glow { position:absolute; width:600px; height:350px; top:50%; right:-80px; transform:translateY(-50%); z-index:1; pointer-events:none; }
+    .modal-hero-content { position:relative; z-index:2; height:100%; display:flex; align-items:flex-end; gap:1.75rem; padding:2rem; }
+    .modal-avatar-wrap { position:relative; flex-shrink:0; width:110px; height:110px; border-width:2px; border-style:solid; overflow:hidden; }
+    .modal-avatar-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+    .modal-avatar-initial { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:3.5rem; background:rgba(0,0,0,0.4); }
+    .modal-hero-info { flex:1; padding-bottom:4px; }
+    .modal-leader-badge { display:inline-block; font-family:'Share Tech Mono',monospace; font-size:0.6rem; font-weight:700; letter-spacing:0.14em; padding:2px 8px; text-transform:uppercase; color:#000; margin-bottom:0.5rem; }
+    .modal-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.4rem,5.5vw,3.8rem); letter-spacing:0.05em; line-height:0.9; color:var(--text); margin-bottom:0.35rem; }
+    .modal-tag { font-family:'Share Tech Mono',monospace; font-size:0.8rem; letter-spacing:0.1em; opacity:0.85; }
+    .modal-rank { display:inline-flex; align-items:center; gap:6px; border-width:1px; border-style:solid; font-family:'Share Tech Mono',monospace; font-size:0.63rem; letter-spacing:0.12em; padding:4px 10px; margin-top:0.5rem; text-transform:uppercase; }
+    /* BODY */
+    .modal-body { padding:2rem; }
+    .modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.75rem; }
+    .modal-sect-label { font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.2em; text-transform:uppercase; margin-bottom:0.65rem; opacity:0.75; display:flex; align-items:center; gap:8px; }
+    .modal-sect-label::after { content:''; flex:1; height:1px; background:var(--border); }
+    .modal-bio { font-size:0.95rem; color:var(--text); line-height:1.85; font-weight:500; }
+    .modal-bio.empty { color:var(--muted); font-style:italic; }
+    .modal-video-wrap { position:relative; width:100%; aspect-ratio:16/9; background:var(--bg3); overflow:hidden; border:1px solid var(--border); }
+    .modal-video-wrap video,.modal-video-wrap iframe { width:100%; height:100%; object-fit:cover; border:none; display:block; }
+    .modal-no-video { width:100%; aspect-ratio:16/9; background:var(--bg3); border:1px dashed rgba(255,255,255,0.06); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; }
+    .modal-no-video svg { width:34px; height:34px; opacity:0.2; }
+    .modal-no-video-lbl { font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--muted); opacity:0.4; }
+    .modal-socials { display:flex; flex-wrap:wrap; gap:8px; }
+    .modal-soc-link { display:inline-flex; align-items:center; gap:8px; background:var(--bg3); border:1px solid var(--border); color:var(--muted); text-decoration:none; font-family:'Share Tech Mono',monospace; font-size:0.72rem; letter-spacing:0.05em; padding:8px 14px; transition:all 0.2s; }
+    .modal-soc-link:hover { transform:translateY(-2px); }
+    .modal-soc-link svg { width:14px; height:14px; flex-shrink:0; }
+    .modal-no-soc { font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:var(--muted); opacity:0.32; letter-spacing:0.1em; padding:8px 0; }
 
-    .member-card::after {
-      content: '';
-      position: absolute;
-      bottom: 0; right: 0;
-      width: 20px; height: 20px;
-      border-bottom: 2px solid var(--gold);
-      border-right: 2px solid var(--gold);
-      z-index: 3;
-      opacity: 0.6;
-      transition: opacity 0.3s;
-    }
-
-    .member-card:hover::before,
-    .member-card:hover::after { opacity: 1; }
-
-    /* MEDIA ZONE */
-    .card-media {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/9;
-      background: var(--bg3);
-      overflow: hidden;
-    }
-
-    .card-photo {
-      position: absolute;
-      inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      transition: opacity 0.4s;
-      z-index: 1;
-    }
-
-    .card-video {
-      position: absolute;
-      inset: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
-      opacity: 0;
-      transition: opacity 0.4s;
-      z-index: 2;
-    }
-
-    .member-card:hover .card-video { opacity: 1; }
-    .member-card:hover .card-photo { opacity: 0; }
-
-    /* placeholder when no image */
-    .card-placeholder {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--bg3);
-      z-index: 1;
-    }
-
-    .card-placeholder-text {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 4rem;
-      color: rgba(245,166,35,0.12);
-      letter-spacing: 0.1em;
-    }
-
-    /* hover play indicator */
-    .card-play-hint {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(245,166,35,0.9);
-      color: #000;
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      transition: opacity 0.3s;
-      z-index: 4;
-      pointer-events: none;
-    }
-
-    .card-play-hint svg { width: 16px; height: 16px; margin-left: 2px; }
-
-    .member-card:hover .card-play-hint { opacity: 1; }
-
-    /* rank badge */
-    .card-rank {
-      position: absolute;
-      top: 10px; right: 10px;
-      background: rgba(8,8,8,0.85);
-      border: 1px solid var(--gold-border);
-      color: var(--gold);
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.65rem;
-      letter-spacing: 0.1em;
-      padding: 3px 8px;
-      z-index: 5;
-      text-transform: uppercase;
-    }
-
-    /* CARD BODY */
-    .card-body { padding: 1.25rem 1.25rem 1rem; }
-
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-    }
-
-    .card-name {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.6rem;
-      letter-spacing: 0.06em;
-      color: var(--text);
-      line-height: 1;
-    }
-
-    .card-gamertag {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.72rem;
-      color: var(--gold);
-      letter-spacing: 0.08em;
-      margin-bottom: 0.75rem;
-      opacity: 0.8;
-    }
-
-    .card-about {
-      font-size: 0.88rem;
-      color: var(--muted);
-      line-height: 1.7;
-      margin-bottom: 1rem;
-      font-weight: 500;
-      min-height: 2.5em;
-    }
-
-    /* card divider */
-    .card-divider {
-      height: 1px;
-      background: var(--border);
-      margin: 0.75rem 0;
-      position: relative;
-    }
-
-    .card-divider::after {
-      content: '';
-      position: absolute;
-      left: 0; top: 0;
-      width: 30px; height: 1px;
-      background: var(--gold);
-      opacity: 0.5;
-    }
-
-    /* socials */
-    .card-socials {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .card-social-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      color: var(--muted);
-      text-decoration: none;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.68rem;
-      letter-spacing: 0.05em;
-      padding: 4px 10px;
-      transition: all 0.2s;
-    }
-
-    .card-social-link:hover {
-      border-color: var(--gold-border);
-      color: var(--gold);
-      background: var(--gold-dim);
-    }
-
-    .card-social-link svg { width: 11px; height: 11px; flex-shrink: 0; }
-
-    /* no socials placeholder */
-    .card-no-socials {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.68rem;
-      color: var(--muted);
-      opacity: 0.4;
-      letter-spacing: 0.08em;
-    }
-
-    /* FEATURED / LEADER card */
-    .member-card.leader {
-      border-color: rgba(245,166,35,0.3);
-      background: linear-gradient(135deg, #0f0f0f 0%, #141208 100%);
-    }
-
-    .leader-crown {
-      position: absolute;
-      top: 10px; left: 10px;
-      z-index: 5;
-      background: var(--gold);
-      color: #000;
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.6rem;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      padding: 3px 8px;
-      text-transform: uppercase;
-    }
-
-    /* FOOTER */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 2rem 3rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
-      z-index: 1;
-    }
-
-    .footer-logo {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 1.2rem;
-      letter-spacing: 0.1em;
-      color: var(--gold);
-      opacity: 0.5;
-      text-decoration: none;
-    }
-
-    .footer-copy {
-      font-family: 'Share Tech Mono', monospace;
-      font-size: 0.7rem;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      opacity: 0.5;
-    }
-
-    /* FADE IN */
-    .fade-up { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
-    .fade-up.visible { opacity: 1; transform: translateY(0); }
-
-    @media (max-width: 768px) {
-      nav { padding: 0 1.5rem; }
-      .hero { padding: 5rem 1.5rem 3rem; }
-      .section { padding: 4rem 1.5rem; }
-      .hero-stats { gap: 2rem; }
-      .member-grid { grid-template-columns: 1fr; }
-      footer { flex-direction: column; gap: 1rem; text-align: center; padding: 1.5rem; }
+    @media (max-width:768px) {
+      nav { padding:0 1.5rem; }
+      .hero { padding:5rem 1.5rem 3rem; }
+      .section { padding:4rem 1.5rem; }
+      .hero-stats { gap:2rem; }
+      .member-grid { grid-template-columns:1fr; }
+      footer { flex-direction:column; gap:1rem; text-align:center; padding:1.5rem; }
+      .modal-hero { height:200px; }
+      .modal-hero-content { padding:1.25rem; gap:1rem; }
+      .modal-avatar-wrap { width:80px; height:80px; }
+      .modal-body { padding:1.25rem; }
+      .modal-grid { grid-template-columns:1fr; }
     }
   </style>
-<script data-thicc-deploy>localStorage.setItem("chazdyn_thicc","[{\"id\": 1, \"name\": \"Chazdyn\", \"gamertag\": \"Chazdyn\", \"rank\": \"Clan Leader\", \"isLeader\": true, \"about\": \"PNW dad, musician, and the guy who pauses games to read chat. Come hang.\", \"photoUrl\": \"../assets/Chazdyn-Avatar-cropped-square-20260502223832.jpg\", \"videoUrl\": \"https://youtu.be/tf4r1U2qAp4\", \"socials\": [{\"platform\": \"Twitch\", \"url\": \"https://twitch.tv/chazdyn\", \"handle\": \"Chazdyn\"}, {\"platform\": \"TikTok\", \"url\": \"https://tiktok.com/@thiccchazdyn\", \"handle\": \"@THICCChazdyn\"}, {\"platform\": \"Instagram\", \"url\": \"https://instagram.com/chazdynplays\", \"handle\": \"@ChazdynPlays\"}]}, {\"id\": 2, \"name\": \"ShyShack\", \"gamertag\": \"ShyShack\", \"rank\": \"Wifey\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"../assets/ShyShack-Avatar-cropped-square-20260502223809.jpg\", \"videoUrl\": \"https://youtu.be/tf4r1U2qAp4\", \"socials\": []}, {\"id\": 3, \"name\": \"Mastercardi\", \"gamertag\": \"Mastercardi\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"socials\": []}, {\"id\": 4, \"name\": \"SenoritoTaquito\", \"gamertag\": \"SenoritoTaquito\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"socials\": []}, {\"id\": 5, \"name\": \"PrincessBayleaf\", \"gamertag\": \"PrincessBayleaf\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"socials\": []}, {\"id\": 6, \"name\": \"NeighborGuyBri\", \"gamertag\": \"NoSoSkippy\", \"rank\": \"Neighbor\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"socials\": []}, {\"id\": 7, \"name\": \"Thomas\", \"gamertag\": \"Thomas\", \"rank\": \"Member\", \"isLeader\": false, \"about\": \"\", \"photoUrl\": \"\", \"videoUrl\": \"\", \"socials\": []}]");<\/script>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
   <div class="nav-left">
     <a class="nav-back" href="/">
@@ -617,29 +179,17 @@
   <span class="nav-member-count" id="nav-member-count">07 MEMBERS</span>
 </nav>
 
-<!-- HERO -->
 <section class="hero">
   <div class="hero-lines"></div>
   <div class="hero-glow"></div>
   <div class="hero-eyebrow">Chazdyn's COD Clan</div>
   <h1 class="hero-title">THICC</h1>
   <div class="hero-subtitle">Totally Humble Insanely Cracked Champions</div>
-  <p class="hero-desc" id="hero-desc">
-    We're not a tryhard clan. We're a group of friends who happen to be pretty decent at COD — and extremely good at talking over each other on comms.
-  </p>
+  <p class="hero-desc" id="hero-desc">We're not a tryhard clan. We're a group of friends who happen to be pretty decent at COD — and extremely good at talking over each other on comms.</p>
   <div class="hero-stats">
-    <div class="hero-stat">
-      <span class="hero-stat-num" id="stat-members">7</span>
-      <span class="hero-stat-label">Members</span>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-num" id="stat-game">COD</span>
-      <span class="hero-stat-label">Main Game</span>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-num" id="stat-founded">2024</span>
-      <span class="hero-stat-label">Est.</span>
-    </div>
+    <div class="hero-stat"><span class="hero-stat-num" id="stat-members">7</span><span class="hero-stat-label">Members</span></div>
+    <div class="hero-stat"><span class="hero-stat-num" id="stat-game">COD</span><span class="hero-stat-label">Main Game</span></div>
+    <div class="hero-stat"><span class="hero-stat-num" id="stat-founded">2024</span><span class="hero-stat-label">Est.</span></div>
   </div>
   <div class="hero-scroll">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
@@ -647,7 +197,6 @@
   </div>
 </section>
 
-<!-- MEMBERS -->
 <section class="section" id="members">
   <div class="section-header fade-up">
     <div>
@@ -656,211 +205,232 @@
     </div>
     <span class="section-count" id="roster-count">07 / 07 ACTIVE</span>
   </div>
-  <div class="member-grid" id="member-grid">
-    <!-- injected by JS -->
-  </div>
+  <div class="member-grid" id="member-grid"></div>
 </section>
 
-<!-- FOOTER -->
 <footer>
   <a class="footer-logo" href="/">← Chazdyn.com</a>
   <span class="footer-copy">THICC Clan · chazdyn.com/thicc</span>
 </footer>
 
+<!-- PROFILE MODAL -->
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal-window" id="modal-window">
+    <button class="modal-close" id="modal-close" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div id="modal-inner"></div>
+  </div>
+</div>
+
 <script>
-  // ── DEFAULT MEMBERS ──
-  const DEFAULT_MEMBERS = [
-    {
-        "id": 1,
-        "name": "Chazdyn",
-        "gamertag": "Chazdyn",
-        "rank": "Clan Leader",
-        "isLeader": true,
-        "about": "PNW dad, musician, and the guy who pauses games to read chat. Come hang.",
-        "photoUrl": "../assets/Chazdyn-Avatar-cropped-square-20260502223832.jpg",
-        "videoUrl": "https://youtu.be/tf4r1U2qAp4",
-        "socials": [
-            {
-                "platform": "Twitch",
-                "url": "https://twitch.tv/chazdyn",
-                "handle": "Chazdyn"
-            },
-            {
-                "platform": "TikTok",
-                "url": "https://tiktok.com/@thiccchazdyn",
-                "handle": "@THICCChazdyn"
-            },
-            {
-                "platform": "Instagram",
-                "url": "https://instagram.com/chazdynplays",
-                "handle": "@ChazdynPlays"
-            }
-        ]
-    },
-    {
-        "id": 2,
-        "name": "ShyShack",
-        "gamertag": "ShyShack",
-        "rank": "Wifey",
-        "isLeader": false,
-        "about": "",
-        "photoUrl": "../assets/ShyShack-Avatar-cropped-square-20260502223809.jpg",
-        "videoUrl": "https://youtu.be/tf4r1U2qAp4",
-        "socials": []
-    },
-    {
-        "id": 3,
-        "name": "Mastercardi",
-        "gamertag": "Mastercardi",
-        "rank": "Member",
-        "isLeader": false,
-        "about": "",
-        "photoUrl": "",
-        "videoUrl": "",
-        "socials": []
-    },
-    {
-        "id": 4,
-        "name": "SenoritoTaquito",
-        "gamertag": "SenoritoTaquito",
-        "rank": "Member",
-        "isLeader": false,
-        "about": "",
-        "photoUrl": "",
-        "videoUrl": "",
-        "socials": []
-    },
-    {
-        "id": 5,
-        "name": "PrincessBayleaf",
-        "gamertag": "PrincessBayleaf",
-        "rank": "Member",
-        "isLeader": false,
-        "about": "",
-        "photoUrl": "",
-        "videoUrl": "",
-        "socials": []
-    },
-    {
-        "id": 6,
-        "name": "NeighborGuyBri",
-        "gamertag": "NoSoSkippy",
-        "rank": "Neighbor",
-        "isLeader": false,
-        "about": "",
-        "photoUrl": "",
-        "videoUrl": "",
-        "socials": []
-    },
-    {
-        "id": 7,
-        "name": "Thomas",
-        "gamertag": "Thomas",
-        "rank": "Member",
-        "isLeader": false,
-        "about": "",
-        "photoUrl": "",
-        "videoUrl": "",
-        "socials": []
-    }
+// ── THEME — derived dynamically from member.accentColor ──
+// Converts a hex color into all the rgba/gradient variants the modal needs.
+function hexToRgb(hex) {
+  const h = hex.replace('#','');
+  const full = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+  return [
+    parseInt(full.slice(0,2),16),
+    parseInt(full.slice(2,4),16),
+    parseInt(full.slice(4,6),16)
+  ];
+}
+function T(member) {
+  const hex = (member && member.accentColor) ? member.accentColor : '#f5a623';
+  const [r,g,b] = hexToRgb(hex);
+  // Dark background tinted with the accent color (very subtle)
+  const dr = Math.round(8  + r*0.03);
+  const dg = Math.round(8  + g*0.03);
+  const db = Math.round(8  + b*0.03);
+  const mr = Math.round(12 + r*0.055);
+  const mg = Math.round(12 + g*0.055);
+  const mb = Math.round(12 + b*0.055);
+  return {
+    a:  hex,
+    ab: `rgba(${r},${g},${b},0.28)`,
+    ad: `rgba(${r},${g},${b},0.09)`,
+    g:  `rgba(${r},${g},${b},0.13)`,
+    gr: `linear-gradient(135deg,rgb(${dr},${dg},${db}) 0%,rgb(${mr},${mg},${mb}) 60%,rgb(${dr},${dg},${db}) 100%)`
+  };
+}
+
+const DEFAULT_MEMBERS = [
+  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true,
+    about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.',
+    bio:'Pacific Northwest content creator, dad, and musician who somehow finds time to lead a COD clan and entertain thousands on stream. Chazdyn built THICC from the ground up — it\'s not about K/D ratios, it\'s about vibes and good comms.',
+    photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', accentColor:'#f5a623',
+    socials:[
+      {platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},
+      {platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},
+      {platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}
+    ]},
+  {id:2,name:'ShyShackle',gamertag:'ShyShackle',rank:'Member',isLeader:false,about:'Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends. Come hang... if you can handle it 🖤',bio:'New Affiliate 🎉 Horror games, jump scares, shooters and constant chaos with her favorites. She talks trash, screams, laughs—it\'s a whole mess. Dark aesthetic, smart mouth, soft spot for making new friends. Come hang... if you can handle it 🖤',photoUrl:'../assets/ShyShack Avatar.png',videoUrl:'',accentColor:'#c0392b',socials:[{platform:'Twitch',url:'https://twitch.tv/shyshackle',handle:'ShyShackle'},{platform:'TikTok',url:'https://tiktok.com/@shyshackle',handle:'@shyshackle'},{platform:'Instagram',url:'https://instagram.com/shyshackle',handle:'@shyshackle'}]},
+  {id:3,name:'Mastercardi',gamertag:'Mastercardi',rank:'Member',isLeader:false,about:'',bio:'',photoUrl:'',videoUrl:'',accentColor:'#22c55e',socials:[]},
+  {id:4,name:'SenoritoTaquito',gamertag:'SenoritoTaquito',rank:'Member',isLeader:false,about:'',bio:'',photoUrl:'',videoUrl:'',accentColor:'#fb923c',socials:[]},
+  {id:5,name:'PrincessBayleaf',gamertag:'PrincessBayleaf',rank:'Member',isLeader:false,about:'',bio:'',photoUrl:'',videoUrl:'',accentColor:'#f472b6',socials:[]},
+  {id:6,name:'NeighborGuyBri',gamertag:'NeighborGuyBri',rank:'Member',isLeader:false,about:'',bio:'',photoUrl:'',videoUrl:'',accentColor:'#2dd4bf',socials:[]},
+  {id:7,name:'Thomas',gamertag:'Thomas',rank:'Member',isLeader:false,about:'',bio:'',photoUrl:'',videoUrl:'',accentColor:'#a78bfa',socials:[]}
 ];
 
-  // ── PLATFORM ICONS ──
-  function platformIcon(platform) {
-    const p = (platform||'').toLowerCase();
-    if (p === 'twitch') return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>`;
-    if (p === 'tiktok') return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.28 8.28 0 004.84 1.54V6.79a4.85 4.85 0 01-1.07-.1z"/></svg>`;
-    if (p === 'instagram') return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
-    if (p === 'youtube') return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`;
-    if (p === 'twitter' || p === 'x') return `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
-  }
+function icon(p){
+  const k=(p||'').toLowerCase();
+  if(k==='twitch') return`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>`;
+  if(k==='tiktok') return`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.28 8.28 0 004.84 1.54V6.79a4.85 4.85 0 01-1.07-.1z"/></svg>`;
+  if(k==='instagram') return`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>`;
+  if(k==='youtube') return`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>`;
+  if(k==='twitter'||k==='x') return`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>`;
+  return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
+}
 
-  // ── RENDER CARD ──
-  function renderCard(member) {
-    const mediaHtml = `
-      <div class="card-media">
-        ${member.isLeader ? '<div class="leader-crown">Clan Leader</div>' : ''}
-        ${member.photoUrl
-          ? `<img class="card-photo" src="${member.photoUrl}" alt="${member.name}" />`
-          : `<div class="card-placeholder"><span class="card-placeholder-text">${member.name.charAt(0)}</span></div>`
-        }
-        ${member.videoUrl
-          ? `<video class="card-video" src="${member.videoUrl}" muted loop playsinline preload="none"></video>`
-          : ''
-        }
-        ${member.videoUrl ? `<div class="card-play-hint"><svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>` : ''}
-        <div class="card-rank">${member.rank || 'Member'}</div>
-      </div>`;
+function renderCard(m){
+  const socials = m.socials&&m.socials.length
+    ? m.socials.map(s=>`<a class="card-social-link" href="${s.url}" target="_blank" rel="noopener">${icon(s.platform)}${s.handle||s.platform}</a>`).join('')
+    : `<span class="card-no-socials">No socials linked</span>`;
+  return `
+  <div class="member-card${m.isLeader?' leader':''} fade-up" data-mid="${m.id}">
+    <div class="card-media" data-mid="${m.id}">
+      ${m.isLeader?'<div class="leader-crown">Clan Leader</div>':''}
+      ${m.photoUrl?`<img class="card-photo" src="${m.photoUrl}" alt="${m.name}"/>`:`<div class="card-placeholder"><span class="card-placeholder-text">${m.name.charAt(0)}</span></div>`}
+      ${m.videoUrl?`<video class="card-video" src="${m.videoUrl}" muted loop playsinline preload="none"></video>`:''}
+      <div class="card-open-hint">
+        <div class="card-open-hint-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></div>
+        <span class="card-open-hint-label">View Profile</span>
+      </div>
+      <div class="card-rank">${m.rank||'Member'}</div>
+    </div>
+    <div class="card-body">
+      <div class="card-top"><div>
+        <div class="card-name">${m.name}</div>
+        <div class="card-gamertag">// ${m.gamertag}</div>
+      </div></div>
+      <div class="card-about">${m.about||'No bio yet.'}</div>
+      <div class="card-divider"></div>
+      <div class="card-socials">${socials}</div>
+    </div>
+  </div>`;
+}
 
-    const socialsHtml = member.socials && member.socials.length
-      ? member.socials.map(s => `
-          <a class="card-social-link" href="${s.url}" target="_blank" rel="noopener">
-            ${platformIcon(s.platform)}
-            ${s.handle || s.platform}
-          </a>`).join('')
-      : `<span class="card-no-socials">No socials linked</span>`;
-
-    return `
-      <div class="member-card${member.isLeader ? ' leader' : ''} fade-up" data-member-id="${member.id}">
-        ${mediaHtml}
-        <div class="card-body">
-          <div class="card-top">
-            <div>
-              <div class="card-name">${member.name}</div>
-              <div class="card-gamertag">// ${member.gamertag}</div>
-            </div>
-          </div>
-          <div class="card-about">${member.about || 'No bio yet.'}</div>
-          <div class="card-divider"></div>
-          <div class="card-socials">${socialsHtml}</div>
-        </div>
-      </div>`;
-  }
-
-  // ── LOAD & RENDER ──
-  function loadAndRender() {
-    const raw = localStorage.getItem('chazdyn_thicc');
-    const members = raw ? JSON.parse(raw) : DEFAULT_MEMBERS;
-
-    const cfg = localStorage.getItem('chazdyn_config');
-    if (cfg) {
-      try {
-        const c = JSON.parse(cfg);
-        if (c.thiccDesc) document.getElementById('hero-desc').textContent = c.thiccDesc;
-        if (c.thiccFounded) document.getElementById('stat-founded').textContent = c.thiccFounded;
-        if (c.thiccGame) document.getElementById('stat-game').textContent = c.thiccGame;
-      } catch(e){}
+function buildModal(m){
+  const t=T(m);
+  const av=m.photoUrl
+    ?`<img src="${m.photoUrl}" alt="${m.name}"/>`
+    :`<div class="modal-avatar-initial" style="color:${t.a}">${m.name.charAt(0)}</div>`;
+  let vid;
+  if(m.videoUrl){
+    const yt=/youtu/.test(m.videoUrl);
+    if(yt){
+      const id=m.videoUrl.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1]||'';
+      vid=`<div class="modal-video-wrap"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
+    } else {
+      vid=`<div class="modal-video-wrap"><video src="${m.videoUrl}" controls playsinline></video></div>`;
     }
-
-    const grid = document.getElementById('member-grid');
-    // leader first
-    const sorted = [...members].sort((a,b) => (b.isLeader ? 1 : 0) - (a.isLeader ? 1 : 0));
-    grid.innerHTML = sorted.map(renderCard).join('');
-
-    const count = String(members.length).padStart(2,'0');
-    document.getElementById('nav-member-count').textContent = count + ' MEMBERS';
-    document.getElementById('stat-members').textContent = members.length;
-    document.getElementById('roster-count').textContent = count + ' / ' + count + ' ACTIVE';
-
-    // video hover
-    grid.querySelectorAll('.member-card').forEach(card => {
-      const video = card.querySelector('.card-video');
-      if (!video) return;
-      card.addEventListener('mouseenter', () => { video.play(); });
-      card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
-    });
-
-    // observer
-    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  } else {
+    vid=`<div class="modal-no-video"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg><span class="modal-no-video-lbl">No video linked yet</span></div>`;
   }
+  const socials=m.socials&&m.socials.length
+    ?m.socials.map(s=>`<a class="modal-soc-link" href="${s.url}" target="_blank" rel="noopener" style="border-color:${t.ab};--hover-c:${t.a}"
+        onmouseenter="this.style.borderColor='${t.a}';this.style.color='${t.a}';this.style.background='${t.ad}'"
+        onmouseleave="this.style.borderColor='${t.ab}';this.style.color='';this.style.background=''"
+      >${icon(s.platform)}${s.handle||s.platform}</a>`).join('')
+    :`<span class="modal-no-soc">// no socials linked yet</span>`;
+  const bio=m.bio||m.about;
+  return`
+    <div class="modal-hero">
+      <div class="modal-hero-bg" style="background:${t.gr}"></div>
+      <div class="modal-hero-lines"></div>
+      <div class="modal-hero-scanlines"></div>
+      <div class="modal-hero-glow" style="background:radial-gradient(ellipse,${t.g} 0%,transparent 70%)"></div>
+      <div class="modal-hero-content">
+        <div class="modal-avatar-wrap" style="border-color:${t.a}">${av}</div>
+        <div class="modal-hero-info">
+          ${m.isLeader?`<div class="modal-leader-badge" style="background:${t.a}">Clan Leader</div>`:''}
+          <div class="modal-name">${m.name}</div>
+          <div class="modal-tag" style="color:${t.a}">// ${m.gamertag}</div>
+          <div class="modal-rank" style="color:${t.a};border-color:${t.ab}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            ${m.rank||'Member'}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="modal-grid">
+        <div>
+          <div class="modal-sect-label" style="color:${t.a}">About</div>
+          <p class="modal-bio${bio?'':' empty'}">${bio||'No bio written yet — check back later.'}</p>
+        </div>
+        <div>
+          <div class="modal-sect-label" style="color:${t.a}">Featured Video</div>
+          ${vid}
+        </div>
+      </div>
+      <div>
+        <div class="modal-sect-label" style="color:${t.a}">Links &amp; Socials</div>
+        <div class="modal-socials">${socials}</div>
+      </div>
+    </div>`;
+}
 
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-  }, { threshold: 0.08 });
+// ── MODAL STATE ──
+const backdrop=document.getElementById('modal-backdrop');
+const mwin=document.getElementById('modal-window');
+const inner=document.getElementById('modal-inner');
+let activeVid=null;
 
-  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
-  loadAndRender();
+function openModal(m){
+  const t=T(m);
+  mwin.style.setProperty('--m-accent',t.a);
+  mwin.style.borderColor=t.ab;
+  inner.innerHTML=buildModal(m);
+  mwin.scrollTop=0;
+  activeVid=inner.querySelector('video');
+  if(activeVid) activeVid.play().catch(()=>{});
+  backdrop.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(){
+  backdrop.classList.remove('open');
+  document.body.style.overflow='';
+  if(activeVid){activeVid.pause();activeVid=null;}
+  setTimeout(()=>{inner.innerHTML='';},360);
+}
+
+document.getElementById('modal-close').addEventListener('click',closeModal);
+backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeModal();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ── RENDER ──
+function loadAndRender(){
+  const raw=localStorage.getItem('chazdyn_thicc');
+  const members=raw?JSON.parse(raw):DEFAULT_MEMBERS;
+  const cfg=localStorage.getItem('chazdyn_config');
+  if(cfg){try{const c=JSON.parse(cfg);if(c.thiccDesc)document.getElementById('hero-desc').textContent=c.thiccDesc;if(c.thiccFounded)document.getElementById('stat-founded').textContent=c.thiccFounded;if(c.thiccGame)document.getElementById('stat-game').textContent=c.thiccGame;}catch(e){}}
+  const grid=document.getElementById('member-grid');
+  const sorted=[...members].sort((a,b)=>(b.isLeader?1:0)-(a.isLeader?1:0));
+  grid.innerHTML=sorted.map(renderCard).join('');
+  const cnt=String(members.length).padStart(2,'0');
+  document.getElementById('nav-member-count').textContent=cnt+' MEMBERS';
+  document.getElementById('stat-members').textContent=members.length;
+  document.getElementById('roster-count').textContent=cnt+' / '+cnt+' ACTIVE';
+
+  grid.querySelectorAll('.member-card').forEach(card=>{
+    const mid=parseInt(card.dataset.mid);
+    const m=members.find(x=>x.id===mid);
+    const vid=card.querySelector('.card-video');
+    const media=card.querySelector('.card-media');
+    if(vid){
+      card.addEventListener('mouseenter',()=>vid.play());
+      card.addEventListener('mouseleave',()=>{vid.pause();vid.currentTime=0;});
+    }
+    if(media&&m) media.addEventListener('click',e=>{e.stopPropagation();openModal(m);});
+  });
+  document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
+}
+
+const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:0.08});
+document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
+loadAndRender();
 </script>
 </body>
 </html>
