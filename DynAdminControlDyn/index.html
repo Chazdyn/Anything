@@ -1873,13 +1873,21 @@
 
   // THICC CLAN MANAGER
   const DEFAULT_THICC_MEMBERS = [
-    { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'', videoUrl:'', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
-    { id:2, name:'ShyShack', gamertag:'ShyShack', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-    { id:3, name:'Mastercardi', gamertag:'Mastercardi', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-    { id:4, name:'SenoritoTaquito', gamertag:'SenoritoTaquito', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-    { id:5, name:'PrincessBayleaf', gamertag:'PrincessBayleaf', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-    { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] },
-    { id:7, name:'Thomas', gamertag:'Thomas', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] }
+    { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true,
+      about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.',
+      bio:'Pacific Northwest content creator, dad, and musician. Built THICC from the ground up.',
+      photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', accentColor:'#f5a623',
+      socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
+    { id:2, name:'ShyShackle', gamertag:'ShyShackle', rank:'Member', isLeader:false,
+      about:'Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth 🖤',
+      bio:'New Affiliate 🎉 Horror games, jump scares, shooters and constant chaos. Come hang... if you can handle it 🖤',
+      photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', accentColor:'#c0392b',
+      socials:[{platform:'Twitch',url:'https://twitch.tv/shyshackle',handle:'ShyShackle'},{platform:'TikTok',url:'https://tiktok.com/@shyshackle',handle:'@shyshackle'},{platform:'Instagram',url:'https://instagram.com/shyshackle',handle:'@shyshackle'}] },
+    { id:3, name:'Mastercardi',     gamertag:'Mastercardi',     rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#22c55e', socials:[] },
+    { id:4, name:'SenoritoTaquito', gamertag:'SenoritoTaquito', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#fb923c', socials:[] },
+    { id:5, name:'PrincessBayleaf', gamertag:'PrincessBayleaf', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#f472b6', socials:[] },
+    { id:6, name:'NeighborGuyBri',  gamertag:'NeighborGuyBri',  rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#2dd4bf', socials:[] },
+    { id:7, name:'Thomas',          gamertag:'Thomas',          rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#a78bfa', socials:[] }
   ];
 
   let thiccMembers = [];
@@ -1890,7 +1898,7 @@
     const c = JSON.parse(localStorage.getItem('chazdyn_config')||'{}');
     setVal('thiccDesc', c.thiccDesc||'');
     setVal('thiccGame', c.thiccGame||'COD');
-    setVal('thiccFounded', c.thiccFounded||'2024');
+    setVal('thiccFounded', c.thiccFounded||'2025');
     renderThiccList();
   }
 
@@ -1917,7 +1925,7 @@
     const container = document.getElementById('thicc-members-list');
     if (!thiccMembers.length) { container.innerHTML = '<p style="color:var(--muted);font-size:0.85rem;">No members yet.</p>'; return; }
     container.innerHTML = thiccMembers.map((m,i) => `
-      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;overflow:hidden;">
+      <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:8px;margin-bottom:8px;overflow:hidden;cursor:grab;" draggable="true" data-idx="${i}" ondragstart="adminDragStart(event,${i})" ondragover="adminDragOver(event)" ondrop="adminDrop(event,${i})" ondragend="adminDragEnd(event)">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;" onclick="toggleMemberExpand(${i})">
           <div style="display:flex;align-items:center;gap:10px;">
             <div style="width:32px;height:32px;border-radius:50%;background:rgba(168,85,247,0.15);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:0.85rem;color:var(--accent);">${m.name.charAt(0)}</div>
@@ -1946,16 +1954,40 @@
               </div>
             </div>
           </div>
-          <div class="field"><label>Bio / About</label><textarea oninput="thiccMembers[${i}].about=this.value" placeholder="Short bio...">${m.about||''}</textarea></div>
-          <div class="field">
-            <label>Profile Photo URL</label>
-            <input type="url" value="${m.photoUrl||''}" oninput="thiccMembers[${i}].photoUrl=this.value" placeholder="shyshack.png  —  or full https://... for external" />
-            <button class="btn-add btn-crop-open" style="margin-top:6px;" onclick="openMemberCrop(${i})">&#x2702; Crop &amp; Resize</button>
+          <div class="field-row">
+            <div class="field"><label>Short About <span style="font-size:0.65rem;opacity:0.6;">(card hover)</span></label><textarea oninput="thiccMembers[${i}].about=this.value" placeholder="Short bio shown on hover...">${m.about||''}</textarea></div>
+            <div class="field"><label>Full Bio <span style="font-size:0.65rem;opacity:0.6;">(popout modal)</span></label><textarea oninput="thiccMembers[${i}].bio=this.value" placeholder="Full bio shown in the popup...">${m.bio||''}</textarea></div>
           </div>
           <div class="field">
-            <label>Highlight Clip URL (plays on hover)</label>
-            <input type="url" value="${m.videoUrl||''}" oninput="thiccMembers[${i}].videoUrl=this.value" placeholder="shyshack-clip.mp4  —  or full https://... for external" />
-            <div class="hint">Use a direct .mp4 link. Upload clips to streamable.com and use the direct video URL.</div>
+            <label>Popout Accent Color <span style="font-size:0.65rem;opacity:0.6;">(modal glow, badges)</span></label>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+              <input type="color" value="${m.accentColor||'#f5a623'}" oninput="thiccMembers[${i}].accentColor=this.value;this.nextElementSibling.value=this.value" style="width:40px;height:36px;padding:2px;cursor:pointer;border-radius:4px;" />
+              <input type="text" value="${m.accentColor||'#f5a623'}" oninput="thiccMembers[${i}].accentColor=this.value;this.previousElementSibling.value=this.value" placeholder="#f5a623" style="width:90px;font-family:monospace;font-size:0.82rem;" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Profile Photo</label>
+            <div style="display:flex;gap:10px;align-items:flex-start;margin-top:4px;">
+              <div id="photo-preview-${i}" style="width:60px;height:60px;border-radius:6px;overflow:hidden;border:1px solid var(--border2);flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1.4rem;">
+                ${m.photoUrl ? `<img src="${m.photoUrl}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.textContent='👤'" />` : '👤'}
+              </div>
+              <div style="flex:1;">
+                <input type="url" value="${m.photoUrl||''}" oninput="thiccMembers[${i}].photoUrl=this.value;updateMemberPhotoPreview(${i},this.value)" placeholder="../assets/photo.jpg" style="margin-bottom:6px;" />
+                <button class="btn-add btn-crop-open" onclick="openMemberCrop(${i})" style="margin-right:6px;">✂ Crop</button>
+              </div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Hover Video <span style="font-size:0.65rem;opacity:0.6;">(plays on card hover)</span></label>
+            <div style="display:flex;gap:10px;align-items:flex-start;margin-top:4px;">
+              <div id="video-preview-${i}" style="width:90px;height:60px;border-radius:6px;overflow:hidden;border:1px solid var(--border2);flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:var(--muted);text-align:center;">
+                ${m.videoUrl ? `<video src="${m.videoUrl}" style="width:100%;height:100%;object-fit:cover;" muted loop playsinline onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0"></video>` : 'No video'}
+              </div>
+              <div style="flex:1;">
+                <input type="url" value="${m.videoUrl||''}" oninput="thiccMembers[${i}].videoUrl=this.value;updateMemberVideoPreview(${i},this.value)" placeholder="../assets/clip.mp4" />
+                <div class="hint" style="margin-top:4px;">Direct .mp4 link. Relative paths use ../assets/</div>
+              </div>
+            </div>
           </div>
           <div class="field">
             <label>Social Links</label>
@@ -2009,6 +2041,38 @@
   }
 
   function removeMemberSocial(i, j) { thiccMembers[i].socials.splice(j,1); renderMemberSocials(i); }
+
+  function updateMemberPhotoPreview(i, url) {
+    const el = document.getElementById('photo-preview-'+i);
+    if (!el) return;
+    el.innerHTML = url
+      ? `<img src="${url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.textContent='👤'" />`
+      : '👤';
+  }
+
+  function updateMemberVideoPreview(i, url) {
+    const el = document.getElementById('video-preview-'+i);
+    if (!el) return;
+    el.innerHTML = url
+      ? `<video src="${url}" style="width:100%;height:100%;object-fit:cover;" muted loop playsinline onmouseenter="this.play()" onmouseleave="this.pause();this.currentTime=0"></video>`
+      : 'No video';
+  }
+
+  // Drag-to-reorder
+  let _adminDragIdx = null;
+  function adminDragStart(e, i) { _adminDragIdx = i; e.target.style.opacity='0.4'; e.dataTransfer.effectAllowed='move'; }
+  function adminDragEnd(e) { e.target.style.opacity=''; e.target.style.borderTop=''; }
+  function adminDragOver(e) { e.preventDefault(); e.currentTarget.style.borderTop='2px solid #a855f7'; }
+  function adminDrop(e, targetIdx) {
+    e.preventDefault();
+    e.currentTarget.style.borderTop='';
+    if (_adminDragIdx === null || _adminDragIdx === targetIdx) return;
+    const moved = thiccMembers.splice(_adminDragIdx, 1)[0];
+    thiccMembers.splice(targetIdx, 0, moved);
+    _adminDragIdx = null;
+    renderThiccList();
+    showToast('Order updated — save to keep changes');
+  }
 
   function addMember() {
     thiccMembers.push({ id:Date.now(), name:'New Member', gamertag:'Gamertag', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', socials:[] });
