@@ -691,7 +691,7 @@
               </div>
               <div class="field">
                 <label>Founded Year</label>
-                <input type="text" id="thicc-founded" value="2024" placeholder="2024" />
+                <input type="text" id="thicc-founded" value="2025" placeholder="2025" />
               </div>
               <div class="field">
                 <label>Clan Tag</label>
@@ -700,7 +700,7 @@
             </div>
             <div class="field">
               <label>Full Name (acronym)</label>
-              <input type="text" id="thicc-fullname" value="Totally Humble Insanely Cracked Champions" />
+              <input type="text" id="thicc-fullname" value="" />
             </div>
           </div>
         </div>
@@ -973,7 +973,8 @@ async function deployToLive() {
     if (!html) { toast('Could not read index.html from GitHub', 'error'); return; }
 
     // Inject config as a localStorage pre-seed script
-    const configScript = `\n<script data-controldyn>localStorage.setItem('chazdyn_config',${JSON.stringify(JSON.stringify(STATE.config))});<\/script>`;
+    const configJsonStr = JSON.stringify(STATE.config);
+    const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');<' + '/script>';
     let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
     updated = updated.replace('</head>', configScript + '</head>');
 
@@ -1842,28 +1843,53 @@ if ('serviceWorker' in navigator) {
 //  THICC
 // ══════════════════════════════════════════════
 const DEFAULT_THICC_MEMBERS = [
-  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true, about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.', photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', accentColor:'#f5a623', socials:[{platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},{platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},{platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}] },
-  { id:2, name:'ShyShackle',      gamertag:'ShyShackle',      rank:'Member', isLeader:false, about:'Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends. Come hang... if you can handle it 🖤', photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', accentColor:'#c0392b', socials:[{platform:'Twitch',url:'https://twitch.tv/shyshackle',handle:'ShyShackle'},{platform:'TikTok',url:'https://tiktok.com/@shyshackle',handle:'@shyshackle'},{platform:'Instagram',url:'https://instagram.com/shyshackle',handle:'@shyshackle'}] },
-  { id:3, name:'Mastercardi',    gamertag:'Mastercardi',    rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#22c55e', socials:[] },
-  { id:4, name:'SenoritoTaquito',gamertag:'SenoritoTaquito',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#fb923c', socials:[] },
-  { id:5, name:'PrincessBayleaf',gamertag:'PrincessBayleaf',rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#f472b6', socials:[] },
-  { id:6, name:'NeighborGuyBri', gamertag:'NeighborGuyBri', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#2dd4bf', socials:[] },
-  { id:7, name:'Thomas',         gamertag:'Thomas',         rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#a78bfa', socials:[] }
+  { id:1, name:'Chazdyn', gamertag:'Chazdyn', rank:'Clan Leader', isLeader:true,
+    about:'PNW dad, musician, and the guy who pauses games to read chat. Come hang.',
+    bio:'Pacific Northwest content creator, dad, and musician who somehow finds time to lead a COD clan and entertain thousands on stream. Chazdyn built THICC from the ground up — it\'s not about K/D ratios, it\'s about vibes and good comms.',
+    photoUrl:'../assets/Chazdyn Avatar.JPG', videoUrl:'', accentColor:'#f5a623',
+    socials:[
+      {platform:'Twitch',url:'https://twitch.tv/chazdyn',handle:'Chazdyn'},
+      {platform:'TikTok',url:'https://tiktok.com/@thiccchazdyn',handle:'@THICCChazdyn'},
+      {platform:'Instagram',url:'https://instagram.com/chazdynplays',handle:'@ChazdynPlays'}
+    ]},
+  { id:2, name:'ShyShackle', gamertag:'ShyShackle', rank:'Member', isLeader:false,
+    about:'Horror games, jump scares, shooters and constant chaos. Dark aesthetic, smart mouth, soft spot for new friends. Come hang... if you can handle it 🖤',
+    bio:'New Affiliate 🎉 Horror games, jump scares, shooters and constant chaos with her favorites. She talks trash, screams, laughs—it\'s a whole mess. Dark aesthetic, smart mouth, soft spot for making new friends. Come hang... if you can handle it 🖤',
+    photoUrl:'../assets/ShyShack Avatar.png', videoUrl:'', accentColor:'#c0392b',
+    socials:[
+      {platform:'Twitch',url:'https://twitch.tv/shyshackle',handle:'ShyShackle'},
+      {platform:'TikTok',url:'https://tiktok.com/@shyshackle',handle:'@shyshackle'},
+      {platform:'Instagram',url:'https://instagram.com/shyshackle',handle:'@shyshackle'}
+    ]},
+  { id:3, name:'Mastercardi',     gamertag:'Mastercardi',     rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#22c55e', socials:[] },
+  { id:4, name:'SenoritoTaquito', gamertag:'SenoritoTaquito', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#fb923c', socials:[] },
+  { id:5, name:'PrincessBayleaf', gamertag:'PrincessBayleaf', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#f472b6', socials:[] },
+  { id:6, name:'NeighborGuyBri',  gamertag:'NeighborGuyBri',  rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#2dd4bf', socials:[] },
+  { id:7, name:'Thomas',          gamertag:'Thomas',          rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', accentColor:'#a78bfa', socials:[] }
 ];
 
 function loadTHICC() {
-  const raw = localStorage.getItem('controldyn_thicc');
-  return raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_THICC_MEMBERS));
+  try {
+    const raw = localStorage.getItem('chazdyn_thicc');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch(e) {
+    console.warn('chazdyn_thicc corrupt, clearing:', e);
+    localStorage.removeItem('chazdyn_thicc');
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_THICC_MEMBERS));
 }
 
 function saveTHICC() {
   // Collect from editor
   const members = collectTHICC();
-  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   // Also save clan settings into STATE.config
   STATE.config.thiccDesc    = document.getElementById('thicc-desc')?.value || '';
   STATE.config.thiccGame    = document.getElementById('thicc-game')?.value || 'BO6';
-  STATE.config.thiccFounded = document.getElementById('thicc-founded')?.value || '2024';
+  STATE.config.thiccFounded = document.getElementById('thicc-founded')?.value || '2025';
   STATE.config.thiccTag     = document.getElementById('thicc-tag')?.value || 'THICC';
   STATE.config.thiccFullname= document.getElementById('thicc-fullname')?.value || '';
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
@@ -1985,7 +2011,7 @@ function addMember() {
   const members = loadTHICC();
   const newId = Math.max(0, ...members.map(m=>m.id)) + 1;
   members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#f5a623', socials:[] });
-  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   renderTHICC();
   logChange('edit', 'Added new THICC member');
 }
@@ -1993,7 +2019,7 @@ function addMember() {
 function removeMember(id) {
   if (!confirm('Remove this member?')) return;
   let members = loadTHICC().filter(m => m.id !== id);
-  localStorage.setItem('controldyn_thicc', JSON.stringify(members));
+  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   renderTHICC();
   logChange('edit', 'Removed THICC member #' + id);
 }
@@ -2062,16 +2088,25 @@ async function deployTHICC() {
   if (!html) { toast('Could not read thicc/index.html', 'error'); return; }
 
   const members = loadTHICC();
-  // Replace DEFAULT_MEMBERS block in thicc/index.html
-  const membersJson = JSON.stringify(members, null, 4);
-  const updated = html.replace(
+
+  // 1. Replace DEFAULT_MEMBERS source block so fallback is always correct
+  const membersJson = JSON.stringify(members, null, 2);
+  let updated = html.replace(
     /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
     'const DEFAULT_MEMBERS = ' + membersJson + ';'
   );
 
+  // 2. Inject a seed script that always overwrites localStorage on page load
+  //    Built with string concat so </script> never appears literally in JS source
+  const membersJsonStr = JSON.stringify(members);
+  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');';
+  const seedScript = '\n<script data-thicc-deploy>' + seedInner + '<' + '/script>';
+  updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
+  updated = updated.replace('</head>', seedScript + '\n</head>');
+
   const ok = await commitFile('thicc/index.html', updated, '🎮 THICC deploy: ' + new Date().toLocaleString());
   if (ok) {
-    toast('THICC deployed!', 'success');
+    toast('THICC deployed! ✓', 'success');
     logChange('deploy', 'THICC roster deployed to live');
   } else {
     toast('THICC deploy failed', 'error');
@@ -2090,6 +2125,8 @@ window.showSection = function(id) {
 //  BOOT
 // ══════════════════════════════════════════════
 init();
+// Render THICC roster on boot so it's ready when you navigate to it
+renderTHICC();
 // Setup right-click on preview after DOM ready
 setTimeout(setupPreviewContextMenu, 500);
 </script>
