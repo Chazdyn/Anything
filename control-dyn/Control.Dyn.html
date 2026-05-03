@@ -948,24 +948,54 @@ async function getFileSha(path) {
   } catch(e) { return null; }
 }
 
-// Commit a file to GitHub
+// Commit a file to GitHub — returns {ok, status, message} instead of bare bool
 async function commitFile(path, content, message, isBinary = false) {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return false; }
-  const sha = await getFileSha(path);
-  const body = { message, branch: STATE.ghBranch, content: isBinary ? content : btoa(unescape(encodeURIComponent(content))) };
-  if (sha) body.sha = sha;
-  const r = await fetch(`${ghBase()}/contents/${path}`, {
-    method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body)
-  });
-  return r.ok;
+  try {
+    const sha = await getFileSha(path);
+    let encoded;
+    if (isBinary) {
+      encoded = content;
+    } else {
+      // Safe base64 that handles full unicode (emoji, special chars)
+      encoded = btoa(unescape(encodeURIComponent(content)));
+    }
+    const body = { message, branch: STATE.ghBranch, content: encoded };
+    if (sha) body.sha = sha;
+    const r = await fetch(`${ghBase()}/contents/${path}`, {
+      method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const errJson = await r.json().catch(() => ({}));
+      const detail = errJson.message || r.statusText || r.status;
+      console.error('commitFile failed:', path, r.status, detail);
+      toast(`GitHub error: ${detail}`, 'error');
+      return false;
+    }
+    return true;
+  } catch(e) {
+    console.error('commitFile exception:', e);
+    toast(`Commit error: ${e.message}`, 'error');
+    return false;
+  }
 }
 
 // Read a file from GitHub
 async function readFile(path) {
-  const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
-  if (!r.ok) return null;
-  const d = await r.json();
-  return decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+  try {
+    const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    if (!r.ok) {
+      const errJson = await r.json().catch(() => ({}));
+      const detail = errJson.message || r.status;
+      toast(`Could not read ${path}: ${detail}`, 'error');
+      return null;
+    }
+    const d = await r.json();
+    return decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+  } catch(e) {
+    toast(`Read error: ${e.message}`, 'error');
+    return null;
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -2092,33 +2122,43 @@ async function deployTHICC() {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
   saveTHICC();
 
+  toast('Reading thicc/index.html...', 'info');
   const html = await readFile('thicc/index.html');
-  if (!html) { toast('Could not read thicc/index.html', 'error'); return; }
+  if (!html) return;
 
+  toast('Building roster update...', 'info');
   const members = loadTHICC();
-
-  // Update DEFAULT_MEMBERS source fallback
   const membersJson = JSON.stringify(members, null, 2);
+
+  // Replace DEFAULT_MEMBERS block
   let updated = html.replace(
     /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
     'const DEFAULT_MEMBERS = ' + membersJson + ';'
   );
+  if (updated === html) {
+    console.warn('deployTHICC: DEFAULT_MEMBERS not found in source');
+    toast('Warning: Could not find DEFAULT_MEMBERS - using seed-only deploy', 'warn');
+  }
 
-  // Inject localStorage seed script
+  // Inject localStorage seed — unicode escape prevents HTML parser issues
   const membersJsonStr = JSON.stringify(members);
   const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');';
   const closeTag = '\u003c/script>';
   const seedScript = '\n<script data-thicc-deploy>' + seedInner + closeTag;
   updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
-  updated = updated.replace('</head>', seedScript + '\n</head>');
+  updated = updated.includes('</head>')
+    ? updated.replace('</head>', seedScript + '\n</head>')
+    : updated.replace('</body>', seedScript + '\n</body>');
 
-  const ok = await commitFile('thicc/index.html', updated, '\uD83C\uDFAE THICC deploy: ' + new Date().toLocaleString());
+  toast('Committing to GitHub...', 'info');
+  const ok = await commitFile(
+    'thicc/index.html',
+    updated,
+    'THICC roster deploy: ' + new Date().toLocaleString()
+  );
   if (ok) {
-    toast('THICC deployed! \u2713', 'success');
-    logChange('deploy', 'THICC roster deployed to live');
-  } else {
-    toast('THICC deploy failed', 'error');
-    logChange('error', 'THICC deploy failed');
+    toast('THICC deployed! Changes live in ~30s', 'success');
+    logChange('deploy', 'THICC roster deployed (' + members.length + ' members)');
   }
 }
 
