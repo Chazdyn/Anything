@@ -123,10 +123,6 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Assets
         </a>
-        <a class="nav-item" onclick="showSection('visual-editor')" href="#">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01M12 12h.01"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
-          Visual Editor
-        </a>
         <a class="nav-item" onclick="showSection('backups')" href="#">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Backups
@@ -240,9 +236,9 @@
           <div class="preview-wrap" style="border-radius:0">
             <div class="preview-bar">
               <span class="preview-dot preview" id="preview-dot"></span>
-              <span id="preview-url-bar" style="font-family:monospace;font-size:0.72rem;">index.html</span>
+              <span id="preview-url-bar" style="font-family:monospace;font-size:0.72rem;">../index.html</span>
             </div>
-            <iframe id="preview-frame" src="index.html" style="height:70vh"></iframe>
+            <iframe id="preview-frame" src="../index.html" style="height:70vh"></iframe>
           </div>
         </div>
       </section>
@@ -307,7 +303,6 @@
               <label>Avatar Image</label>
               <div class="flex-row">
                 <input type="text" id="about-avatar-url" placeholder="assets/Chazdyn Avatar.JPG" value="assets/Chazdyn Avatar.JPG" oninput="onFieldChange('avatarUrl', this.value)" style="flex:1" />
-                <button class="qa-btn ghost" onclick="openAssetPicker('image','assets/', path => { document.getElementById('about-avatar-url').value = path; onFieldChange('avatarUrl', path); })">Browse</button>
                 <button class="qa-btn ghost" onclick="document.getElementById('avatar-file-input').click()">Upload</button>
                 <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAsset(this, 'about-avatar-url', 'avatarUrl')" />
               </div>
@@ -362,7 +357,6 @@
               <label>Feature Video (YouTube URL or upload)</label>
               <div class="flex-row">
                 <input type="text" id="music-video-url" placeholder="https://youtube.com/watch?v=..." oninput="onFieldChange('musicVideoUrl', this.value)" style="flex:1" />
-                <button class="qa-btn ghost" onclick="openAssetPicker('video','assets/', path => { document.getElementById('music-video-url').value = path; onFieldChange('musicVideoUrl', path); })">Browse</button>
                 <button class="qa-btn ghost" onclick="document.getElementById('music-file-input').click()">Upload</button>
                 <input type="file" id="music-file-input" accept="video/*" style="display:none" onchange="uploadAsset(this, 'music-video-url', 'musicVideoUrl')" />
               </div>
@@ -492,7 +486,7 @@
               <label>Preview (live in iframe)</label>
               <div class="preview-wrap" style="margin-top:0.25rem">
                 <div class="preview-bar"><span class="preview-dot preview"></span><span style="font-family:monospace;font-size:0.72rem">Theme preview</span></div>
-                <iframe id="theme-preview-frame" src="index.html" style="height:300px"></iframe>
+                <iframe id="theme-preview-frame" src="../index.html" style="height:300px"></iframe>
               </div>
             </div>
           </div>
@@ -530,58 +524,6 @@
             <div class="grid-3" id="assets-grid" style="margin-top:0.5rem">
               <div style="color:var(--muted);font-size:0.82rem;grid-column:1/-1">Connect GitHub to browse assets.</div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ════ VISUAL EDITOR ════ -->
-      <section class="section" id="section-visual-editor">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
-              Visual Editor
-            </div>
-            <div class="flex-row" style="gap:8px;">
-              <button class="qa-btn ghost" onclick="veScanElements()" id="ve-scan-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                Scan Elements
-              </button>
-              <button class="qa-btn ghost" onclick="veReloadPreview()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-                Reload Preview
-              </button>
-              <button class="qa-btn primary" onclick="veDeployEdits()">Deploy Edits</button>
-            </div>
-          </div>
-          <div class="panel-body" style="display:flex;gap:1rem;flex-wrap:wrap;padding:0.75rem;">
-
-            <!-- Left: Preview Frame -->
-            <div style="flex:2;min-width:320px;display:flex;flex-direction:column;gap:8px;">
-              <div style="font-family:var(--display);font-size:0.8rem;letter-spacing:0.1em;color:var(--green);text-transform:uppercase;opacity:0.7;">
-                Live Preview — Right-click any element to edit
-              </div>
-              <div class="preview-wrap ve-preview-wrap" style="border:1px solid var(--border2);border-radius:6px;overflow:hidden;position:relative;">
-                <div style="display:flex;gap:6px;align-items:center;padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border2);">
-                  <div style="display:flex;gap:4px;"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></div><div style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></div><div style="width:10px;height:10px;border-radius:50%;background:#28c840;"></div></div>
-                  <input id="ve-url-bar" value="index.html" style="flex:1;background:var(--bg4);border:1px solid var(--border2);color:var(--muted);border-radius:3px;padding:2px 8px;font-family:var(--font-mono,monospace);font-size:0.68rem;" onchange="veNavigate(this.value)" />
-                  <button class="qa-btn ghost" onclick="veNavigate(document.getElementById('ve-url-bar').value)" style="padding:3px 8px;font-size:0.7rem;">Go</button>
-                </div>
-                <iframe id="ve-preview-frame" src="index.html" style="width:100%;height:60vh;border:none;display:block;"></iframe>
-              </div>
-            </div>
-
-            <!-- Right: Element List -->
-            <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px;">
-              <div style="font-family:var(--display);font-size:0.8rem;letter-spacing:0.1em;color:var(--green);text-transform:uppercase;opacity:0.7;">
-                Editable Elements
-              </div>
-              <input id="ve-filter" placeholder="Filter elements..." style="font-size:0.78rem;padding:5px 8px;" oninput="veFilterList(this.value)" />
-              <div id="ve-element-list" style="flex:1;overflow-y:auto;max-height:56vh;display:flex;flex-direction:column;gap:3px;">
-                <div style="color:var(--muted);font-size:0.78rem;padding:1rem;text-align:center;">Click Scan Elements to load editable elements from the preview.</div>
-              </div>
-            </div>
-
           </div>
         </div>
       </section>
@@ -758,7 +700,7 @@
             </div>
             <div class="field">
               <label>Full Name (acronym)</label>
-              <input type="text" id="thicc-fullname" value="The Hooligans in Chaos Crew" />
+              <input type="text" id="thicc-fullname" value="" />
             </div>
           </div>
         </div>
@@ -773,24 +715,6 @@
   <div class="ctx-header" id="ctx-title">Element</div>
   <div class="ctx-element-label" id="ctx-element-label"></div>
   <div id="ctx-items"></div>
-</div>
-
-<!-- ══ VISUAL ELEMENT EDITOR MODAL ══ -->
-<div id="ve-elem-modal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
-  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:min(640px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.6);">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border2);flex-shrink:0;">
-      <div>
-        <div style="font-family:var(--display);font-size:1.2rem;letter-spacing:0.06em;" id="ve-modal-title">Edit Element</div>
-        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;font-family:var(--font-mono,monospace);" id="ve-modal-selector"></div>
-      </div>
-      <button class="qa-btn ghost" onclick="veCloseModal()" style="padding:6px 10px;">✕</button>
-    </div>
-    <div id="ve-modal-body" style="flex:1;overflow-y:auto;padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.75rem;"></div>
-    <div style="display:flex;justify-content:flex-end;gap:8px;padding:0.75rem 1.25rem;border-top:1px solid var(--border2);flex-shrink:0;">
-      <button class="qa-btn ghost" onclick="veCloseModal()">Cancel</button>
-      <button class="qa-btn primary" onclick="veApplyEdit()">Apply & Save</button>
-    </div>
-  </div>
 </div>
 
 <!-- Toast container -->
@@ -874,14 +798,8 @@ const STATE = {
 // ══════════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════════
-async function init() {
-  // Load saved connection/settings first so GitHub credentials stay available,
-  // then immediately sync editor content from the deployed pages.
-  // This prevents stale browser localStorage from overwriting live roles, bios, images, and THICC fields.
+function init() {
   loadFromStorage();
-  await hydrateConfigFromDeployedSiteIfNeeded(true);
-  await hydrateTHICCFromDeployedPage(true);
-  applyConfigToAdminFields();
   renderClipsEditor();
   renderScheduleEditor();
   renderChangelog();
@@ -890,14 +808,12 @@ async function init() {
 
   // drag-and-drop on asset zone
   const zone = document.getElementById('asset-drop-zone');
-  if (zone) {
-    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-    zone.addEventListener('drop', e => {
-      e.preventDefault(); zone.classList.remove('drag-over');
-      handleFileDrop(e.dataTransfer.files);
-    });
-  }
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag-over');
+    handleFileDrop(e.dataTransfer.files);
+  });
 }
 
 function loadFromStorage() {
@@ -906,178 +822,24 @@ function loadFromStorage() {
     try {
       const s = JSON.parse(saved);
       Object.assign(STATE, s);
-      restoreConnectionFields();
+      // restore UI
+      if (STATE.ghPat) document.getElementById('gh-pat').value = STATE.ghPat;
+      if (STATE.ghOwner) document.getElementById('gh-owner').value = STATE.ghOwner;
+      if (STATE.ghRepo)  document.getElementById('gh-repo').value  = STATE.ghRepo;
+      if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
+      if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
+      if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
       if (STATE.ghConnected) updateGhStatus(true);
       if (STATE.twitchConnected && STATE.twitchClientId) startTwitchPolling();
-    } catch(e) { console.warn('controldyn_state parse error:', e); }
+    } catch(e) {}
   }
-
-  const rawConfig = localStorage.getItem('chazdyn_config');
-  if (rawConfig) {
-    try {
-      const c = JSON.parse(rawConfig);
-      Object.assign(STATE.config, c);
-      if (Array.isArray(c.clips)) STATE.clips = c.clips;
-      if (c.schedule) STATE.schedule = c.schedule;
-      STATE.liveBadgeOn = !!c.isLive;
-    } catch(e) { console.warn('chazdyn_config parse error:', e); }
-  }
-}
-
-function restoreConnectionFields() {
-  if (STATE.ghPat) document.getElementById('gh-pat').value = STATE.ghPat;
-  if (STATE.ghOwner) document.getElementById('gh-owner').value = STATE.ghOwner;
-  if (STATE.ghRepo)  document.getElementById('gh-repo').value  = STATE.ghRepo;
-  if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
-  if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
-  if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
-}
-
-async function hydrateConfigFromDeployedSiteIfNeeded(force = false) {
-  // Pull the last deployed homepage config from index.html.
-  // Local browser storage is treated as a draft/cache, not the source of truth on page load.
-  if (!force && localStorage.getItem('chazdyn_config')) return;
-  try {
-    const res = await fetch('index.html?controldyn=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) return;
-    const html = await res.text();
-    const captured = captureLocalStorageSeed(html, 'data-controldyn');
-    if (captured.chazdyn_config) {
-      const c = JSON.parse(captured.chazdyn_config);
-      Object.assign(STATE.config, c);
-      if (Array.isArray(c.clips)) STATE.clips = c.clips;
-      if (c.schedule) STATE.schedule = c.schedule;
-      if (Array.isArray(c.thiccMembers)) localStorage.setItem('chazdyn_thicc', JSON.stringify(c.thiccMembers));
-      STATE.liveBadgeOn = !!c.isLive;
-      localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
-      saveToStorage();
-      logChange('sync', 'Loaded last deployed homepage config into Control.Dyn');
-    }
-  } catch(e) { console.warn('Could not hydrate from deployed index.html:', e); }
-}
-
-async function hydrateTHICCFromDeployedPage(force = false) {
-  // Pull the last deployed clan roster/settings from thicc/index.html.
-  // This is critical because Deploy THICC writes to the THICC page, not only the homepage.
-  if (!force && localStorage.getItem('chazdyn_thicc')) return;
-  try {
-    const res = await fetch('thicc/index.html?controldyn=' + Date.now(), { cache: 'no-store' });
-    if (!res.ok) return;
-    const html = await res.text();
-    const captured = captureLocalStorageSeed(html, 'data-thicc-deploy');
-
-    if (captured.chazdyn_config) {
-      const c = JSON.parse(captured.chazdyn_config);
-      Object.assign(STATE.config, c);
-    }
-
-    if (captured.chazdyn_thicc) {
-      const members = JSON.parse(captured.chazdyn_thicc);
-      if (Array.isArray(members) && members.length) {
-        STATE.config.thiccMembers = members;
-        localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
-      }
-    } else {
-      const fallbackMembers = extractTHICCDefaultMembers(html);
-      if (fallbackMembers.length) {
-        STATE.config.thiccMembers = fallbackMembers;
-        localStorage.setItem('chazdyn_thicc', JSON.stringify(fallbackMembers));
-      }
-    }
-
-    localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
-    saveToStorage();
-    logChange('sync', 'Loaded last deployed THICC roster into Control.Dyn');
-  } catch(e) { console.warn('Could not hydrate from deployed thicc/index.html:', e); }
-}
-
-function captureLocalStorageSeed(html, attributeName) {
-  const captured = {};
-  const attr = attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const re = new RegExp('<script[^>]*' + attr + '[^>]*>([\\s\\S]*?)<\\/script>', 'i');
-  const script = html.match(re);
-  if (!script) return captured;
-  const fakeLocalStorage = {
-    setItem: (k, v) => { captured[k] = v; },
-    getItem: (k) => captured[k] || null,
-    removeItem: (k) => { delete captured[k]; }
-  };
-  new Function('localStorage', script[1])(fakeLocalStorage);
-  return captured;
-}
-
-function extractTHICCDefaultMembers(html) {
-  try {
-    const m = html.match(/const\s+DEFAULT_MEMBERS\s*=\s*(\[[\s\S]*?\]);/);
-    if (!m) return [];
-    const members = new Function('return ' + m[1])();
-    return Array.isArray(members) ? members : [];
-  } catch(e) {
-    console.warn('Could not parse DEFAULT_MEMBERS from thicc/index.html:', e);
-    return [];
-  }
-}
-
-function setFieldValue(id, val) {
-  const el = document.getElementById(id);
-  if (!el || val === undefined || val === null) return;
-  if (el.type === 'checkbox') el.checked = !!val;
-  else el.value = Array.isArray(val) ? val.join(', ') : val;
-}
-
-function applyConfigToAdminFields() {
-  const c = STATE.config || {};
-  setFieldValue('hero-live-badge', c.isLive);
-  setFieldValue('hero-eyebrow', c.heroEyebrow);
-  setFieldValue('hero-tagline', c.heroTagline);
-  setFieldValue('hero-twitch-url', c.twitchUrl);
-  setFieldValue('hero-discord-url', c.discordUrl);
-  setFieldValue('about-avatar-url', c.avatarUrl);
-  setFieldValue('about-short-bio', c.aboutBio);
-  setFieldValue('about-long-bio', c.aboutLong);
-  setFieldValue('about-tags', c.aboutTags);
-  setFieldValue('music-video-url', c.musicVideoUrl);
-  setFieldValue('music-yt-url', c.musicYtUrl);
-  setFieldValue('music-spotify-url', c.musicSpotUrl);
-  setFieldValue('music-sc-url', c.musicScUrl);
-  setFieldValue('soc-twitch', c.twitchUrl);
-  setFieldValue('soc-discord', c.discordUrl);
-  setFieldValue('soc-tiktok', c.tiktokUrl);
-  setFieldValue('soc-insta', c.instaUrl);
-  setFieldValue('soc-thicc', c.thiccUrl);
-  setFieldValue('theme-green', c.accentColor);
-  setFieldValue('theme-green-hex', c.accentColor);
-  setFieldValue('theme-cyan', c.accent2Color);
-  setFieldValue('theme-cyan-hex', c.accent2Color);
-  setFieldValue('theme-bg', c.bgColor);
-  setFieldValue('theme-bg-hex', c.bgColor);
-  setFieldValue('theme-display-font', c.displayFont);
-  setFieldValue('theme-body-font', c.bodyFont);
-  setFieldValue('thicc-desc', c.thiccDesc);
-  setFieldValue('thicc-game', c.thiccGame || 'BO6');
-  setFieldValue('thicc-founded', c.thiccFounded || '2025');
-  setFieldValue('thicc-tag', c.thiccTag || '[THICC]');
-  setFieldValue('thicc-fullname', c.thiccFullname || 'The Hooligans in Chaos Crew');
-  liveTheme();
 }
 
 function saveToStorage() {
   const toSave = {...STATE};
+  // don't save token in memory — just creds
   delete toSave.twitchToken;
   localStorage.setItem('controldyn_state', JSON.stringify(toSave));
-  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config || {}));
-}
-
-async function reloadControlDynFromLive() {
-  localStorage.removeItem('chazdyn_config');
-  localStorage.removeItem('chazdyn_thicc');
-  await hydrateConfigFromDeployedSiteIfNeeded(true);
-  await hydrateTHICCFromDeployedPage(true);
-  applyConfigToAdminFields();
-  renderClipsEditor();
-  renderScheduleEditor();
-  renderTHICC();
-  toast('Control.Dyn fields synced from deployed site files', 'success');
 }
 
 // ══════════════════════════════════════════════
@@ -1110,8 +872,6 @@ function setMode(mode) {
 // ══════════════════════════════════════════════
 function onFieldChange(key, value) {
   STATE.pendingChanges[key] = value;
-  STATE.config[key] = value;
-  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   logChange('edit', `${key} updated`, typeof value === 'string' ? value.substring(0, 60) : JSON.stringify(value).substring(0, 60));
 }
 
@@ -1121,44 +881,15 @@ function onFieldChange(key, value) {
 function saveSection(section) {
   Object.assign(STATE.config, STATE.pendingChanges);
   STATE.pendingChanges = {};
-  captureSectionFields(section);
-  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
-  saveToStorage();
-  toast('Changes saved and remembered', 'success');
-  logChange('edit', section + ' section saved');
-  updateDashboard();
-}
-
-function captureSectionFields(section) {
-  if (section === 'hero') {
-    STATE.config.isLive = !!document.getElementById('hero-live-badge')?.checked;
-    STATE.config.heroEyebrow = document.getElementById('hero-eyebrow')?.value || STATE.config.heroEyebrow;
-    STATE.config.heroTagline = document.getElementById('hero-tagline')?.value || STATE.config.heroTagline;
-    STATE.config.twitchUrl = document.getElementById('hero-twitch-url')?.value || STATE.config.twitchUrl;
-    STATE.config.discordUrl = document.getElementById('hero-discord-url')?.value || STATE.config.discordUrl;
-  }
-  if (section === 'about') {
-    STATE.config.avatarUrl = document.getElementById('about-avatar-url')?.value || STATE.config.avatarUrl;
-    STATE.config.aboutBio = document.getElementById('about-short-bio')?.value || STATE.config.aboutBio;
-    STATE.config.aboutLong = document.getElementById('about-long-bio')?.value || STATE.config.aboutLong;
-    const tags = document.getElementById('about-tags')?.value;
-    if (tags !== undefined) STATE.config.aboutTags = tags.split(',').map(t => t.trim()).filter(Boolean);
-  }
+  // apply clips & schedule from editors
   if (section === 'clips') STATE.config.clips = STATE.clips;
   if (section === 'schedule') STATE.config.schedule = STATE.schedule;
-  if (section === 'music') {
-    STATE.config.musicVideoUrl = document.getElementById('music-video-url')?.value || STATE.config.musicVideoUrl;
-    STATE.config.musicYtUrl = document.getElementById('music-yt-url')?.value || STATE.config.musicYtUrl;
-    STATE.config.musicSpotUrl = document.getElementById('music-spotify-url')?.value || STATE.config.musicSpotUrl;
-    STATE.config.musicScUrl = document.getElementById('music-sc-url')?.value || STATE.config.musicScUrl;
-  }
-  if (section === 'socials') {
-    STATE.config.twitchUrl = document.getElementById('soc-twitch')?.value || STATE.config.twitchUrl;
-    STATE.config.discordUrl = document.getElementById('soc-discord')?.value || STATE.config.discordUrl;
-    STATE.config.tiktokUrl = document.getElementById('soc-tiktok')?.value || STATE.config.tiktokUrl;
-    STATE.config.instaUrl = document.getElementById('soc-insta')?.value || STATE.config.instaUrl;
-    STATE.config.thiccUrl = document.getElementById('soc-thicc')?.value || STATE.config.thiccUrl;
-  }
+  if (section === 'hero') STATE.config.isLive = document.getElementById('hero-live-badge').checked;
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  saveToStorage();
+  toast('Changes saved to preview', 'success');
+  logChange('edit', section + ' section saved');
+  updateDashboard();
 }
 
 // ══════════════════════════════════════════════
@@ -1203,32 +934,27 @@ async function getFileSha(path) {
 // Commit a file to GitHub
 async function commitFile(path, content, message, isBinary = false) {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return false; }
-  // Strip emoji from commit messages — GitHub API sometimes rejects them
-  const safeMsg = message.replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '').trim();
+  // Strip emoji — some PAT permission levels reject emoji in commit messages
+  const safeMsg = message.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '').trim();
   try {
     const sha = await getFileSha(path);
-    let encoded;
-    if (isBinary) {
-      encoded = content;
-    } else {
-      encoded = btoa(unescape(encodeURIComponent(content)));
-    }
+    const encoded = isBinary ? content : btoa(unescape(encodeURIComponent(content)));
     const body = { message: safeMsg, branch: STATE.ghBranch, content: encoded };
     if (sha) body.sha = sha;
     const r = await fetch(`${ghBase()}/contents/${path}`, {
       method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body)
     });
     if (!r.ok) {
-      const errData = await r.json().catch(() => ({}));
-      const detail = errData.message || r.statusText || String(r.status);
-      console.error('commitFile failed:', path, r.status, detail);
-      toast(`GitHub error (${r.status}): ${detail}`, 'error');
+      const err = await r.json().catch(() => ({}));
+      const detail = err.message || r.statusText || r.status;
+      toast(`GitHub error ${r.status}: ${detail}`, 'error');
+      logChange('error', `commitFile failed (${r.status}): ${detail}`);
       return false;
     }
     return true;
   } catch(e) {
-    console.error('commitFile exception:', e);
     toast('Commit error: ' + e.message, 'error');
+    logChange('error', 'commitFile exception: ' + e.message);
     return false;
   }
 }
@@ -1238,8 +964,8 @@ async function readFile(path) {
   try {
     const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
     if (!r.ok) {
-      const errData = await r.json().catch(() => ({}));
-      toast(`Could not read ${path}: ${errData.message || r.status}`, 'error');
+      const err = await r.json().catch(() => ({}));
+      toast(`Cannot read ${path}: ${err.message || r.status}`, 'error');
       return null;
     }
     const d = await r.json();
@@ -1253,97 +979,43 @@ async function readFile(path) {
 // ══════════════════════════════════════════════
 //  DEPLOY
 // ══════════════════════════════════════════════
-function buildTHICCPageHtml(html, members = loadTHICC()) {
-  const safeMembers = Array.isArray(members) && members.length ? members : loadTHICC();
-  const membersJson = JSON.stringify(safeMembers, null, 2);
-  let updated = html.replace(
-    /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
-    'const DEFAULT_MEMBERS = ' + membersJson + ';'
-  );
-
-  const thiccConfig = {
-    thiccDesc: STATE.config.thiccDesc || '',
-    thiccGame: STATE.config.thiccGame || 'BO6',
-    thiccFounded: STATE.config.thiccFounded || '2025',
-    thiccTag: STATE.config.thiccTag || '[THICC]',
-    thiccFullname: STATE.config.thiccFullname || 'The Hooligans in Chaos Crew'
-  };
-  const membersJsonStr = JSON.stringify(safeMembers);
-  const thiccConfigJsonStr = JSON.stringify(thiccConfig);
-  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');localStorage.setItem("chazdyn_config",' + JSON.stringify(thiccConfigJsonStr) + ');';
-  const _sc = '\u003c/script>';
-  const seedScript = '\n<script data-thicc-deploy>' + seedInner + _sc;
-  updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
-  updated = updated.replace('</head>', seedScript + '\n</head>');
-  return updated;
-}
-
 async function deployToLive() {
-  // Capture all current field values into STATE.config before deploying
+  // Auto-save any pending editor state before deploying
   Object.assign(STATE.config, STATE.pendingChanges);
   STATE.pendingChanges = {};
-  ['hero','about','clips','music','schedule','socials'].forEach(captureSectionFields);
-  pushThemeValuesOnly();
-  captureTHICCSettings(true);
-  STATE.config.thiccMembers = loadTHICC();
-  STATE.config._lastDeploy = new Date().toISOString();
+  STATE.config.clips = STATE.clips;
+  STATE.config.schedule = STATE.schedule;
+  STATE.config.isLive = STATE.liveBadgeOn || !!(document.getElementById('hero-live-badge') && document.getElementById('hero-live-badge').checked);
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
-
   if (!STATE.ghConnected) { toast('Connect GitHub first in Connections', 'error'); return; }
-
   toast('Creating backup...', 'info');
-  await createBackup('Pre-Go-Live backup');
+  await createBackup('Pre-deploy backup');
 
-  toast('Reading index.html from GitHub...', 'info');
+  toast('Deploying to GitHub...', 'info');
   try {
+    // Read current index.html and inject config
     const html = await readFile('index.html');
-    if (!html) return; // readFile already toasted the error
+    if (!html) { toast('Could not read index.html from GitHub', 'error'); return; }
 
-    toast('Injecting config...', 'info');
+    // Inject config as a localStorage pre-seed script
     const configJsonStr = JSON.stringify(STATE.config);
     const _sc = '\u003c/script>';
     const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');' + _sc;
-
-    // Remove BOTH seed scripts (data-controldyn and stale data-godmode)
-    let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>\n?/g, '');
-    updated = updated.replace(/<script data-godmode>[\s\S]*?<\/script>\n?/g, '');
+    let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
     updated = updated.replace('</head>', configScript + '</head>');
 
-    toast('Committing index.html...', 'info');
-    const homeOk = await commitFile('index.html', updated, 'Control.Dyn GO LIVE homepage: ' + new Date().toLocaleString());
-    if (!homeOk) {
-      toast('Homepage deploy failed — check Connections tab for GitHub errors', 'error');
-      logChange('error', 'Go Live failed: homepage commit rejected by GitHub');
-      return;
-    }
-
-    toast('Reading thicc/index.html...', 'info');
-    let thiccOk = true;
-    const thiccHtml = await readFile('thicc/index.html');
-    if (thiccHtml) {
-      toast('Committing thicc/index.html...', 'info');
-      const thiccUpdated = buildTHICCPageHtml(thiccHtml, STATE.config.thiccMembers);
-      thiccOk = await commitFile('thicc/index.html', thiccUpdated, 'Control.Dyn GO LIVE THICC: ' + new Date().toLocaleString());
-      if (!thiccOk) logChange('error', 'THICC commit rejected by GitHub');
-    } else {
-      thiccOk = false;
-      logChange('error', 'Could not read thicc/index.html during Go Live');
-    }
-
-    if (homeOk && thiccOk) {
-      toast('GO LIVE complete! Changes live in ~30 seconds.', 'success');
-      logChange('deploy', 'GO LIVE: homepage + THICC deployed', new Date().toLocaleString());
+    const ok = await commitFile('index.html', updated, 'Control.Dyn deploy: ' + new Date().toLocaleString());
+    if (ok) {
+      toast('Deployed successfully!', 'success');
+      logChange('deploy', 'Deployed to live', new Date().toLocaleString());
       STATE.config._lastDeploy = new Date().toISOString();
       saveToStorage(); updateDashboard();
     } else {
-      toast('Homepage deployed, but THICC failed. Check the Changelog.', 'warn');
-      logChange('error', 'Partial Go Live: homepage OK, THICC failed');
+      toast('Deploy failed — check GitHub permissions', 'error');
+      logChange('error', 'Deploy failed');
     }
-  } catch(e) {
-    toast('GO LIVE error: ' + e.message, 'error');
-    logChange('error', 'Go Live exception: ' + e.message);
-  }
+  } catch(e) { toast('Deploy error: ' + e.message, 'error'); logChange('error', e.message); }
 }
 
 async function forceDeploy() {
@@ -1630,9 +1302,8 @@ async function finishAssetUpload(file, targetInputId, configKey) {
     const ok = await commitFile(path, base64, '📁 Asset upload: ' + file.name, true);
     if (ok) {
       toast(file.name + ' uploaded!', 'success');
-      const assignedPath = 'assets/' + file.name;
-      if (targetInputId) document.getElementById(targetInputId).value = assignedPath;
-      if (configKey) onFieldChange(configKey, assignedPath);
+      if (targetInputId) document.getElementById(targetInputId).value = file.name;
+      if (configKey) onFieldChange(configKey, file.name);
       logChange('edit', 'Uploaded asset: ' + file.name);
       refreshAssets();
     } else toast('Upload failed', 'error');
@@ -1868,16 +1539,12 @@ function syncColorFromText(colorId, textId) {
   }
 }
 
-function pushThemeValuesOnly() {
+function pushTheme() {
   STATE.config.accentColor = document.getElementById('theme-green').value;
   STATE.config.accent2Color = document.getElementById('theme-cyan').value;
   STATE.config.bgColor = document.getElementById('theme-bg').value;
   STATE.config.displayFont = document.getElementById('theme-display-font').value;
   STATE.config.bodyFont = document.getElementById('theme-body-font').value;
-}
-
-function pushTheme() {
-  pushThemeValuesOnly();
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
   toast('Theme pushed to preview — deploy to go live', 'success');
@@ -1953,9 +1620,9 @@ function setPreviewSrc(mode) {
     dot.className = 'preview-dot live';
     urlBar.textContent = 'https://chazdyn.com (live)';
   } else {
-    frame.src = 'index.html';
+    frame.src = '../index.html';
     dot.className = 'preview-dot preview';
-    urlBar.textContent = 'index.html (local preview)';
+    urlBar.textContent = '../index.html (local preview)';
   }
 }
 
@@ -2032,6 +1699,38 @@ function findCtxMatch(text, className, tagName) {
   return null;
 }
 
+function buildCtxActions(match, text, className) {
+  const items = [];
+
+  if (match) {
+    items.push({
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+      label: `Edit: ${match.label}`,
+      action: () => jumpToField(match.section, match.field)
+    });
+  }
+
+  // Always show these
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+    label: 'Edit Theme / Colors',
+    action: () => jumpToField('theme', 'theme-green')
+  });
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+    label: 'Manage Assets',
+    action: () => jumpToField('assets', null)
+  });
+  items.push({ sep: true });
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+    label: 'Reload Preview',
+    action: () => { const f = document.getElementById('preview-frame'); if(f) f.src += ''; }
+  });
+
+  return items;
+}
+
 function jumpToField(section, fieldId) {
   showSection(section);
   hideCtxMenu();
@@ -2049,11 +1748,82 @@ function jumpToField(section, fieldId) {
   }
 }
 
+function showCtxMenu(x, y, match, elementLabel) {
+  const menu = document.getElementById('ctx-menu');
+  const titleEl = document.getElementById('ctx-title');
+  const labelEl = document.getElementById('ctx-element-label');
+  const itemsEl = document.getElementById('ctx-items');
+
+  titleEl.textContent = match ? match.label : 'Options';
+  labelEl.textContent = elementLabel ? elementLabel.substring(0, 40) : '';
+  labelEl.style.display = elementLabel ? '' : 'none';
+
+  const actions = buildCtxActions(match, '', '');
+  itemsEl.innerHTML = actions.map(a => a.sep
+    ? '<div class="ctx-sep"></div>'
+    : `<button class="ctx-item" onclick="(${a.action.toString()})()">
+        ${a.icon}
+        ${a.label}
+       </button>`
+  ).join('');
+
+  // Position — keep inside viewport
+  menu.style.left = '0'; menu.style.top = '0';
+  menu.classList.add('visible');
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const vw = window.innerWidth,  vh = window.innerHeight;
+  menu.style.left = Math.min(x, vw - mw - 8) + 'px';
+  menu.style.top  = Math.min(y, vh - mh - 8) + 'px';
+}
+
 function hideCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('visible');
 }
 
 // Right-click on the preview iframe overlay
+function setupPreviewContextMenu() {
+  const previewWrap = document.querySelector('.preview-wrap');
+  if (!previewWrap) return;
+
+  previewWrap.addEventListener('contextmenu', e => {
+    e.preventDefault();
+
+    // Try to read element from iframe at click position
+    let match = null;
+    let elementLabel = '';
+    try {
+      const iframe = document.getElementById('preview-frame');
+      const iRect = iframe.getBoundingClientRect();
+      const ix = e.clientX - iRect.left;
+      const iy = e.clientY - iRect.top;
+      const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+      const el = iDoc.elementFromPoint(ix, iy);
+      if (el) {
+        const text = el.textContent?.trim() || '';
+        const cls  = (el.className || '') + ' ' + (el.id || '');
+        const tag  = el.tagName?.toLowerCase() || '';
+        elementLabel = text.substring(0, 50) || cls.split(' ')[0] || tag;
+        match = findCtxMatch(text, cls, tag);
+        // Walk up if no match
+        if (!match) {
+          let parent = el.parentElement;
+          for (let i = 0; i < 4 && parent; i++, parent = parent.parentElement) {
+            const pt = parent.textContent?.trim() || '';
+            const pc = (parent.className || '') + ' ' + (parent.id || '');
+            match = findCtxMatch(pt, pc, parent.tagName?.toLowerCase() || '');
+            if (match) { elementLabel = pt.substring(0, 50) || pc.split(' ')[0]; break; }
+          }
+        }
+      }
+    } catch(err) {
+      // Cross-origin iframe — use position-based fallback
+      match = null;
+    }
+
+    showCtxMenu(e.clientX, e.clientY, match, elementLabel);
+  });
+}
+
 // Also right-click anywhere in the app itself for quick nav
 document.addEventListener('contextmenu', e => {
   // Only intercept if not in preview
@@ -2127,11 +1897,6 @@ const DEFAULT_THICC_MEMBERS = [
 
 function loadTHICC() {
   try {
-    // Prefer the config object after live sync. localStorage is only the cached copy.
-    if (Array.isArray(STATE.config.thiccMembers) && STATE.config.thiccMembers.length > 0) {
-      localStorage.setItem('chazdyn_thicc', JSON.stringify(STATE.config.thiccMembers));
-      return STATE.config.thiccMembers;
-    }
     const raw = localStorage.getItem('chazdyn_thicc');
     if (raw) {
       const parsed = JSON.parse(raw);
@@ -2145,41 +1910,19 @@ function loadTHICC() {
 }
 
 function saveTHICC() {
-  // Collect from editor only when the roster editor is actually rendered.
-  // This prevents Go Live / Save from wiping the roster when the THICC tab has not been opened yet.
-  captureTHICCSettings(true);
-  toast('THICC saved to preview', 'success');
-  logChange('edit', 'THICC roster/settings saved');
-}
-
-function captureTHICCSettings(allowRosterCapture = true) {
-  // Save clan-level settings whenever their inputs exist.
-  const descEl = document.getElementById('thicc-desc');
-  const gameEl = document.getElementById('thicc-game');
-  const foundedEl = document.getElementById('thicc-founded');
-  const tagEl = document.getElementById('thicc-tag');
-  const fullnameEl = document.getElementById('thicc-fullname');
-
-  if (descEl) STATE.config.thiccDesc = descEl.value || '';
-  if (gameEl) STATE.config.thiccGame = gameEl.value || 'BO6';
-  if (foundedEl) STATE.config.thiccFounded = foundedEl.value || '2025';
-  if (tagEl) STATE.config.thiccTag = tagEl.value || '[THICC]';
-  if (fullnameEl) STATE.config.thiccFullname = fullnameEl.value || '';
-
-  const rosterEl = document.getElementById('thicc-roster-editor');
-  const rosterIsRendered = !!(rosterEl && rosterEl.querySelector('.thicc-member-editor'));
-  if (allowRosterCapture && rosterIsRendered) {
-    const members = collectTHICC();
-    if (Array.isArray(members) && members.length > 0) {
-      STATE.config.thiccMembers = members;
-      localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
-    }
-  } else if (Array.isArray(STATE.config.thiccMembers) && STATE.config.thiccMembers.length > 0) {
-    localStorage.setItem('chazdyn_thicc', JSON.stringify(STATE.config.thiccMembers));
-  }
-
+  // Collect from editor
+  const members = collectTHICC();
+  localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
+  // Also save clan settings into STATE.config
+  STATE.config.thiccDesc    = document.getElementById('thicc-desc')?.value || '';
+  STATE.config.thiccGame    = document.getElementById('thicc-game')?.value || 'BO6';
+  STATE.config.thiccFounded = document.getElementById('thicc-founded')?.value || '2025';
+  STATE.config.thiccTag     = document.getElementById('thicc-tag')?.value || 'THICC';
+  STATE.config.thiccFullname= document.getElementById('thicc-fullname')?.value || '';
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
+  toast('THICC saved to preview', 'success');
+  logChange('edit', 'THICC roster/settings saved');
 }
 
 function collectTHICC() {
@@ -2198,10 +1941,8 @@ function collectTHICC() {
       rank:        card.querySelector('.thicc-rank').value,
       isLeader:    card.querySelector('.thicc-leader').checked,
       about:       card.querySelector('.thicc-about').value,
-      bio:         card.querySelector('.thicc-bio')?.value || card.querySelector('.thicc-about').value,
       photoUrl:    card.querySelector('.thicc-photo-url').value,
       videoUrl:    card.querySelector('.thicc-video-url').value,
-      bannerUrl:   card.querySelector('.thicc-banner-url')?.value || '',
       accentColor: card.querySelector('.thicc-accent-color').value,
       socials
     };
@@ -2254,14 +1995,10 @@ function renderMemberEditor(m, i) {
           <input type="text" class="thicc-rank" value="${m.rank||'Member'}" placeholder="Member" />
         </div>
       </div>
-      <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-start">
+      <div class="field-row" style="margin-bottom:0.6rem;align-items:flex-end">
         <div class="field" style="flex:1">
-          <label>Short Bio / Card Bio</label>
-          <textarea class="thicc-about" style="min-height:56px" placeholder="Short bio shown on the roster card">${m.about||''}</textarea>
-        </div>
-        <div class="field" style="flex:1">
-          <label>Long Bio / Popout Bio</label>
-          <textarea class="thicc-bio" style="min-height:90px" placeholder="Longer bio shown inside the profile popout">${m.bio||m.about||''}</textarea>
+          <label>Bio</label>
+          <textarea class="thicc-about" style="min-height:56px">${m.about||''}</textarea>
         </div>
         <div class="field" style="flex:0 0 auto;min-width:130px">
           <label>Profile Accent Color</label>
@@ -2275,8 +2012,7 @@ function renderMemberEditor(m, i) {
         <div class="field">
           <label>Photo (filename or URL)</label>
           <div class="flex-row">
-            <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="../assets/..." style="flex:1;font-size:0.8rem" />
-            <button class="qa-btn ghost" onclick="pickTHICC(this,'photo')" style="font-size:0.72rem">Pick</button>
+            <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
             <button class="qa-btn ghost" onclick="uploadTHICC(this,'photo')" style="font-size:0.72rem">Upload</button>
             <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'photo')" />
           </div>
@@ -2284,20 +2020,10 @@ function renderMemberEditor(m, i) {
         <div class="field">
           <label>Hover Video (filename or URL)</label>
           <div class="flex-row">
-            <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="../assets/..." style="flex:1;font-size:0.8rem" />
-            <button class="qa-btn ghost" onclick="pickTHICC(this,'video')" style="font-size:0.72rem">Pick</button>
+            <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
             <button class="qa-btn ghost" onclick="uploadTHICC(this,'video')" style="font-size:0.72rem">Upload</button>
             <input type="file" accept="video/*" style="display:none" onchange="handleTHICCUpload(this,'video')" />
           </div>
-        </div>
-      </div>
-      <div class="field" style="margin-bottom:0.6rem">
-        <label>Popout Banner Image (filename or URL)</label>
-        <div class="flex-row">
-          <input type="text" class="thicc-banner-url" value="${m.bannerUrl||''}" placeholder="../assets/banner.jpg" style="flex:1;font-size:0.8rem" />
-          <button class="qa-btn ghost" onclick="pickTHICC(this,'banner')" style="font-size:0.72rem">Pick</button>
-          <button class="qa-btn ghost" onclick="uploadTHICC(this,'banner')" style="font-size:0.72rem">Upload</button>
-          <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'banner')" />
         </div>
       </div>
       <div class="field">
@@ -2311,7 +2037,7 @@ function renderMemberEditor(m, i) {
 function addMember() {
   const members = loadTHICC();
   const newId = Math.max(0, ...members.map(m=>m.id)) + 1;
-  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', bio:'', photoUrl:'', videoUrl:'', bannerUrl:'', accentColor:'#f5a623', socials:[] });
+  members.push({ id:newId, name:'New Member', gamertag:'', rank:'Member', isLeader:false, about:'', photoUrl:'', videoUrl:'', accentColor:'#f5a623', socials:[] });
   localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
   renderTHICC();
   logChange('edit', 'Added new THICC member');
@@ -2343,15 +2069,7 @@ function addSocialRow(btn) {
 function removeSocialRow(btn) { btn.closest('.thicc-social-row').remove(); }
 
 function uploadTHICC(btn, type) {
-  const input = btn.parentElement.querySelector('input[type="file"]');
-  if (input) input.click();
-}
-
-function pickTHICC(btn, type) {
-  const textInput = btn.parentElement.querySelector('input[type="text"]');
-  openAssetPicker((type === 'photo' || type === 'banner') ? 'image' : 'video', '../assets/', path => {
-    if (textInput) textInput.value = path;
-  });
+  btn.nextElementSibling.click();
 }
 
 async function handleTHICCUpload(input, type) {
@@ -2362,7 +2080,7 @@ async function handleTHICCUpload(input, type) {
     await finishTHICCUpload(input, processedFile);
     if (input.value !== undefined) input.value = '';
   };
-  if ((type === 'photo' || type === 'banner') && isCropCapableImage(file)) {
+  if (type === 'photo' && isCropCapableImage(file)) {
     openImageCropper(file, go);
     return;
   }
@@ -2376,7 +2094,9 @@ async function finishTHICCUpload(input, file) {
     const ok = await commitFile('assets/' + file.name, base64, '📁 THICC upload: ' + file.name, true);
     if (ok) {
       const urlInput = input.closest('.flex-row').querySelector('input[type="text"]');
-      if (urlInput) urlInput.value = '../assets/' + file.name;
+      if (urlInput) urlInput.value = STATE.showFullUrls
+        ? `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/${file.name}`
+        : file.name;
       toast(file.name + ' uploaded!', 'success');
       logChange('edit', 'Uploaded THICC asset: ' + file.name);
       refreshAssets();
@@ -2387,627 +2107,48 @@ async function finishTHICCUpload(input, file) {
 
 async function deployTHICC() {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
-  captureTHICCSettings(true);
-  toast('Deploying THICC to GitHub...', 'info');
+  saveTHICC();
+  toast('Creating backup...', 'info');
 
+  // Read current thicc/index.html
   const html = await readFile('thicc/index.html');
   if (!html) { toast('Could not read thicc/index.html', 'error'); return; }
 
   const members = loadTHICC();
-  const updated = buildTHICCPageHtml(html, members);
+
+  // 1. Replace DEFAULT_MEMBERS source block so fallback is always correct
+  const membersJson = JSON.stringify(members, null, 2);
+  let updated = html.replace(
+    /const DEFAULT_MEMBERS = \[[\s\S]*?\];/,
+    'const DEFAULT_MEMBERS = ' + membersJson + ';'
+  );
+
+  // 2. Inject a seed script that always overwrites localStorage on page load
+  const membersJsonStr = JSON.stringify(members);
+  const seedInner = 'localStorage.setItem("chazdyn_thicc",' + JSON.stringify(membersJsonStr) + ');';
+  const _sc = '\u003c/script>';
+  const seedScript = '\n<script data-thicc-deploy>' + seedInner + _sc;
+  updated = updated.replace(/<script data-thicc-deploy>[\s\S]*?<\/script>\n?/, '');
+  updated = updated.replace('</head>', seedScript + '\n</head>');
+
   const ok = await commitFile('thicc/index.html', updated, '🎮 THICC deploy: ' + new Date().toLocaleString());
   if (ok) {
-    STATE.config.thiccMembers = members;
-    localStorage.setItem('chazdyn_thicc', JSON.stringify(members));
-    localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
-    saveToStorage();
     toast('THICC deployed! ✓', 'success');
-    logChange('deploy', 'THICC roster/settings deployed to live');
+    logChange('deploy', 'THICC roster deployed to live');
   } else {
     toast('THICC deploy failed', 'error');
     logChange('error', 'THICC deploy failed');
   }
 }
 
-
-// ══════════════════════════════════════════════
-//  ASSET PICKER (browse existing repo assets)
-// ══════════════════════════════════════════════
-const ASSET_PICKER = { type:'any', prefix:'assets/', callback:null, assets:[], selected:null };
-
-function openAssetPicker(type='any', prefix='assets/', callback=null) {
-  ASSET_PICKER.type = type;
-  ASSET_PICKER.prefix = prefix;
-  ASSET_PICKER.callback = callback;
-  ASSET_PICKER.selected = null;
-  const modal = document.getElementById('asset-picker-modal');
-  if (!modal) return;
-  document.getElementById('asset-picker-title').textContent = type === 'image' ? 'Choose Image Asset' : type === 'video' ? 'Choose Video Asset' : 'Choose Asset';
-  document.getElementById('asset-picker-search').value = '';
-  document.getElementById('asset-picker-confirm').disabled = true;
-  document.getElementById('asset-picker-grid').innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:1rem">Loading assets…</div>';
-  modal.classList.remove('hidden');
-  loadPickerAssets();
-}
-
-function closeAssetPicker() {
-  const modal = document.getElementById('asset-picker-modal');
-  if (modal) modal.classList.add('hidden');
-}
-
-async function loadPickerAssets() {
-  if (!STATE.ghConnected) {
-    document.getElementById('asset-picker-grid').innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:1rem">Connect GitHub first, then reopen this picker.</div>';
-    return;
-  }
-  try {
-    const r = await fetch(`${ghBase()}/contents/assets?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
-    if (!r.ok) throw new Error('Could not read assets folder');
-    ASSET_PICKER.assets = (await r.json()).filter(a => a.type === 'file');
-    renderPickerAssets();
-  } catch(e) {
-    document.getElementById('asset-picker-grid').innerHTML = `<div style="grid-column:1/-1;color:var(--muted);padding:1rem">${e.message}</div>`;
-  }
-}
-
-function renderPickerAssets() {
-  const q = (document.getElementById('asset-picker-search')?.value || '').toLowerCase();
-  const rawBase = `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/`;
-  let items = ASSET_PICKER.assets.filter(a => !q || a.name.toLowerCase().includes(q));
-  if (ASSET_PICKER.type === 'image') items = items.filter(a => /\.(png|jpe?g|webp|gif|svg)$/i.test(a.name));
-  if (ASSET_PICKER.type === 'video') items = items.filter(a => /\.(mp4|webm|mov|m4v)$/i.test(a.name));
-  const grid = document.getElementById('asset-picker-grid');
-  if (!items.length) { grid.innerHTML = '<div style="grid-column:1/-1;color:var(--muted);padding:1rem">No matching assets found.</div>'; return; }
-  grid.innerHTML = items.map(a => {
-    const raw = rawBase + encodeURIComponent(a.name).replace(/%2F/g,'/');
-    const rel = ASSET_PICKER.prefix + a.name;
-    const isImg = /\.(png|jpe?g|webp|gif|svg)$/i.test(a.name);
-    const thumb = isImg ? `<img src="${raw}" alt="" style="width:100%;height:84px;object-fit:cover;border-radius:6px 6px 0 0" loading="lazy">` : `<div style="height:84px;display:grid;place-items:center;font-size:2rem;background:var(--bg3)">🎬</div>`;
-    return `<button type="button" class="asset-picker-card" data-rel="${rel}" onclick="selectPickerAsset(this)" title="${a.name}">${thumb}<span>${a.name}</span></button>`;
-  }).join('');
-}
-
-function selectPickerAsset(card) {
-  document.querySelectorAll('.asset-picker-card').forEach(c => c.classList.remove('selected'));
-  card.classList.add('selected');
-  ASSET_PICKER.selected = card.dataset.rel;
-  document.getElementById('asset-picker-confirm').disabled = false;
-  document.getElementById('asset-picker-selected').textContent = ASSET_PICKER.selected;
-}
-
-function confirmPickerAsset() {
-  if (!ASSET_PICKER.selected) return;
-  if (ASSET_PICKER.callback) ASSET_PICKER.callback(ASSET_PICKER.selected);
-  closeAssetPicker();
-}
-
-}
-
-// ══════════════════════════════════════════════
-//  VISUAL EDITOR
-// ══════════════════════════════════════════════
-const VE = {
-  edits: {},         // { selector: { prop: value, ... }, ... }
-  currentEl: null,   // { selector, tag, text, src, href, alt, computedStyles }
-  frameDoc: null,
-};
-
-// Load saved edits from localStorage
-function veLoadEdits() {
-  try {
-    const raw = localStorage.getItem('ve_edits');
-    if (raw) VE.edits = JSON.parse(raw);
-  } catch(e) { VE.edits = {}; }
-}
-
-function veSaveEdits() {
-  localStorage.setItem('ve_edits', JSON.stringify(VE.edits));
-}
-
-function veGetFrame() {
-  return document.getElementById('ve-preview-frame');
-}
-
-function veNavigate(url) {
-  const f = veGetFrame();
-  if (f) { f.src = url; document.getElementById('ve-url-bar').value = url; }
-}
-
-function veReloadPreview() {
-  const f = veGetFrame();
-  if (f) f.src = f.src;
-}
-
-// Scan elements from the preview iframe and populate the list
-function veScanElements() {
-  const f = veGetFrame();
-  const list = document.getElementById('ve-element-list');
-  list.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:0.5rem;">Scanning...</div>';
-  try {
-    const doc = f.contentDocument || f.contentWindow.document;
-    if (!doc) throw new Error('No document');
-    VE.frameDoc = doc;
-
-    // Collect meaningful editable elements
-    const selectors = [
-      'h1, h2, h3, h4, h5, h6',
-      'p:not(:empty)',
-      'a[href]',
-      'img[src]',
-      'button, .btn, [role="button"]',
-      '.hero-eyebrow, .hero-tagline, .hero-title',
-      '.about-bio, .about-text',
-      '.nav-logo, nav a',
-      'section[id], [data-section]',
-      '.tag, .badge, .label',
-      '.clip-title, .clip-url',
-      '.music-link-sub',
-      '.footer-link',
-    ];
-
-    const seen = new Set();
-    const elements = [];
-    doc.querySelectorAll(selectors.join(', ')).forEach(el => {
-      if (seen.has(el)) return;
-      seen.add(el);
-      const text = el.textContent?.trim().substring(0, 60) || '';
-      const tag = el.tagName.toLowerCase();
-      const id = el.id ? '#' + el.id : '';
-      const cls = el.className ? '.' + String(el.className).split(' ').filter(Boolean)[0] : '';
-      const selector = id || (tag + cls);
-      const hasImg = tag === 'img' || !!el.querySelector('img');
-      const hasLink = tag === 'a' || !!el.closest('a');
-      elements.push({ el, selector, tag, text, hasImg, hasLink });
-    });
-
-    VE.allElements = elements;
-    veRenderList(elements);
-  } catch(e) {
-    list.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:1rem;text-align:center;">Could not scan: ${e.message}<br><br>The preview must be on the same domain (chazdyn.com).</div>`;
-  }
-}
-
-function veRenderList(elements) {
-  const list = document.getElementById('ve-element-list');
-  if (!elements.length) {
-    list.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:1rem;text-align:center;">No editable elements found.</div>';
-    return;
-  }
-  list.innerHTML = elements.map((item, i) => {
-    const typeIcon = item.tag === 'img' ? '🖼' :
-      item.tag === 'a' ? '🔗' :
-      /h[1-6]/.test(item.tag) ? '📝' :
-      item.tag === 'button' ? '🔘' : '✏️';
-    const edited = VE.edits[item.selector] ? '🟢 ' : '';
-    return `<div class="ve-list-item" onclick="veOpenElementEditor(${i})" style="
-      display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;
-      cursor:pointer;border:1px solid transparent;font-size:0.78rem;
-      background:var(--bg3);transition:border-color 0.15s;"
-      onmouseenter="this.style.borderColor='var(--border2)'"
-      onmouseleave="this.style.borderColor='transparent'">
-      <span style="font-size:0.9rem;flex-shrink:0;">${typeIcon}</span>
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:var(--font-mono,monospace);font-size:0.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${edited}${item.selector}</div>
-        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">${item.text || '(' + item.tag + ')'}</div>
-      </div>
-      <span style="font-size:0.65rem;color:var(--muted);flex-shrink:0;">${item.tag}</span>
-    </div>`;
-  }).join('');
-}
-
-function veFilterList(q) {
-  if (!VE.allElements) return;
-  const filtered = q
-    ? VE.allElements.filter(e => (e.text + e.selector + e.tag).toLowerCase().includes(q.toLowerCase()))
-    : VE.allElements;
-  veRenderList(filtered);
-}
-
-function veOpenElementEditor(index) {
-  const item = VE.allElements[index];
-  if (!item) return;
-  const el = item.el;
-
-  // Gather current state
-  const computed = window.getComputedStyle ? (VE.frameDoc?.defaultView?.getComputedStyle(el) || {}) : {};
-  const existingEdits = VE.edits[item.selector] || {};
-
-  VE.currentEl = { ...item, existingEdits };
-
-  document.getElementById('ve-modal-title').textContent = 'Edit: ' + item.tag + (item.text ? ' "' + item.text.substring(0,30) + '"' : '');
-  document.getElementById('ve-modal-selector').textContent = item.selector;
-
-  const body = document.getElementById('ve-modal-body');
-  const tag = item.tag;
-  const isImg = tag === 'img';
-  const isLink = tag === 'a';
-  const hasText = !isImg;
-
-  let fields = '';
-
-  // Text content
-  if (hasText) {
-    fields += veField('Text Content', `<textarea id="ve-f-text" style="min-height:60px;resize:vertical;">${(existingEdits.textContent ?? el.textContent?.trim() ?? '').replace(/</g,'&lt;')}</textarea>`);
-  }
-
-  // Src (images)
-  if (isImg || el.querySelector('img')) {
-    const src = isImg ? el.src : el.querySelector('img')?.src || '';
-    fields += veField('Image Source (URL or ../assets/...)', `<div style="display:flex;gap:6px;"><input id="ve-f-src" type="text" value="${src}" style="flex:1;" /><button class="qa-btn ghost" onclick="vePickAsset('ve-f-src')" style="font-size:0.7rem;">Asset</button></div>`);
-    fields += veField('Alt / Accessibility Label', `<input id="ve-f-alt" type="text" value="${isImg ? el.alt : (el.querySelector('img')?.alt || '')}" />`);
-  }
-
-  // Link href
-  if (isLink || el.closest('a')) {
-    const href = isLink ? el.href : (el.closest('a')?.href || '');
-    fields += veField('Link Destination (URL)', `<input id="ve-f-href" type="text" value="${href}" />`);
-  }
-
-  // Visibility
-  fields += veField('Visibility', `<select id="ve-f-display">
-    <option value="">Default</option>
-    <option value="none" ${(existingEdits['style.display']||'') === 'none' ? 'selected' : ''}>Hidden</option>
-    <option value="block" ${(existingEdits['style.display']||'') === 'block' ? 'selected' : ''}>Show (block)</option>
-  </select>`);
-
-  // Style fields
-  fields += `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:0.75rem;">
-    <div style="font-family:var(--display);font-size:0.8rem;letter-spacing:0.08em;color:var(--green);opacity:0.8;margin-bottom:0.6rem;">STYLE</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">`;
-
-  const styleFields = [
-    ['Text Color', 've-f-color', 'color', existingEdits['style.color'] || el.style.color || ''],
-    ['Background', 've-f-bg', 'background', existingEdits['style.background'] || el.style.background || ''],
-    ['Font Size', 've-f-fontsize', 'fontSize', existingEdits['style.fontSize'] || el.style.fontSize || ''],
-    ['Font Weight', 've-f-fontweight', 'fontWeight', existingEdits['style.fontWeight'] || el.style.fontWeight || ''],
-    ['Padding', 've-f-padding', 'padding', existingEdits['style.padding'] || el.style.padding || ''],
-    ['Margin', 've-f-margin', 'margin', existingEdits['style.margin'] || el.style.margin || ''],
-    ['Border Radius', 've-f-radius', 'borderRadius', existingEdits['style.borderRadius'] || el.style.borderRadius || ''],
-    ['Opacity', 've-f-opacity', 'opacity', existingEdits['style.opacity'] || el.style.opacity || ''],
-  ];
-
-  styleFields.forEach(([label, id, prop, val]) => {
-    const isColor = label.includes('Color') || label === 'Background';
-    fields += `<div class="field" style="margin:0;">
-      <label style="font-size:0.62rem;">${label}</label>
-      ${isColor
-        ? `<div style="display:flex;gap:4px;align-items:center;"><input type="color" id="${id}-picker" value="${val.startsWith('#') ? val : '#ffffff'}" oninput="document.getElementById('${id}').value=this.value" style="width:30px;height:28px;padding:1px;cursor:pointer;" /><input type="text" id="${id}" value="${val}" style="flex:1;font-size:0.75rem;" oninput="this.previousElementSibling.value=this.value||'#ffffff'" /></div>`
-        : `<input type="text" id="${id}" value="${val}" placeholder="${prop}" style="font-size:0.75rem;" />`}
-    </div>`;
-  });
-
-  fields += `</div></div>`;
-
-  // Advanced CSS
-  fields += veField('Advanced Inline CSS', `<textarea id="ve-f-css" placeholder="e.g. display:flex; gap:10px;" style="min-height:48px;font-family:monospace;font-size:0.75rem;">${existingEdits['style.cssText'] || ''}</textarea>`);
-
-  body.innerHTML = fields;
-  document.getElementById('ve-elem-modal').style.display = 'flex';
-}
-
-function veField(label, inputHtml) {
-  return `<div class="field" style="margin-bottom:0;">
-    <label style="font-size:0.65rem;">${label}</label>
-    ${inputHtml}
-  </div>`;
-}
-
-function vePickAsset(targetId) {
-  if (typeof openAssetPickerModal === 'function') {
-    openAssetPickerModal('image', (relPath) => {
-      const el = document.getElementById(targetId);
-      if (el) el.value = relPath;
-    });
-  } else {
-    toast('Asset picker not available', 'error');
-  }
-}
-
-function veApplyEdit() {
-  const item = VE.currentEl;
-  if (!item) return;
-
-  const get = id => document.getElementById(id)?.value ?? null;
-
-  const edits = {};
-
-  // Text
-  const text = get('ve-f-text');
-  if (text !== null) edits.textContent = text;
-
-  // Src
-  const src = get('ve-f-src');
-  if (src !== null) edits['attr.src'] = src;
-  const alt = get('ve-f-alt');
-  if (alt !== null) edits['attr.alt'] = alt;
-
-  // Href
-  const href = get('ve-f-href');
-  if (href !== null) edits['attr.href'] = href;
-
-  // Display
-  const display = get('ve-f-display');
-  if (display) edits['style.display'] = display;
-
-  // Styles
-  const styleMap = {
-    've-f-color': 'style.color',
-    've-f-bg': 'style.background',
-    've-f-fontsize': 'style.fontSize',
-    've-f-fontweight': 'style.fontWeight',
-    've-f-padding': 'style.padding',
-    've-f-margin': 'style.margin',
-    've-f-radius': 'style.borderRadius',
-    've-f-opacity': 'style.opacity',
-  };
-  Object.entries(styleMap).forEach(([id, key]) => {
-    const val = get(id);
-    if (val) edits[key] = val;
-  });
-
-  // Advanced CSS
-  const css = get('ve-f-css');
-  if (css) edits['style.cssText'] = css;
-
-  // Store and apply to preview
-  VE.edits[item.selector] = { ...VE.edits[item.selector], ...edits };
-  veSaveEdits();
-  veApplyEditsToFrame();
-
-  toast('Edit saved — use Deploy Edits to push to live site', 'success');
-  logChange('edit', 'Visual edit: ' + item.selector);
-  veCloseModal();
-  veScanElements(); // refresh list
-}
-
-function veApplyEditsToFrame() {
-  const f = veGetFrame();
-  try {
-    const doc = f.contentDocument || f.contentWindow.document;
-    Object.entries(VE.edits).forEach(([selector, edits]) => {
-      const els = doc.querySelectorAll(selector);
-      els.forEach(el => {
-        Object.entries(edits).forEach(([prop, val]) => {
-          if (prop === 'textContent') el.textContent = val;
-          else if (prop.startsWith('attr.')) el.setAttribute(prop.slice(5), val);
-          else if (prop.startsWith('style.')) {
-            const cssProp = prop.slice(6);
-            if (cssProp === 'cssText') el.style.cssText += ';' + val;
-            else el.style[cssProp] = val;
-          }
-        });
-      });
-    });
-  } catch(e) { console.warn('veApplyEditsToFrame:', e); }
-}
-
-function veCloseModal() {
-  document.getElementById('ve-elem-modal').style.display = 'none';
-  VE.currentEl = null;
-}
-
-// Re-apply edits whenever preview reloads
-document.getElementById('ve-preview-frame')?.addEventListener('load', () => {
-  setTimeout(veApplyEditsToFrame, 300);
-});
-
-async function veDeployEdits() {
-  if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
-  if (!Object.keys(VE.edits).length) { toast('No visual edits to deploy', 'info'); return; }
-
-  toast('Reading index.html...', 'info');
-  const html = await readFile('index.html');
-  if (!html) return;
-
-  const editsJson = JSON.stringify(VE.edits);
-  const _sc = '\u003c/script>';
-  const veScript = '\n<script data-ve-edits>window.__VE_EDITS__=' + editsJson + ';' + _sc;
-  let updated = html.replace(/<script data-ve-edits>[\s\S]*?<\/script>\n?/, '');
-  updated = updated.replace('</head>', veScript + '\n</head>');
-
-  toast('Committing...', 'info');
-  const ok = await commitFile('index.html', updated, 'Visual Editor edits: ' + new Date().toLocaleString());
-  if (ok) {
-    toast('Visual edits deployed!', 'success');
-    logChange('deploy', 'Visual Editor edits deployed');
-  }
-}
-
-// Upgrade setupPreviewContextMenu to work with BOTH preview frames
-// and add all requested menu options
-function setupPreviewContextMenu() {
-  // Attach to ALL preview wraps (main preview + visual editor)
-  document.querySelectorAll('.preview-wrap').forEach(previewWrap => {
-    previewWrap.addEventListener('contextmenu', e => {
-      e.preventDefault();
-
-      let capturedEl = null;
-      let match = null;
-      let elementLabel = '';
-
-      // Try to identify the clicked element inside the iframe
-      const iframes = previewWrap.querySelectorAll('iframe');
-      for (const iframe of iframes) {
-        try {
-          const iRect = iframe.getBoundingClientRect();
-          const ix = e.clientX - iRect.left;
-          const iy = e.clientY - iRect.top;
-          if (ix < 0 || iy < 0 || ix > iRect.width || iy > iRect.height) continue;
-          const iDoc = iframe.contentDocument || iframe.contentWindow.document;
-          const el = iDoc.elementFromPoint(ix, iy);
-          if (el) {
-            capturedEl = el;
-            const text = el.textContent?.trim() || '';
-            const cls  = (el.className || '') + ' ' + (el.id || '');
-            const tag  = el.tagName?.toLowerCase() || '';
-            elementLabel = text.substring(0, 50) || cls.split(' ')[0] || tag;
-            match = findCtxMatch(text, cls, tag);
-            if (!match) {
-              let parent = el.parentElement;
-              for (let i = 0; i < 4 && parent; i++, parent = parent.parentElement) {
-                const pt = parent.textContent?.trim() || '';
-                const pc = (parent.className || '') + ' ' + (parent.id || '');
-                match = findCtxMatch(pt, pc, parent.tagName?.toLowerCase() || '');
-                if (match) { capturedEl = parent; elementLabel = pt.substring(0, 50) || pc.split(' ')[0]; break; }
-              }
-            }
-          }
-          break;
-        } catch(err) { /* cross-origin */ }
-      }
-
-      showCtxMenu(e.clientX, e.clientY, match, elementLabel, capturedEl);
-    });
-  });
-}
-
-function buildCtxActions(match, text, className, capturedEl) {
-  const items = [];
-
-  // Edit This Exact Element
-  if (capturedEl) {
-    items.push({
-      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-      label: 'Edit This Exact Element',
-      action: () => {
-        // Find element index in VE list, or add it
-        const tag = capturedEl.tagName.toLowerCase();
-        const id = capturedEl.id ? '#' + capturedEl.id : '';
-        const cls = capturedEl.className ? '.' + String(capturedEl.className).split(' ').filter(Boolean)[0] : '';
-        const selector = id || (tag + cls);
-        const text = capturedEl.textContent?.trim().substring(0, 60) || '';
-        const tempItem = { el: capturedEl, selector, tag, text, hasImg: tag === 'img', hasLink: tag === 'a', existingEdits: VE.edits[selector] || {} };
-        VE.currentEl = tempItem;
-        VE.allElements = VE.allElements || [];
-        const existingIdx = VE.allElements.findIndex(e => e.selector === selector);
-        if (existingIdx === -1) { VE.allElements.unshift(tempItem); veOpenElementEditor(0); }
-        else veOpenElementEditor(existingIdx);
-        hideCtxMenu();
-      }
-    });
-  }
-
-  // Hide This Element
-  if (capturedEl) {
-    items.push({
-      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
-      label: 'Hide This Element',
-      action: () => {
-        const tag = capturedEl.tagName.toLowerCase();
-        const id = capturedEl.id ? '#' + capturedEl.id : '';
-        const cls = capturedEl.className ? '.' + String(capturedEl.className).split(' ').filter(Boolean)[0] : '';
-        const selector = id || (tag + cls);
-        VE.edits[selector] = { ...(VE.edits[selector] || {}), 'style.display': 'none' };
-        veSaveEdits();
-        capturedEl.style.display = 'none';
-        toast('Element hidden — Deploy Edits to push to live', 'success');
-        logChange('edit', 'Hidden: ' + selector);
-        hideCtxMenu();
-      }
-    });
-  }
-
-  // Open Existing Control
-  if (match) {
-    items.push({
-      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-      label: `Open Existing Control: ${match.label}`,
-      action: () => jumpToField(match.section, match.field)
-    });
-  }
-
-  items.push({ sep: true });
-
-  // Open Visual Editor List
-  items.push({
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>`,
-    label: 'Open Visual Editor List',
-    action: () => { showSection('visual-editor'); veScanElements(); hideCtxMenu(); }
-  });
-
-  // Edit Theme / Colors
-  items.push({
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
-    label: 'Edit Theme / Colors',
-    action: () => jumpToField('theme', 'theme-green')
-  });
-
-  // Manage Assets
-  items.push({
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
-    label: 'Manage Assets',
-    action: () => jumpToField('assets', null)
-  });
-
-  items.push({ sep: true });
-  items.push({
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
-    label: 'Reload Preview',
-    action: () => { const f = document.getElementById('preview-frame'); if(f) f.src += ''; }
-  });
-
-  return items;
-}
-
-function showCtxMenu(x, y, match, elementLabel, capturedEl) {
-  const menu = document.getElementById('ctx-menu');
-  const titleEl = document.getElementById('ctx-title');
-  const labelEl = document.getElementById('ctx-element-label');
-  const itemsEl = document.getElementById('ctx-items');
-
-  titleEl.textContent = match ? match.label : 'Options';
-  labelEl.textContent = elementLabel ? elementLabel.substring(0, 40) : '';
-  labelEl.style.display = elementLabel ? '' : 'none';
-
-  const actions = buildCtxActions(match, '', '', capturedEl);
-  itemsEl.innerHTML = actions.map(a => a.sep
-    ? '<div class="ctx-sep"></div>'
-    : `<button class="ctx-item" onclick="(${a.action.toString()})()">
-        ${a.icon}
-        ${a.label}
-       </button>`
-  ).join('');
-
-  menu.style.left = '0'; menu.style.top = '0';
-  menu.classList.add('visible');
-  const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  const vw = window.innerWidth,  vh = window.innerHeight;
-  menu.style.left = Math.min(x, vw - mw - 8) + 'px';
-  menu.style.top  = Math.min(y, vh - mh - 8) + 'px';
-}
-
 // ══════════════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════════════
-init().then(() => {
-  renderTHICC();
-  setTimeout(setupPreviewContextMenu, 500);
-});
+init();
+// Render THICC roster after init so DOM is ready
+renderTHICC();
+// Setup right-click on preview after DOM ready
+setTimeout(setupPreviewContextMenu, 500);
 </script>
-
-<!-- Asset Picker Modal -->
-<div id="asset-picker-modal" class="asset-picker-modal hidden" aria-hidden="true">
-  <div class="asset-picker-dialog">
-    <div class="crop-head">
-      <div>
-        <div class="crop-title" id="asset-picker-title">Choose Asset</div>
-        <div class="crop-subtitle">Pick an existing file from GitHub assets/ without re-uploading it.</div>
-      </div>
-      <button class="qa-btn ghost" type="button" onclick="closeAssetPicker()">Close</button>
-    </div>
-    <div style="padding:0.85rem;border-bottom:1px solid var(--border2);display:flex;gap:0.6rem;align-items:center;">
-      <input id="asset-picker-search" type="text" placeholder="Search assets…" oninput="renderPickerAssets()" style="flex:1" />
-      <button id="asset-picker-confirm" class="qa-btn primary" type="button" onclick="confirmPickerAsset()" disabled>Use Selected</button>
-    </div>
-    <div id="asset-picker-grid" class="asset-picker-grid"></div>
-    <div id="asset-picker-selected" style="padding:0.75rem;color:var(--muted);font-size:0.75rem;border-top:1px solid var(--border2);">Nothing selected</div>
-  </div>
-</div>
-<style>
-.asset-picker-modal{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.82);display:grid;place-items:center;padding:1rem;backdrop-filter:blur(6px)}
-.asset-picker-modal.hidden{display:none}.asset-picker-dialog{width:min(920px,96vw);max-height:88vh;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.6)}
-.asset-picker-grid{padding:1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:.75rem;overflow:auto}.asset-picker-card{appearance:none;border:1px solid var(--border2);background:var(--bg3);color:var(--text);border-radius:8px;padding:0;text-align:left;overflow:hidden;cursor:pointer}.asset-picker-card span{display:block;padding:.45rem;font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}.asset-picker-card.selected{border-color:var(--green);box-shadow:0 0 0 2px rgba(57,255,20,.18)}
-</style>
-
 </body>
 </html>
