@@ -123,6 +123,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Assets
         </a>
+        <a class="nav-item" onclick="showSection('visual-editor')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01M12 12h.01"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+          Visual Editor
+        </a>
         <a class="nav-item" onclick="showSection('backups')" href="#">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Backups
@@ -530,6 +534,58 @@
         </div>
       </section>
 
+      <!-- ════ VISUAL EDITOR ════ -->
+      <section class="section" id="section-visual-editor">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
+              Visual Editor
+            </div>
+            <div class="flex-row" style="gap:8px;">
+              <button class="qa-btn ghost" onclick="veScanElements()" id="ve-scan-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Scan Elements
+              </button>
+              <button class="qa-btn ghost" onclick="veReloadPreview()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Reload Preview
+              </button>
+              <button class="qa-btn primary" onclick="veDeployEdits()">Deploy Edits</button>
+            </div>
+          </div>
+          <div class="panel-body" style="display:flex;gap:1rem;flex-wrap:wrap;padding:0.75rem;">
+
+            <!-- Left: Preview Frame -->
+            <div style="flex:2;min-width:320px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-family:var(--display);font-size:0.8rem;letter-spacing:0.1em;color:var(--green);text-transform:uppercase;opacity:0.7;">
+                Live Preview — Right-click any element to edit
+              </div>
+              <div class="preview-wrap ve-preview-wrap" style="border:1px solid var(--border2);border-radius:6px;overflow:hidden;position:relative;">
+                <div style="display:flex;gap:6px;align-items:center;padding:6px 10px;background:var(--bg3);border-bottom:1px solid var(--border2);">
+                  <div style="display:flex;gap:4px;"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></div><div style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></div><div style="width:10px;height:10px;border-radius:50%;background:#28c840;"></div></div>
+                  <input id="ve-url-bar" value="index.html" style="flex:1;background:var(--bg4);border:1px solid var(--border2);color:var(--muted);border-radius:3px;padding:2px 8px;font-family:var(--font-mono,monospace);font-size:0.68rem;" onchange="veNavigate(this.value)" />
+                  <button class="qa-btn ghost" onclick="veNavigate(document.getElementById('ve-url-bar').value)" style="padding:3px 8px;font-size:0.7rem;">Go</button>
+                </div>
+                <iframe id="ve-preview-frame" src="index.html" style="width:100%;height:60vh;border:none;display:block;"></iframe>
+              </div>
+            </div>
+
+            <!-- Right: Element List -->
+            <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px;">
+              <div style="font-family:var(--display);font-size:0.8rem;letter-spacing:0.1em;color:var(--green);text-transform:uppercase;opacity:0.7;">
+                Editable Elements
+              </div>
+              <input id="ve-filter" placeholder="Filter elements..." style="font-size:0.78rem;padding:5px 8px;" oninput="veFilterList(this.value)" />
+              <div id="ve-element-list" style="flex:1;overflow-y:auto;max-height:56vh;display:flex;flex-direction:column;gap:3px;">
+                <div style="color:var(--muted);font-size:0.78rem;padding:1rem;text-align:center;">Click Scan Elements to load editable elements from the preview.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       <!-- ════ BACKUPS ════ -->
       <section class="section" id="section-backups">
         <div class="panel">
@@ -717,6 +773,24 @@
   <div class="ctx-header" id="ctx-title">Element</div>
   <div class="ctx-element-label" id="ctx-element-label"></div>
   <div id="ctx-items"></div>
+</div>
+
+<!-- ══ VISUAL ELEMENT EDITOR MODAL ══ -->
+<div id="ve-elem-modal" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;width:min(640px,96vw);max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.6);">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.25rem;border-bottom:1px solid var(--border2);flex-shrink:0;">
+      <div>
+        <div style="font-family:var(--display);font-size:1.2rem;letter-spacing:0.06em;" id="ve-modal-title">Edit Element</div>
+        <div style="font-size:0.68rem;color:var(--muted);margin-top:2px;font-family:var(--font-mono,monospace);" id="ve-modal-selector"></div>
+      </div>
+      <button class="qa-btn ghost" onclick="veCloseModal()" style="padding:6px 10px;">✕</button>
+    </div>
+    <div id="ve-modal-body" style="flex:1;overflow-y:auto;padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.75rem;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;padding:0.75rem 1.25rem;border-top:1px solid var(--border2);flex-shrink:0;">
+      <button class="qa-btn ghost" onclick="veCloseModal()">Cancel</button>
+      <button class="qa-btn primary" onclick="veApplyEdit()">Apply & Save</button>
+    </div>
+  </div>
 </div>
 
 <!-- Toast container -->
@@ -1129,21 +1203,51 @@ async function getFileSha(path) {
 // Commit a file to GitHub
 async function commitFile(path, content, message, isBinary = false) {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return false; }
-  const sha = await getFileSha(path);
-  const body = { message, branch: STATE.ghBranch, content: isBinary ? content : btoa(unescape(encodeURIComponent(content))) };
-  if (sha) body.sha = sha;
-  const r = await fetch(`${ghBase()}/contents/${path}`, {
-    method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body)
-  });
-  return r.ok;
+  // Strip emoji from commit messages — GitHub API sometimes rejects them
+  const safeMsg = message.replace(/[\u{1F300}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '').trim();
+  try {
+    const sha = await getFileSha(path);
+    let encoded;
+    if (isBinary) {
+      encoded = content;
+    } else {
+      encoded = btoa(unescape(encodeURIComponent(content)));
+    }
+    const body = { message: safeMsg, branch: STATE.ghBranch, content: encoded };
+    if (sha) body.sha = sha;
+    const r = await fetch(`${ghBase()}/contents/${path}`, {
+      method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const errData = await r.json().catch(() => ({}));
+      const detail = errData.message || r.statusText || String(r.status);
+      console.error('commitFile failed:', path, r.status, detail);
+      toast(`GitHub error (${r.status}): ${detail}`, 'error');
+      return false;
+    }
+    return true;
+  } catch(e) {
+    console.error('commitFile exception:', e);
+    toast('Commit error: ' + e.message, 'error');
+    return false;
+  }
 }
 
 // Read a file from GitHub
 async function readFile(path) {
-  const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
-  if (!r.ok) return null;
-  const d = await r.json();
-  return decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+  try {
+    const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    if (!r.ok) {
+      const errData = await r.json().catch(() => ({}));
+      toast(`Could not read ${path}: ${errData.message || r.status}`, 'error');
+      return null;
+    }
+    const d = await r.json();
+    return decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
+  } catch(e) {
+    toast('Read error: ' + e.message, 'error');
+    return null;
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1175,7 +1279,7 @@ function buildTHICCPageHtml(html, members = loadTHICC()) {
 }
 
 async function deployToLive() {
-  // GO LIVE means: save every current admin input, then deploy homepage + THICC page together.
+  // Capture all current field values into STATE.config before deploying
   Object.assign(STATE.config, STATE.pendingChanges);
   STATE.pendingChanges = {};
   ['hero','about','clips','music','schedule','socials'].forEach(captureSectionFields);
@@ -1187,45 +1291,59 @@ async function deployToLive() {
   saveToStorage();
 
   if (!STATE.ghConnected) { toast('Connect GitHub first in Connections', 'error'); return; }
+
   toast('Creating backup...', 'info');
   await createBackup('Pre-Go-Live backup');
 
-  toast('Deploying homepage + THICC to GitHub...', 'info');
+  toast('Reading index.html from GitHub...', 'info');
   try {
     const html = await readFile('index.html');
-    if (!html) { toast('Could not read index.html from GitHub', 'error'); return; }
+    if (!html) return; // readFile already toasted the error
 
+    toast('Injecting config...', 'info');
     const configJsonStr = JSON.stringify(STATE.config);
     const _sc = '\u003c/script>';
     const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');' + _sc;
-    let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
+
+    // Remove BOTH seed scripts (data-controldyn and stale data-godmode)
+    let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>\n?/g, '');
+    updated = updated.replace(/<script data-godmode>[\s\S]*?<\/script>\n?/g, '');
     updated = updated.replace('</head>', configScript + '</head>');
 
-    const homeOk = await commitFile('index.html', updated, '🚀 Control.Dyn GO LIVE homepage: ' + new Date().toLocaleString());
+    toast('Committing index.html...', 'info');
+    const homeOk = await commitFile('index.html', updated, 'Control.Dyn GO LIVE homepage: ' + new Date().toLocaleString());
+    if (!homeOk) {
+      toast('Homepage deploy failed — check Connections tab for GitHub errors', 'error');
+      logChange('error', 'Go Live failed: homepage commit rejected by GitHub');
+      return;
+    }
 
+    toast('Reading thicc/index.html...', 'info');
     let thiccOk = true;
     const thiccHtml = await readFile('thicc/index.html');
     if (thiccHtml) {
+      toast('Committing thicc/index.html...', 'info');
       const thiccUpdated = buildTHICCPageHtml(thiccHtml, STATE.config.thiccMembers);
-      thiccOk = await commitFile('thicc/index.html', thiccUpdated, '🚀 Control.Dyn GO LIVE THICC: ' + new Date().toLocaleString());
+      thiccOk = await commitFile('thicc/index.html', thiccUpdated, 'Control.Dyn GO LIVE THICC: ' + new Date().toLocaleString());
+      if (!thiccOk) logChange('error', 'THICC commit rejected by GitHub');
     } else {
       thiccOk = false;
       logChange('error', 'Could not read thicc/index.html during Go Live');
     }
 
     if (homeOk && thiccOk) {
-      toast('GO LIVE complete — homepage + THICC deployed!', 'success');
-      logChange('deploy', 'GO LIVE deployed homepage + THICC', new Date().toLocaleString());
+      toast('GO LIVE complete! Changes live in ~30 seconds.', 'success');
+      logChange('deploy', 'GO LIVE: homepage + THICC deployed', new Date().toLocaleString());
       STATE.config._lastDeploy = new Date().toISOString();
       saveToStorage(); updateDashboard();
-    } else if (homeOk && !thiccOk) {
-      toast('Homepage deployed, but THICC deploy failed', 'warning');
-      logChange('error', 'Partial Go Live: homepage ok, THICC failed');
     } else {
-      toast('GO LIVE failed — check GitHub permissions', 'error');
-      logChange('error', 'Go Live failed');
+      toast('Homepage deployed, but THICC failed. Check the Changelog.', 'warn');
+      logChange('error', 'Partial Go Live: homepage OK, THICC failed');
     }
-  } catch(e) { toast('GO LIVE error: ' + e.message, 'error'); logChange('error', e.message); }
+  } catch(e) {
+    toast('GO LIVE error: ' + e.message, 'error');
+    logChange('error', 'Go Live exception: ' + e.message);
+  }
 }
 
 async function forceDeploy() {
@@ -1914,38 +2032,6 @@ function findCtxMatch(text, className, tagName) {
   return null;
 }
 
-function buildCtxActions(match, text, className) {
-  const items = [];
-
-  if (match) {
-    items.push({
-      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-      label: `Edit: ${match.label}`,
-      action: () => jumpToField(match.section, match.field)
-    });
-  }
-
-  // Always show these
-  items.push({
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
-    label: 'Edit Theme / Colors',
-    action: () => jumpToField('theme', 'theme-green')
-  });
-  items.push({
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
-    label: 'Manage Assets',
-    action: () => jumpToField('assets', null)
-  });
-  items.push({ sep: true });
-  items.push({
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
-    label: 'Reload Preview',
-    action: () => { const f = document.getElementById('preview-frame'); if(f) f.src += ''; }
-  });
-
-  return items;
-}
-
 function jumpToField(section, fieldId) {
   showSection(section);
   hideCtxMenu();
@@ -1963,82 +2049,11 @@ function jumpToField(section, fieldId) {
   }
 }
 
-function showCtxMenu(x, y, match, elementLabel) {
-  const menu = document.getElementById('ctx-menu');
-  const titleEl = document.getElementById('ctx-title');
-  const labelEl = document.getElementById('ctx-element-label');
-  const itemsEl = document.getElementById('ctx-items');
-
-  titleEl.textContent = match ? match.label : 'Options';
-  labelEl.textContent = elementLabel ? elementLabel.substring(0, 40) : '';
-  labelEl.style.display = elementLabel ? '' : 'none';
-
-  const actions = buildCtxActions(match, '', '');
-  itemsEl.innerHTML = actions.map(a => a.sep
-    ? '<div class="ctx-sep"></div>'
-    : `<button class="ctx-item" onclick="(${a.action.toString()})()">
-        ${a.icon}
-        ${a.label}
-       </button>`
-  ).join('');
-
-  // Position — keep inside viewport
-  menu.style.left = '0'; menu.style.top = '0';
-  menu.classList.add('visible');
-  const mw = menu.offsetWidth, mh = menu.offsetHeight;
-  const vw = window.innerWidth,  vh = window.innerHeight;
-  menu.style.left = Math.min(x, vw - mw - 8) + 'px';
-  menu.style.top  = Math.min(y, vh - mh - 8) + 'px';
-}
-
 function hideCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('visible');
 }
 
 // Right-click on the preview iframe overlay
-function setupPreviewContextMenu() {
-  const previewWrap = document.querySelector('.preview-wrap');
-  if (!previewWrap) return;
-
-  previewWrap.addEventListener('contextmenu', e => {
-    e.preventDefault();
-
-    // Try to read element from iframe at click position
-    let match = null;
-    let elementLabel = '';
-    try {
-      const iframe = document.getElementById('preview-frame');
-      const iRect = iframe.getBoundingClientRect();
-      const ix = e.clientX - iRect.left;
-      const iy = e.clientY - iRect.top;
-      const iDoc = iframe.contentDocument || iframe.contentWindow.document;
-      const el = iDoc.elementFromPoint(ix, iy);
-      if (el) {
-        const text = el.textContent?.trim() || '';
-        const cls  = (el.className || '') + ' ' + (el.id || '');
-        const tag  = el.tagName?.toLowerCase() || '';
-        elementLabel = text.substring(0, 50) || cls.split(' ')[0] || tag;
-        match = findCtxMatch(text, cls, tag);
-        // Walk up if no match
-        if (!match) {
-          let parent = el.parentElement;
-          for (let i = 0; i < 4 && parent; i++, parent = parent.parentElement) {
-            const pt = parent.textContent?.trim() || '';
-            const pc = (parent.className || '') + ' ' + (parent.id || '');
-            match = findCtxMatch(pt, pc, parent.tagName?.toLowerCase() || '');
-            if (match) { elementLabel = pt.substring(0, 50) || pc.split(' ')[0]; break; }
-          }
-        }
-      }
-    } catch(err) {
-      // Cross-origin iframe — use position-based fallback
-      match = null;
-    }
-
-    showCtxMenu(e.clientX, e.clientY, match, elementLabel);
-  });
-}
-
 // Also right-click anywhere in the app itself for quick nav
 document.addEventListener('contextmenu', e => {
   // Only intercept if not in preview
@@ -2464,6 +2479,501 @@ function confirmPickerAsset() {
   if (!ASSET_PICKER.selected) return;
   if (ASSET_PICKER.callback) ASSET_PICKER.callback(ASSET_PICKER.selected);
   closeAssetPicker();
+}
+
+}
+
+// ══════════════════════════════════════════════
+//  VISUAL EDITOR
+// ══════════════════════════════════════════════
+const VE = {
+  edits: {},         // { selector: { prop: value, ... }, ... }
+  currentEl: null,   // { selector, tag, text, src, href, alt, computedStyles }
+  frameDoc: null,
+};
+
+// Load saved edits from localStorage
+function veLoadEdits() {
+  try {
+    const raw = localStorage.getItem('ve_edits');
+    if (raw) VE.edits = JSON.parse(raw);
+  } catch(e) { VE.edits = {}; }
+}
+
+function veSaveEdits() {
+  localStorage.setItem('ve_edits', JSON.stringify(VE.edits));
+}
+
+function veGetFrame() {
+  return document.getElementById('ve-preview-frame');
+}
+
+function veNavigate(url) {
+  const f = veGetFrame();
+  if (f) { f.src = url; document.getElementById('ve-url-bar').value = url; }
+}
+
+function veReloadPreview() {
+  const f = veGetFrame();
+  if (f) f.src = f.src;
+}
+
+// Scan elements from the preview iframe and populate the list
+function veScanElements() {
+  const f = veGetFrame();
+  const list = document.getElementById('ve-element-list');
+  list.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:0.5rem;">Scanning...</div>';
+  try {
+    const doc = f.contentDocument || f.contentWindow.document;
+    if (!doc) throw new Error('No document');
+    VE.frameDoc = doc;
+
+    // Collect meaningful editable elements
+    const selectors = [
+      'h1, h2, h3, h4, h5, h6',
+      'p:not(:empty)',
+      'a[href]',
+      'img[src]',
+      'button, .btn, [role="button"]',
+      '.hero-eyebrow, .hero-tagline, .hero-title',
+      '.about-bio, .about-text',
+      '.nav-logo, nav a',
+      'section[id], [data-section]',
+      '.tag, .badge, .label',
+      '.clip-title, .clip-url',
+      '.music-link-sub',
+      '.footer-link',
+    ];
+
+    const seen = new Set();
+    const elements = [];
+    doc.querySelectorAll(selectors.join(', ')).forEach(el => {
+      if (seen.has(el)) return;
+      seen.add(el);
+      const text = el.textContent?.trim().substring(0, 60) || '';
+      const tag = el.tagName.toLowerCase();
+      const id = el.id ? '#' + el.id : '';
+      const cls = el.className ? '.' + String(el.className).split(' ').filter(Boolean)[0] : '';
+      const selector = id || (tag + cls);
+      const hasImg = tag === 'img' || !!el.querySelector('img');
+      const hasLink = tag === 'a' || !!el.closest('a');
+      elements.push({ el, selector, tag, text, hasImg, hasLink });
+    });
+
+    VE.allElements = elements;
+    veRenderList(elements);
+  } catch(e) {
+    list.innerHTML = `<div style="color:var(--muted);font-size:0.78rem;padding:1rem;text-align:center;">Could not scan: ${e.message}<br><br>The preview must be on the same domain (chazdyn.com).</div>`;
+  }
+}
+
+function veRenderList(elements) {
+  const list = document.getElementById('ve-element-list');
+  if (!elements.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:0.78rem;padding:1rem;text-align:center;">No editable elements found.</div>';
+    return;
+  }
+  list.innerHTML = elements.map((item, i) => {
+    const typeIcon = item.tag === 'img' ? '🖼' :
+      item.tag === 'a' ? '🔗' :
+      /h[1-6]/.test(item.tag) ? '📝' :
+      item.tag === 'button' ? '🔘' : '✏️';
+    const edited = VE.edits[item.selector] ? '🟢 ' : '';
+    return `<div class="ve-list-item" onclick="veOpenElementEditor(${i})" style="
+      display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;
+      cursor:pointer;border:1px solid transparent;font-size:0.78rem;
+      background:var(--bg3);transition:border-color 0.15s;"
+      onmouseenter="this.style.borderColor='var(--border2)'"
+      onmouseleave="this.style.borderColor='transparent'">
+      <span style="font-size:0.9rem;flex-shrink:0;">${typeIcon}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:var(--font-mono,monospace);font-size:0.65rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${edited}${item.selector}</div>
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);">${item.text || '(' + item.tag + ')'}</div>
+      </div>
+      <span style="font-size:0.65rem;color:var(--muted);flex-shrink:0;">${item.tag}</span>
+    </div>`;
+  }).join('');
+}
+
+function veFilterList(q) {
+  if (!VE.allElements) return;
+  const filtered = q
+    ? VE.allElements.filter(e => (e.text + e.selector + e.tag).toLowerCase().includes(q.toLowerCase()))
+    : VE.allElements;
+  veRenderList(filtered);
+}
+
+function veOpenElementEditor(index) {
+  const item = VE.allElements[index];
+  if (!item) return;
+  const el = item.el;
+
+  // Gather current state
+  const computed = window.getComputedStyle ? (VE.frameDoc?.defaultView?.getComputedStyle(el) || {}) : {};
+  const existingEdits = VE.edits[item.selector] || {};
+
+  VE.currentEl = { ...item, existingEdits };
+
+  document.getElementById('ve-modal-title').textContent = 'Edit: ' + item.tag + (item.text ? ' "' + item.text.substring(0,30) + '"' : '');
+  document.getElementById('ve-modal-selector').textContent = item.selector;
+
+  const body = document.getElementById('ve-modal-body');
+  const tag = item.tag;
+  const isImg = tag === 'img';
+  const isLink = tag === 'a';
+  const hasText = !isImg;
+
+  let fields = '';
+
+  // Text content
+  if (hasText) {
+    fields += veField('Text Content', `<textarea id="ve-f-text" style="min-height:60px;resize:vertical;">${(existingEdits.textContent ?? el.textContent?.trim() ?? '').replace(/</g,'&lt;')}</textarea>`);
+  }
+
+  // Src (images)
+  if (isImg || el.querySelector('img')) {
+    const src = isImg ? el.src : el.querySelector('img')?.src || '';
+    fields += veField('Image Source (URL or ../assets/...)', `<div style="display:flex;gap:6px;"><input id="ve-f-src" type="text" value="${src}" style="flex:1;" /><button class="qa-btn ghost" onclick="vePickAsset('ve-f-src')" style="font-size:0.7rem;">Asset</button></div>`);
+    fields += veField('Alt / Accessibility Label', `<input id="ve-f-alt" type="text" value="${isImg ? el.alt : (el.querySelector('img')?.alt || '')}" />`);
+  }
+
+  // Link href
+  if (isLink || el.closest('a')) {
+    const href = isLink ? el.href : (el.closest('a')?.href || '');
+    fields += veField('Link Destination (URL)', `<input id="ve-f-href" type="text" value="${href}" />`);
+  }
+
+  // Visibility
+  fields += veField('Visibility', `<select id="ve-f-display">
+    <option value="">Default</option>
+    <option value="none" ${(existingEdits['style.display']||'') === 'none' ? 'selected' : ''}>Hidden</option>
+    <option value="block" ${(existingEdits['style.display']||'') === 'block' ? 'selected' : ''}>Show (block)</option>
+  </select>`);
+
+  // Style fields
+  fields += `<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:0.75rem;">
+    <div style="font-family:var(--display);font-size:0.8rem;letter-spacing:0.08em;color:var(--green);opacity:0.8;margin-bottom:0.6rem;">STYLE</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;">`;
+
+  const styleFields = [
+    ['Text Color', 've-f-color', 'color', existingEdits['style.color'] || el.style.color || ''],
+    ['Background', 've-f-bg', 'background', existingEdits['style.background'] || el.style.background || ''],
+    ['Font Size', 've-f-fontsize', 'fontSize', existingEdits['style.fontSize'] || el.style.fontSize || ''],
+    ['Font Weight', 've-f-fontweight', 'fontWeight', existingEdits['style.fontWeight'] || el.style.fontWeight || ''],
+    ['Padding', 've-f-padding', 'padding', existingEdits['style.padding'] || el.style.padding || ''],
+    ['Margin', 've-f-margin', 'margin', existingEdits['style.margin'] || el.style.margin || ''],
+    ['Border Radius', 've-f-radius', 'borderRadius', existingEdits['style.borderRadius'] || el.style.borderRadius || ''],
+    ['Opacity', 've-f-opacity', 'opacity', existingEdits['style.opacity'] || el.style.opacity || ''],
+  ];
+
+  styleFields.forEach(([label, id, prop, val]) => {
+    const isColor = label.includes('Color') || label === 'Background';
+    fields += `<div class="field" style="margin:0;">
+      <label style="font-size:0.62rem;">${label}</label>
+      ${isColor
+        ? `<div style="display:flex;gap:4px;align-items:center;"><input type="color" id="${id}-picker" value="${val.startsWith('#') ? val : '#ffffff'}" oninput="document.getElementById('${id}').value=this.value" style="width:30px;height:28px;padding:1px;cursor:pointer;" /><input type="text" id="${id}" value="${val}" style="flex:1;font-size:0.75rem;" oninput="this.previousElementSibling.value=this.value||'#ffffff'" /></div>`
+        : `<input type="text" id="${id}" value="${val}" placeholder="${prop}" style="font-size:0.75rem;" />`}
+    </div>`;
+  });
+
+  fields += `</div></div>`;
+
+  // Advanced CSS
+  fields += veField('Advanced Inline CSS', `<textarea id="ve-f-css" placeholder="e.g. display:flex; gap:10px;" style="min-height:48px;font-family:monospace;font-size:0.75rem;">${existingEdits['style.cssText'] || ''}</textarea>`);
+
+  body.innerHTML = fields;
+  document.getElementById('ve-elem-modal').style.display = 'flex';
+}
+
+function veField(label, inputHtml) {
+  return `<div class="field" style="margin-bottom:0;">
+    <label style="font-size:0.65rem;">${label}</label>
+    ${inputHtml}
+  </div>`;
+}
+
+function vePickAsset(targetId) {
+  if (typeof openAssetPickerModal === 'function') {
+    openAssetPickerModal('image', (relPath) => {
+      const el = document.getElementById(targetId);
+      if (el) el.value = relPath;
+    });
+  } else {
+    toast('Asset picker not available', 'error');
+  }
+}
+
+function veApplyEdit() {
+  const item = VE.currentEl;
+  if (!item) return;
+
+  const get = id => document.getElementById(id)?.value ?? null;
+
+  const edits = {};
+
+  // Text
+  const text = get('ve-f-text');
+  if (text !== null) edits.textContent = text;
+
+  // Src
+  const src = get('ve-f-src');
+  if (src !== null) edits['attr.src'] = src;
+  const alt = get('ve-f-alt');
+  if (alt !== null) edits['attr.alt'] = alt;
+
+  // Href
+  const href = get('ve-f-href');
+  if (href !== null) edits['attr.href'] = href;
+
+  // Display
+  const display = get('ve-f-display');
+  if (display) edits['style.display'] = display;
+
+  // Styles
+  const styleMap = {
+    've-f-color': 'style.color',
+    've-f-bg': 'style.background',
+    've-f-fontsize': 'style.fontSize',
+    've-f-fontweight': 'style.fontWeight',
+    've-f-padding': 'style.padding',
+    've-f-margin': 'style.margin',
+    've-f-radius': 'style.borderRadius',
+    've-f-opacity': 'style.opacity',
+  };
+  Object.entries(styleMap).forEach(([id, key]) => {
+    const val = get(id);
+    if (val) edits[key] = val;
+  });
+
+  // Advanced CSS
+  const css = get('ve-f-css');
+  if (css) edits['style.cssText'] = css;
+
+  // Store and apply to preview
+  VE.edits[item.selector] = { ...VE.edits[item.selector], ...edits };
+  veSaveEdits();
+  veApplyEditsToFrame();
+
+  toast('Edit saved — use Deploy Edits to push to live site', 'success');
+  logChange('edit', 'Visual edit: ' + item.selector);
+  veCloseModal();
+  veScanElements(); // refresh list
+}
+
+function veApplyEditsToFrame() {
+  const f = veGetFrame();
+  try {
+    const doc = f.contentDocument || f.contentWindow.document;
+    Object.entries(VE.edits).forEach(([selector, edits]) => {
+      const els = doc.querySelectorAll(selector);
+      els.forEach(el => {
+        Object.entries(edits).forEach(([prop, val]) => {
+          if (prop === 'textContent') el.textContent = val;
+          else if (prop.startsWith('attr.')) el.setAttribute(prop.slice(5), val);
+          else if (prop.startsWith('style.')) {
+            const cssProp = prop.slice(6);
+            if (cssProp === 'cssText') el.style.cssText += ';' + val;
+            else el.style[cssProp] = val;
+          }
+        });
+      });
+    });
+  } catch(e) { console.warn('veApplyEditsToFrame:', e); }
+}
+
+function veCloseModal() {
+  document.getElementById('ve-elem-modal').style.display = 'none';
+  VE.currentEl = null;
+}
+
+// Re-apply edits whenever preview reloads
+document.getElementById('ve-preview-frame')?.addEventListener('load', () => {
+  setTimeout(veApplyEditsToFrame, 300);
+});
+
+async function veDeployEdits() {
+  if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return; }
+  if (!Object.keys(VE.edits).length) { toast('No visual edits to deploy', 'info'); return; }
+
+  toast('Reading index.html...', 'info');
+  const html = await readFile('index.html');
+  if (!html) return;
+
+  const editsJson = JSON.stringify(VE.edits);
+  const _sc = '\u003c/script>';
+  const veScript = '\n<script data-ve-edits>window.__VE_EDITS__=' + editsJson + ';' + _sc;
+  let updated = html.replace(/<script data-ve-edits>[\s\S]*?<\/script>\n?/, '');
+  updated = updated.replace('</head>', veScript + '\n</head>');
+
+  toast('Committing...', 'info');
+  const ok = await commitFile('index.html', updated, 'Visual Editor edits: ' + new Date().toLocaleString());
+  if (ok) {
+    toast('Visual edits deployed!', 'success');
+    logChange('deploy', 'Visual Editor edits deployed');
+  }
+}
+
+// Upgrade setupPreviewContextMenu to work with BOTH preview frames
+// and add all requested menu options
+function setupPreviewContextMenu() {
+  // Attach to ALL preview wraps (main preview + visual editor)
+  document.querySelectorAll('.preview-wrap').forEach(previewWrap => {
+    previewWrap.addEventListener('contextmenu', e => {
+      e.preventDefault();
+
+      let capturedEl = null;
+      let match = null;
+      let elementLabel = '';
+
+      // Try to identify the clicked element inside the iframe
+      const iframes = previewWrap.querySelectorAll('iframe');
+      for (const iframe of iframes) {
+        try {
+          const iRect = iframe.getBoundingClientRect();
+          const ix = e.clientX - iRect.left;
+          const iy = e.clientY - iRect.top;
+          if (ix < 0 || iy < 0 || ix > iRect.width || iy > iRect.height) continue;
+          const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+          const el = iDoc.elementFromPoint(ix, iy);
+          if (el) {
+            capturedEl = el;
+            const text = el.textContent?.trim() || '';
+            const cls  = (el.className || '') + ' ' + (el.id || '');
+            const tag  = el.tagName?.toLowerCase() || '';
+            elementLabel = text.substring(0, 50) || cls.split(' ')[0] || tag;
+            match = findCtxMatch(text, cls, tag);
+            if (!match) {
+              let parent = el.parentElement;
+              for (let i = 0; i < 4 && parent; i++, parent = parent.parentElement) {
+                const pt = parent.textContent?.trim() || '';
+                const pc = (parent.className || '') + ' ' + (parent.id || '');
+                match = findCtxMatch(pt, pc, parent.tagName?.toLowerCase() || '');
+                if (match) { capturedEl = parent; elementLabel = pt.substring(0, 50) || pc.split(' ')[0]; break; }
+              }
+            }
+          }
+          break;
+        } catch(err) { /* cross-origin */ }
+      }
+
+      showCtxMenu(e.clientX, e.clientY, match, elementLabel, capturedEl);
+    });
+  });
+}
+
+function buildCtxActions(match, text, className, capturedEl) {
+  const items = [];
+
+  // Edit This Exact Element
+  if (capturedEl) {
+    items.push({
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+      label: 'Edit This Exact Element',
+      action: () => {
+        // Find element index in VE list, or add it
+        const tag = capturedEl.tagName.toLowerCase();
+        const id = capturedEl.id ? '#' + capturedEl.id : '';
+        const cls = capturedEl.className ? '.' + String(capturedEl.className).split(' ').filter(Boolean)[0] : '';
+        const selector = id || (tag + cls);
+        const text = capturedEl.textContent?.trim().substring(0, 60) || '';
+        const tempItem = { el: capturedEl, selector, tag, text, hasImg: tag === 'img', hasLink: tag === 'a', existingEdits: VE.edits[selector] || {} };
+        VE.currentEl = tempItem;
+        VE.allElements = VE.allElements || [];
+        const existingIdx = VE.allElements.findIndex(e => e.selector === selector);
+        if (existingIdx === -1) { VE.allElements.unshift(tempItem); veOpenElementEditor(0); }
+        else veOpenElementEditor(existingIdx);
+        hideCtxMenu();
+      }
+    });
+  }
+
+  // Hide This Element
+  if (capturedEl) {
+    items.push({
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
+      label: 'Hide This Element',
+      action: () => {
+        const tag = capturedEl.tagName.toLowerCase();
+        const id = capturedEl.id ? '#' + capturedEl.id : '';
+        const cls = capturedEl.className ? '.' + String(capturedEl.className).split(' ').filter(Boolean)[0] : '';
+        const selector = id || (tag + cls);
+        VE.edits[selector] = { ...(VE.edits[selector] || {}), 'style.display': 'none' };
+        veSaveEdits();
+        capturedEl.style.display = 'none';
+        toast('Element hidden — Deploy Edits to push to live', 'success');
+        logChange('edit', 'Hidden: ' + selector);
+        hideCtxMenu();
+      }
+    });
+  }
+
+  // Open Existing Control
+  if (match) {
+    items.push({
+      icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+      label: `Open Existing Control: ${match.label}`,
+      action: () => jumpToField(match.section, match.field)
+    });
+  }
+
+  items.push({ sep: true });
+
+  // Open Visual Editor List
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>`,
+    label: 'Open Visual Editor List',
+    action: () => { showSection('visual-editor'); veScanElements(); hideCtxMenu(); }
+  });
+
+  // Edit Theme / Colors
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+    label: 'Edit Theme / Colors',
+    action: () => jumpToField('theme', 'theme-green')
+  });
+
+  // Manage Assets
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+    label: 'Manage Assets',
+    action: () => jumpToField('assets', null)
+  });
+
+  items.push({ sep: true });
+  items.push({
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`,
+    label: 'Reload Preview',
+    action: () => { const f = document.getElementById('preview-frame'); if(f) f.src += ''; }
+  });
+
+  return items;
+}
+
+function showCtxMenu(x, y, match, elementLabel, capturedEl) {
+  const menu = document.getElementById('ctx-menu');
+  const titleEl = document.getElementById('ctx-title');
+  const labelEl = document.getElementById('ctx-element-label');
+  const itemsEl = document.getElementById('ctx-items');
+
+  titleEl.textContent = match ? match.label : 'Options';
+  labelEl.textContent = elementLabel ? elementLabel.substring(0, 40) : '';
+  labelEl.style.display = elementLabel ? '' : 'none';
+
+  const actions = buildCtxActions(match, '', '', capturedEl);
+  itemsEl.innerHTML = actions.map(a => a.sep
+    ? '<div class="ctx-sep"></div>'
+    : `<button class="ctx-item" onclick="(${a.action.toString()})()">
+        ${a.icon}
+        ${a.label}
+       </button>`
+  ).join('');
+
+  menu.style.left = '0'; menu.style.top = '0';
+  menu.classList.add('visible');
+  const mw = menu.offsetWidth, mh = menu.offsetHeight;
+  const vw = window.innerWidth,  vh = window.innerHeight;
+  menu.style.left = Math.min(x, vw - mw - 8) + 'px';
+  menu.style.top  = Math.min(y, vh - mh - 8) + 'px';
 }
 
 // ══════════════════════════════════════════════

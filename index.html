@@ -815,7 +815,29 @@
     } catch(e) { console.warn('Config error', e); }
   }
 
+  // ── Apply Visual Editor edits (from Control.Dyn Visual Editor) ──
+  function applyVisualEdits() {
+    const edits = window.__VE_EDITS__;
+    if (!edits || typeof edits !== 'object') return;
+    Object.entries(edits).forEach(([selector, props]) => {
+      try {
+        document.querySelectorAll(selector).forEach(el => {
+          Object.entries(props).forEach(([prop, val]) => {
+            if (prop === 'textContent') el.textContent = val;
+            else if (prop.startsWith('attr.')) el.setAttribute(prop.slice(5), val);
+            else if (prop.startsWith('style.')) {
+              const cssProp = prop.slice(6);
+              if (cssProp === 'cssText') el.style.cssText += ';' + val;
+              else el.style[cssProp] = val;
+            }
+          });
+        });
+      } catch(e) { console.warn('VE edit error:', selector, e); }
+    });
+  }
+
   applyConfig();
+  applyVisualEdits();
 </script>
 </body>
 </html>
