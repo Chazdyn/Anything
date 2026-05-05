@@ -227,6 +227,10 @@
                 <button class="mode-btn active" onclick="setPreviewSrc('preview')">Preview</button>
                 <button class="mode-btn" onclick="setPreviewSrc('live')">Live</button>
               </div>
+              <button class="qa-btn ghost" onclick="enableVisualEditor()" title="Right-click the preview to edit fields">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Visual Editor
+              </button>
               <button class="qa-btn ghost" onclick="document.getElementById('preview-frame').src += ''">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                 Reload
@@ -817,7 +821,7 @@ function loadFromStorage() {
       if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
       if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
       if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
-      if (STATE.ghConnected) updateGhStatus(true);
+      if (STATE.ghConnected) { updateGhStatus(true); setTimeout(syncControlDynFromLive, 350); }
       if (STATE.twitchConnected && STATE.twitchClientId) startTwitchPolling();
     } catch(e) {}
   }
@@ -895,7 +899,7 @@ async function saveGitHubCreds() {
   saveToStorage();
   try {
     const r = await fetch(ghBase(), { headers: ghHeaders() });
-    if (r.ok) { updateGhStatus(true); toast('GitHub connected!', 'success'); refreshAssets(); }
+    if (r.ok) { updateGhStatus(true); toast('GitHub connected!', 'success'); refreshAssets(); syncControlDynFromLive(); }
     else throw new Error('Auth failed');
   } catch(e) { updateGhStatus(false); toast('GitHub connection failed: ' + e.message, 'error'); }
 }
@@ -938,6 +942,105 @@ async function readFile(path) {
   return decodeURIComponent(escape(atob(d.content.replace(/\n/g,''))));
 }
 
+
+// ══════════════════════════════════════════════
+//  LIVE DATA SYNC
+// ══════════════════════════════════════════════
+function extractScriptPayload(html, attr, storageKey) {
+  const re = new RegExp("<script\\s+" + attr + "[^>]*>\\s*localStorage\\.setItem\\([\"']" + storageKey + "[\"']\\s*,\\s*([\\s\\S]*?)\\);?\\s*<\\/script>", 'i');
+  const m = html.match(re);
+  if (!m) return null;
+  try { return JSON.parse(JSON.parse(m[1])); }
+  catch(e) {
+    try { return JSON.parse(m[1]); }
+    catch(_) { return null; }
+  }
+}
+
+function extractDefaultMembers(html) {
+  const m = html.match(/const\s+DEFAULT_MEMBERS\s*=\s*(\[[\s\S]*?\]);/);
+  if (!m) return null;
+  try { return (new Function('return ' + m[1]))(); }
+  catch(e) { console.warn('Could not parse DEFAULT_MEMBERS:', e); return null; }
+}
+
+async function syncControlDynFromLive() {
+  if (!STATE.ghConnected) return;
+  try {
+    const [indexHtml, thiccHtml] = await Promise.all([readFile('index.html'), readFile('thicc/index.html')]);
+    let changed = false;
+    if (indexHtml) {
+      const liveConfig = extractScriptPayload(indexHtml, 'data-controldyn', 'chazdyn_config');
+      if (liveConfig && typeof liveConfig === 'object') {
+        STATE.config = {...STATE.config, ...liveConfig};
+        localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+        applyConfigToEditor(STATE.config);
+        changed = true;
+      }
+    }
+    if (thiccHtml) {
+      const liveMembers = extractScriptPayload(thiccHtml, 'data-thicc-deploy', 'chazdyn_thicc') || (STATE.config && Array.isArray(STATE.config.thiccMembers) ? STATE.config.thiccMembers : null) || extractDefaultMembers(thiccHtml);
+      if (Array.isArray(liveMembers) && liveMembers.length) {
+        localStorage.setItem('chazdyn_thicc', JSON.stringify(liveMembers));
+        renderTHICC();
+        changed = true;
+      }
+    }
+    if (changed) {
+      saveToStorage();
+      updateDashboard();
+      toast('Pulled current live fields into Control.Dyn', 'success');
+      logChange('sync', 'Loaded current live site fields');
+    }
+  } catch(e) {
+    console.warn('Live sync failed:', e);
+    toast('Could not pull live fields: ' + e.message, 'warning');
+  }
+}
+
+function setVal(id, value) {
+  const el = document.getElementById(id);
+  if (!el || value === undefined || value === null) return;
+  if (el.type === 'checkbox') el.checked = !!value;
+  else el.value = Array.isArray(value) ? value.join(', ') : value;
+}
+
+function applyConfigToEditor(c) {
+  setVal('hero-live-badge', c.isLive);
+  setVal('hero-eyebrow', c.heroEyebrow);
+  setVal('hero-tagline', c.heroTagline);
+  setVal('hero-twitch-url', c.twitchUrl);
+  setVal('hero-discord-url', c.discordUrl);
+  setVal('about-avatar-url', c.avatarUrl);
+  setVal('about-short-bio', c.aboutBio);
+  setVal('about-long-bio', c.aboutLong);
+  setVal('about-tags', c.aboutTags);
+  setVal('music-video-url', c.musicVideoUrl);
+  setVal('music-yt-url', c.musicYtUrl);
+  setVal('music-spotify-url', c.musicSpotUrl);
+  setVal('music-sc-url', c.musicScUrl);
+  setVal('soc-twitch', c.twitchUrl);
+  setVal('soc-discord', c.discordUrl);
+  setVal('soc-tiktok', c.tiktokUrl);
+  setVal('soc-insta', c.instaUrl);
+  setVal('soc-thicc', c.thiccUrl);
+  setVal('theme-green', c.accentColor);
+  setVal('theme-green-hex', c.accentColor);
+  setVal('theme-cyan', c.accent2Color);
+  setVal('theme-cyan-hex', c.accent2Color);
+  setVal('theme-bg', c.bgColor);
+  setVal('theme-bg-hex', c.bgColor);
+  setVal('theme-display-font', c.displayFont);
+  setVal('theme-body-font', c.bodyFont);
+  setVal('thicc-desc', c.thiccDesc);
+  setVal('thicc-game', c.thiccGame);
+  setVal('thicc-founded', c.thiccFounded);
+  setVal('thicc-tag', c.thiccTag);
+  setVal('thicc-fullname', c.thiccFullname);
+  if (Array.isArray(c.clips)) { STATE.clips = c.clips; renderClipsEditor(); }
+  if (c.schedule) { STATE.schedule = c.schedule; renderScheduleEditor(); }
+}
+
 // ══════════════════════════════════════════════
 //  DEPLOY
 // ══════════════════════════════════════════════
@@ -947,7 +1050,13 @@ async function deployToLive() {
   STATE.pendingChanges = {};
   STATE.config.clips = STATE.clips;
   STATE.config.schedule = STATE.schedule;
+  if (document.getElementById('thicc-roster-editor')) {
+    const thiccMembers = collectTHICC();
+    STATE.config.thiccMembers = thiccMembers;
+    localStorage.setItem('chazdyn_thicc', JSON.stringify(thiccMembers));
+  }
   STATE.config.isLive = STATE.liveBadgeOn || !!(document.getElementById('hero-live-badge') && document.getElementById('hero-live-badge').checked);
+  STATE.config._lastDeploy = new Date().toISOString();
   localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
   saveToStorage();
   if (!STATE.ghConnected) { toast('Connect GitHub first in Connections', 'error'); return; }
@@ -969,7 +1078,6 @@ async function deployToLive() {
     if (ok) {
       toast('Deployed successfully!', 'success');
       logChange('deploy', 'Deployed to live', new Date().toLocaleString());
-      STATE.config._lastDeploy = new Date().toISOString();
       saveToStorage(); updateDashboard();
     } else {
       toast('Deploy failed — check GitHub permissions', 'error');
@@ -1122,11 +1230,89 @@ function renderAssets() {
         </div>
         <div class="asset-actions">
           <button class="asset-btn" onclick="copyToClipboard('${STATE.showFullUrls ? rawUrl : a.name}')">Copy</button>
+          <button class="asset-btn" onclick="openAssetSelector(null,{standalone:true,preferred:'${isVideo?'video':isImage?'image':'file'}'})">Select</button>
           <button class="asset-btn delete" onclick="deleteAsset('${a.path}','${a.sha}')">Delete</button>
         </div>
       </div>`;
   }).join('');
 }
+
+
+function assetDisplayPath(asset, opts = {}) {
+  const rawUrl = `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/${asset.path}`;
+  if (STATE.showFullUrls) return rawUrl;
+  if (opts.thicc) return '../assets/' + asset.name;
+  return 'assets/' + asset.name;
+}
+
+async function openAssetSelector(target, opts = {}) {
+  if (!STATE.ghConnected) { toast('Connect GitHub first to browse assets', 'error'); return; }
+  if (!STATE.assets || !STATE.assets.length) await refreshAssets();
+  const targetInput = typeof target === 'string' ? document.querySelector(target) : target;
+  const files = (STATE.assets || []).filter(a => a.type === 'file');
+  const preferred = opts.preferred || 'image';
+  const filtered = files.filter(a => {
+    if (preferred === 'image') return /\.(jpe?g|png|gif|webp|svg)$/i.test(a.name);
+    if (preferred === 'video') return /\.(mp4|webm|mov|avi)$/i.test(a.name);
+    return true;
+  });
+  let modal = document.getElementById('asset-picker-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'asset-picker-modal';
+    modal.className = 'asset-picker-modal hidden';
+    document.body.appendChild(modal);
+  }
+  const rawBase = `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/`;
+  modal.innerHTML = `
+    <div class="asset-picker-dialog">
+      <div class="asset-picker-head">
+        <div>
+          <div class="asset-picker-title">Select Asset</div>
+          <div class="asset-picker-subtitle">Choose an existing file from /assets. Upload new files from the Assets tab or each member field.</div>
+        </div>
+        <button class="qa-btn ghost" onclick="closeAssetSelector()">Close</button>
+      </div>
+      <div class="asset-picker-grid">
+        ${filtered.length ? filtered.map((a, i) => {
+          const isImage=/\.(jpe?g|png|gif|webp|svg)$/i.test(a.name);
+          const isVideo=/\.(mp4|webm|mov|avi)$/i.test(a.name);
+          const rawUrl=rawBase+a.path;
+          const preview=isImage?`<img src="${rawUrl}" alt="${escapeHtml(a.name)}"/>`:isVideo?`<div class="asset-picker-placeholder">🎬</div>`:`<div class="asset-picker-placeholder">📄</div>`;
+          return `<button class="asset-picker-card" onclick="chooseAssetFromPicker(${i})">${preview}<span>${escapeHtml(a.name)}</span></button>`;
+        }).join('') : '<div class="asset-picker-empty">No matching assets found.</div>'}
+      </div>
+    </div>`;
+  modal._targetInput = targetInput || null;
+  modal._opts = opts;
+  modal._files = filtered;
+  modal.classList.remove('hidden');
+}
+
+function chooseAssetFromPicker(i) {
+  const modal = document.getElementById('asset-picker-modal');
+  const asset = modal && modal._files ? modal._files[i] : null;
+  if (!asset) return;
+  const value = assetDisplayPath(asset, modal._opts || {});
+  if (modal._targetInput) {
+    modal._targetInput.value = value;
+    modal._targetInput.dispatchEvent(new Event('input', {bubbles:true}));
+    toast('Selected ' + asset.name, 'success');
+  } else {
+    copyToClipboard(value);
+  }
+  closeAssetSelector();
+}
+
+function closeAssetSelector() {
+  const modal = document.getElementById('asset-picker-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function escapeAttr(v) { return escapeHtml(v); }
 
 async function uploadAsset(input, targetInputId, configKey) {
   const file = input.files[0];
@@ -1597,6 +1783,9 @@ function jumpToField(section, fieldId) {
   }
 }
 
+let CTX_ACTIONS = [];
+function runCtxAction(i) { const fn = CTX_ACTIONS[i]; hideCtxMenu(); if (typeof fn === 'function') fn(); }
+
 function showCtxMenu(x, y, match, elementLabel) {
   const menu = document.getElementById('ctx-menu');
   const titleEl = document.getElementById('ctx-title');
@@ -1608,9 +1797,10 @@ function showCtxMenu(x, y, match, elementLabel) {
   labelEl.style.display = elementLabel ? '' : 'none';
 
   const actions = buildCtxActions(match, '', '');
-  itemsEl.innerHTML = actions.map(a => a.sep
+  CTX_ACTIONS = actions.map(a => a.action);
+  itemsEl.innerHTML = actions.map((a, i) => a.sep
     ? '<div class="ctx-sep"></div>'
-    : `<button class="ctx-item" onclick="(${a.action.toString()})()">
+    : `<button class="ctx-item" onclick="runCtxAction(${i})">
         ${a.icon}
         ${a.label}
        </button>`
@@ -1629,10 +1819,18 @@ function hideCtxMenu() {
   document.getElementById('ctx-menu').classList.remove('visible');
 }
 
+function enableVisualEditor() {
+  setPreviewSrc('preview');
+  setupPreviewContextMenu();
+  toast('Visual editor enabled — right-click inside the preview to edit fields', 'success');
+  showSection('preview');
+}
+
 // Right-click on the preview iframe overlay
 function setupPreviewContextMenu() {
   const previewWrap = document.querySelector('.preview-wrap');
-  if (!previewWrap) return;
+  if (!previewWrap || previewWrap.dataset.visualEditorBound === '1') return;
+  previewWrap.dataset.visualEditorBound = '1';
 
   previewWrap.addEventListener('contextmenu', e => {
     e.preventDefault();
@@ -1785,8 +1983,8 @@ function renderMemberEditor(m, i) {
       <select class="thicc-soc-platform" style="width:110px;font-size:0.78rem;padding:0.3rem">
         ${['Twitch','TikTok','Instagram','YouTube','Twitter','Other'].map(p=>`<option ${s.platform===p?'selected':''}>${p}</option>`).join('')}
       </select>
-      <input class="thicc-soc-url" type="text" value="${s.url||''}" placeholder="URL" style="flex:1;font-size:0.78rem;padding:0.3rem" />
-      <input class="thicc-soc-handle" type="text" value="${s.handle||''}" placeholder="@handle" style="width:110px;font-size:0.78rem;padding:0.3rem" />
+      <input class="thicc-soc-url" type="text" value="${escapeAttr(s.url||'')}" placeholder="URL" style="flex:1;font-size:0.78rem;padding:0.3rem" />
+      <input class="thicc-soc-handle" type="text" value="${escapeAttr(s.handle||'')}" placeholder="@handle" style="width:110px;font-size:0.78rem;padding:0.3rem" />
       <button class="qa-btn danger" onclick="removeSocialRow(this)" style="padding:3px 8px;font-size:0.7rem">✕</button>
     </div>`).join('');
 
@@ -1807,15 +2005,15 @@ function renderMemberEditor(m, i) {
       <div class="field-row" style="margin-bottom:0.6rem">
         <div class="field">
           <label>Display Name</label>
-          <input type="text" class="thicc-name" value="${m.name||''}" placeholder="Name" />
+          <input type="text" class="thicc-name" value="${escapeAttr(m.name||'')}" placeholder="Name" />
         </div>
         <div class="field">
           <label>Gamertag</label>
-          <input type="text" class="thicc-gamertag" value="${m.gamertag||''}" placeholder="Gamertag" />
+          <input type="text" class="thicc-gamertag" value="${escapeAttr(m.gamertag||'')}" placeholder="Gamertag" />
         </div>
         <div class="field">
           <label>Rank</label>
-          <input type="text" class="thicc-rank" value="${m.rank||'Member'}" placeholder="Member" />
+          <input type="text" class="thicc-rank" value="${escapeAttr(m.rank||'Member')}" placeholder="Member" />
         </div>
       </div>
       <div class="field" style="margin-bottom:0.6rem">
@@ -1826,7 +2024,8 @@ function renderMemberEditor(m, i) {
         <div class="field">
           <label>Photo (filename or URL)</label>
           <div class="flex-row">
-            <input type="text" class="thicc-photo-url" value="${m.photoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <input type="text" class="thicc-photo-url" value="${escapeAttr(m.photoUrl||'')}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <button class="qa-btn ghost" onclick="openAssetSelector(this.closest('.flex-row').querySelector('.thicc-photo-url'),{thicc:true,preferred:'image'})" style="font-size:0.72rem">Select</button>
             <button class="qa-btn ghost" onclick="uploadTHICC(this,'photo')" style="font-size:0.72rem">Upload</button>
             <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'photo')" />
           </div>
@@ -1834,11 +2033,23 @@ function renderMemberEditor(m, i) {
         <div class="field">
           <label>Hover Video (filename or URL)</label>
           <div class="flex-row">
-            <input type="text" class="thicc-video-url" value="${m.videoUrl||''}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <input type="text" class="thicc-video-url" value="${escapeAttr(m.videoUrl||'')}" placeholder="assets/..." style="flex:1;font-size:0.8rem" />
+            <button class="qa-btn ghost" onclick="openAssetSelector(this.closest('.flex-row').querySelector('.thicc-video-url'),{thicc:true,preferred:'video'})" style="font-size:0.72rem">Select</button>
             <button class="qa-btn ghost" onclick="uploadTHICC(this,'video')" style="font-size:0.72rem">Upload</button>
             <input type="file" accept="video/*" style="display:none" onchange="handleTHICCUpload(this,'video')" />
           </div>
         </div>
+      </div>
+
+      <div class="field" style="margin-bottom:0.6rem">
+        <label>Profile Popout Banner (filename or URL)</label>
+        <div class="flex-row">
+          <input type="text" class="thicc-banner-url" value="${escapeAttr(m.bannerUrl||'')}" placeholder="../assets/banner.jpg" style="flex:1;font-size:0.8rem" />
+          <button class="qa-btn ghost" onclick="openAssetSelector(this.closest('.flex-row').querySelector('.thicc-banner-url'),{thicc:true,preferred:'image'})" style="font-size:0.72rem">Select</button>
+          <button class="qa-btn ghost" onclick="uploadTHICC(this,'banner')" style="font-size:0.72rem">Upload</button>
+          <input type="file" accept="image/*" style="display:none" onchange="handleTHICCUpload(this,'banner')" />
+        </div>
+        <div class="input-hint">Shown across the top of that member's click-to-open profile.</div>
       </div>
       <div class="field">
         <label>Social Links</label>
@@ -1890,7 +2101,7 @@ async function handleTHICCUpload(input, type) {
   const file = input.files[0];
   if (!file) return;
   if (!STATE.ghConnected) { toast('Connect GitHub to upload', 'error'); return; }
-  if (type === 'photo' && isCropCapableImage(file)) {
+  if ((type === 'photo' || type === 'banner') && isCropCapableImage(file)) {
     openImageCropper(file, async (processedFile) => {
       await finishTHICCUpload(input, processedFile);
       if (input.value !== undefined) input.value = '';
@@ -1910,7 +2121,7 @@ async function finishTHICCUpload(input, file) {
       const urlInput = input.closest('.flex-row').querySelector('input[type="text"]');
       if (urlInput) urlInput.value = STATE.showFullUrls
         ? `https://raw.githubusercontent.com/${STATE.ghOwner}/${STATE.ghRepo}/${STATE.ghBranch}/assets/${file.name}`
-        : file.name;
+        : `../assets/${file.name}`;
       toast(file.name + ' uploaded!', 'success');
       logChange('edit', 'Uploaded THICC asset: ' + file.name);
       refreshAssets();
