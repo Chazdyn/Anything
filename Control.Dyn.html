@@ -19,7 +19,7 @@
 <body>
 <!-- Discord Auth Gate -->
 <div id="discord-auth-gate" style="display:none;position:fixed;inset:0;background:#080c10;z-index:9999;display:flex;align-items:center;justify-content:center;">
-  <div style="background:#0f1318;border:1px solid rgba(57,255,20,0.15);padding:3rem;max-width:400px;width:90%;text-align:center;position:relative;">
+  <div style="background:#0f1318;border:1px solid rgba(57,255,20,0.15);padding:3rem;max-width:440px;width:90%;text-align:center;position:relative;">
     <div style="position:absolute;top:0;left:0;width:24px;height:24px;border-top:2px solid #39ff14;border-left:2px solid #39ff14;"></div>
     <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-bottom:2px solid #39ff14;border-right:2px solid #39ff14;"></div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:2.5rem;letter-spacing:0.1em;color:#39ff14;margin-bottom:0.5rem;">CONTROL.DYN</div>
@@ -649,20 +649,10 @@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C.33 12.6.73 13.39 1.424 13.39h9.678l.004 9.537c.015.986 1.26 1.41 1.874.637l9.262-11.651c.434-.55.034-1.34-.66-1.34h-9.678L11.9 1.036z"/></svg>
                 Supabase (SpaceDyn)
               </label>
-              <div class="field">
-                <label>Project URL</label>
-                <input type="text" id="sd-supabase-url" placeholder="https://lqayctcgprumnvlaktms.supabase.co" oninput="sdSaveCreds()" />
-              </div>
-              <div class="field" style="margin-top:0.5rem;">
-                <label>Anon Key</label>
-                <div class="flex-row">
-                  <input type="password" id="sd-supabase-key" placeholder="public sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG" style="flex:1" oninput="sdSaveCreds()" />
-                  <button class="qa-btn ghost" onclick="toggleVisible('sd-supabase-key')">Show</button>
-                </div>
-              </div>
-              <div class="flex-row" style="margin-top:0.5rem;">
+              <p class="text-muted" style="font-size:0.8rem;">Credentials are built into the repo. Use the button below to verify the connection is working.</p>
+              <div class="flex-row" style="margin-top:0.75rem;">
                 <button class="qa-btn ghost" onclick="sdTestConnection()">Test Connection</button>
-                <span id="sd-conn-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
+                <span id="sd-conn-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not tested</span>
               </div>
             </div>
             <div class="field">
@@ -2512,36 +2502,26 @@ async function deployTHICC() {
 // ══════════════════════════════════════════════
 //  DISCORD AUTH GATE
 // ══════════════════════════════════════════════
-// Your Discord user ID — same one used in admin.html
 const CD_ADMIN_DISCORD_ID = '562352729482067968';
-const CD_SUPABASE_URL_KEY = 'https://lqayctcgprumnvlaktms.supabase.co';
-const CD_SUPABASE_KEY_KEY = 'public sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG';
-const CD_AUTH_KEY = 'cd_discord_session';
+const CD_SUPABASE_URL = 'https://lqayctcgprumnvlaktms.supabase.co';
+const CD_SUPABASE_KEY = 'sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG';
 
 let cdSupabase = null;
 
 function cdInitSupabase() {
-  const url = localStorage.getItem(CD_SUPABASE_URL_KEY);
-  const key = localStorage.getItem(CD_SUPABASE_KEY_KEY);
-  if (url && key && window.supabase) {
-    cdSupabase = window.supabase.createClient(url, key);
-    return true;
+  if (window.supabase && !cdSupabase) {
+    cdSupabase = window.supabase.createClient(CD_SUPABASE_URL, CD_SUPABASE_KEY);
   }
-  return false;
+  return !!cdSupabase;
 }
 
 async function cdCheckAuth() {
   const gate = document.getElementById('discord-auth-gate');
   const app = document.querySelector('.app');
 
-  // Load saved Supabase creds into connections fields
-  const savedUrl = localStorage.getItem(CD_SUPABASE_URL_KEY);
-  const savedKey = localStorage.getItem(CD_SUPABASE_KEY_KEY);
-  if (savedUrl) document.getElementById('sd-supabase-url').value = savedUrl;
-  if (savedKey) document.getElementById('sd-supabase-key').value = savedKey;
+  cdInitSupabase();
 
-  if (!cdInitSupabase()) {
-    // No Supabase configured yet — show gate
+  if (!cdSupabase) {
     gate.style.display = 'flex';
     app.style.display = 'none';
     return;
@@ -2563,11 +2543,9 @@ async function cdCheckAuth() {
     return;
   }
 
-  // Authenticated — show app
   gate.style.display = 'none';
   app.style.display = '';
 
-  // Add logout button to topbar
   const topbarRight = document.querySelector('.topbar-right');
   if (topbarRight && !document.getElementById('cd-logout-btn')) {
     const av = session.user.user_metadata?.avatar_url;
@@ -2581,16 +2559,12 @@ async function cdCheckAuth() {
     topbarRight.prepend(userEl);
   }
 
-  // Load SpaceDyn data
   sdLoadMembers();
   sdLoadRequests();
 }
 
 async function cdDiscordLogin() {
-  if (!cdInitSupabase()) {
-    alert('Set your Supabase URL and Anon Key in Connections first, then try again.');
-    return;
-  }
+  cdInitSupabase();
   await cdSupabase.auth.signInWithOAuth({
     provider: 'discord',
     options: { redirectTo: window.location.href }
@@ -2602,17 +2576,8 @@ async function cdLogout() {
   location.reload();
 }
 
-function sdSaveCreds() {
-  const url = document.getElementById('sd-supabase-url').value.trim();
-  const key = document.getElementById('sd-supabase-key').value.trim();
-  if (url) localStorage.setItem(CD_SUPABASE_URL_KEY, url);
-  if (key) localStorage.setItem(CD_SUPABASE_KEY_KEY, key);
-  cdInitSupabase();
-}
-
 async function sdTestConnection() {
-  sdSaveCreds();
-  if (!cdSupabase) { toast('Enter Supabase URL and key first', 'error'); return; }
+  if (!cdSupabase) { toast('Supabase not initialized', 'error'); return; }
   const { error } = await cdSupabase.from('community_members').select('id').limit(1);
   const el = document.getElementById('sd-conn-status');
   if (error) {
