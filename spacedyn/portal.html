@@ -9,8 +9,8 @@
   <title>My Profile — SpaceDyn</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
   <script>
-    window.SUPABASE_URL = 'https://lqayctcgprumnvlaktms.supabase.co';
-    window.SUPABASE_ANON_KEY = 'sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG';
+    window.SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    window.SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -273,7 +273,7 @@
         <div class="img-widget">
           <div class="img-top">
             <div class="img-preview sq" id="av-preview">
-              <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+              <img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:cover;opacity:0.6;" />
             </div>
             <div class="img-controls">
               <div class="img-url-row">
@@ -311,6 +311,27 @@
 
         <input type="file" id="av-file" accept="image/*" />
         <input type="file" id="bn-file" accept="image/*" />
+        <input type="file" id="badge-file" accept="image/*" />
+
+        <label class="lbl">Card Badge Icon</label>
+        <div class="img-widget">
+          <div class="img-top">
+            <div class="img-preview sq" id="badge-preview" style="width:52px;height:52px;border-radius:50%;">
+              <div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>
+            </div>
+            <div class="img-controls">
+              <div class="img-url-row">
+                <input type="text" class="img-url" id="f-badge" placeholder="Paste badge image URL..." />
+                <button class="img-btn" id="badge-upload-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="upload-prog" id="badge-prog">Uploading...</div>
+        </div>
+        <p class="hint">Small circular icon shown in the top-right corner of your card. Defaults to a profile silhouette — upload your own logo, emote, or icon.</p>
 
         <label class="lbl">Accent Color</label>
         <div class="color-row">
@@ -536,6 +557,7 @@ function loadEditor(m) {
   document.getElementById('f-mood').value = m.mood || '';
   document.getElementById('f-photo').value = m.photo_url || '';
   document.getElementById('f-banner').value = m.banner_url || '';
+  document.getElementById('f-badge').value = m.badge_url || '';
   document.getElementById('f-color').value = m.accent_color || '#f5a623';
   document.getElementById('f-color-hex').value = m.accent_color || '#f5a623';
   document.getElementById('f-music').value = m.music_url || '';
@@ -551,6 +573,7 @@ function loadEditor(m) {
   renderSocials();
   setPreview('av', m.photo_url);
   setPreview('bn', m.banner_url);
+  setPreview('badge', m.badge_url);
 
   // Use Discord avatar button
   if (dAvatar) {
@@ -564,16 +587,22 @@ function loadEditor(m) {
 
   document.getElementById('f-photo').addEventListener('input', e => setPreview('av', e.target.value));
   document.getElementById('f-banner').addEventListener('input', e => setPreview('bn', e.target.value));
+  document.getElementById('f-badge').addEventListener('input', e => setPreview('badge', e.target.value));
 }
 
 function setPreview(type, url) {
-  const el = document.getElementById(type === 'av' ? 'av-preview' : 'bn-preview');
-  const ph = type === 'av'
-    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`
-    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-5 4 5"/></svg>`;
-  el.innerHTML = url && url.trim()
-    ? `<img src="${url.trim()}" alt="" onerror="this.parentElement.innerHTML='<div class=\\'ph\\'>${ph.replace(/'/g,"&#39;")}</div>'" />`
-    : `<div class="ph">${ph}</div>`;
+  const elId = type === 'av' ? 'av-preview' : type === 'badge' ? 'badge-preview' : 'bn-preview';
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (url && url.trim()) {
+    el.innerHTML = `<img src="${url.trim()}" alt="" onerror="this.src='../assets/chazdyn-default-avatar.png'" />`;
+  } else if (type === 'av') {
+    el.innerHTML = `<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:cover;opacity:0.6;" />`;
+  } else if (type === 'badge') {
+    el.innerHTML = `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>`;
+  } else {
+    el.innerHTML = `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4-4 4 4 4-5 4 5"/></svg></div>`;
+  }
 }
 
 // ── UPLOADS ──
@@ -582,6 +611,7 @@ function setPreview(type, url) {
 function wireUploads() {
   wireOne('av-upload-btn', 'av-file', 'f-photo', 'av', 'av-prog');
   wireOne('bn-upload-btn', 'bn-file', 'f-banner', 'bn', 'bn-prog');
+  wireOne('badge-upload-btn', 'badge-file', 'f-badge', 'badge', 'badge-prog');
 }
 
 function wireOne(btnId, fileId, urlId, previewType, progId) {
@@ -660,6 +690,7 @@ document.getElementById('save-btn').onclick = async () => {
     mood: document.getElementById('f-mood').value.trim(),
     photo_url: document.getElementById('f-photo').value.trim(),
     banner_url: document.getElementById('f-banner').value.trim(),
+    badge_url: document.getElementById('f-badge').value.trim(),
     accent_color: document.getElementById('f-color').value,
     music_url: document.getElementById('f-music').value.trim(),
     music_label: document.getElementById('f-music-label').value.trim(),
