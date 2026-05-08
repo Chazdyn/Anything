@@ -123,6 +123,7 @@
     .img-preview.sq { width:80px; height:80px; flex-shrink:0; }
     .img-preview.wide { width:100%; height:80px; }
     .img-preview img { width:100%; height:100%; object-fit:cover; display:block; }
+    .default-avatar-preview { object-fit:contain !important; padding:0 !important; transform:scale(1.32); opacity:1 !important; mix-blend-mode:normal !important; filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(2.1) contrast(1.35) drop-shadow(0 0 5px #f5a623) drop-shadow(0 0 10px #f5a623) !important; }
     .img-preview .ph { width:100%; height:100%; display:flex; align-items:center; justify-content:center; opacity:0.18; }
     .img-preview .ph svg { width:26px; height:26px; }
     .img-top { display:flex; gap:10px; align-items:flex-start; }
@@ -184,7 +185,7 @@
     </a>
     <div class="nav-divider"></div>
     <span class="nav-logo" style="display:flex;align-items:center;gap:8px;">
-      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:24px;height:24px;object-fit:contain;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);mix-blend-mode:screen;" />
+      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:24px;height:24px;object-fit:contain;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.9) contrast(1.3) drop-shadow(0 0 4px #f5a623);opacity:1;" />
       My Profile
     </span>
   </div>
@@ -279,7 +280,7 @@
         <div class="img-widget">
           <div class="img-top">
             <div class="img-preview sq" id="av-preview">
-              <img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:contain;padding:8%;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);mix-blend-mode:screen;" />
+              <img class="default-avatar-preview" src="../assets/chazdyn-default-avatar.png" alt="default" />
             </div>
             <div class="img-controls">
               <div class="img-url-row">
@@ -671,7 +672,7 @@ function setPreview(type, url) {
   if (url && url.trim()) {
     el.innerHTML = `<img src="${url.trim()}" alt="" onerror="this.src='../assets/chazdyn-default-avatar.png'" />`;
   } else if (type === 'av') {
-    el.innerHTML = `<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:contain;padding:8%;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);mix-blend-mode:screen;" />`;
+    el.innerHTML = `<img class="default-avatar-preview" src="../assets/chazdyn-default-avatar.png" alt="default" />`;
   } else if (type === 'badge') {
     el.innerHTML = `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>`;
   } else {

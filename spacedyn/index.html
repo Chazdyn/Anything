@@ -121,7 +121,27 @@
       box-shadow:0 4px 16px rgba(0,0,0,0.5);
     }
     .cm-avatar-wrap img { width:100%; height:100%; object-fit:cover; display:block; background:transparent; }
-    .cm-avatar-wrap img[alt="default"] { object-fit:contain; padding:6%; }
+    .cm-avatar-wrap img[alt="default"] { object-fit:contain; padding:0; }
+
+    .cm-default-icon {
+      width:100% !important; height:100% !important;
+      object-fit:contain !important;
+      padding:0 !important;
+      transform:scale(1.35);
+      opacity:1 !important;
+      mix-blend-mode:normal !important;
+      filter:var(--icon-tint) brightness(2.25) contrast(1.45) saturate(1.75) drop-shadow(0 0 6px var(--icon-glow)) drop-shadow(0 0 12px var(--icon-glow)) !important;
+    }
+    .cm-avatar-wrap:has(.cm-default-icon), .ms-avatar-init-box:has(.cm-default-icon) {
+      background:rgba(0,0,0,0.72) !important;
+      box-shadow:0 0 0 1px rgba(255,255,255,0.05) inset, 0 0 18px var(--icon-glow), 0 4px 16px rgba(0,0,0,0.65);
+    }
+    .cm-badge:has(.cm-default-icon) {
+      background:rgba(0,0,0,0.78);
+      box-shadow:0 0 0 1px rgba(255,255,255,0.05) inset, 0 0 12px var(--icon-glow), 0 2px 8px rgba(0,0,0,0.65);
+    }
+    .cm-badge .cm-default-icon { transform:scale(1.3); }
+    .ms-avatar-init-box .cm-default-icon { transform:scale(1.28); }
     .cm-avatar-init {
       width:100%; height:100%;
       display:flex; align-items:center; justify-content:center;
@@ -186,7 +206,7 @@
       box-shadow:0 2px 8px rgba(0,0,0,0.5);
     }
     .cm-badge img { width:100%; height:100%; object-fit:cover; background:transparent; }
-    .cm-badge img[alt=""] { object-fit:contain; padding:6%; }
+    .cm-badge img[alt=""] { object-fit:contain; padding:0; }
     .cm-badge svg { width:18px; height:18px; opacity:0.7; }
 
     /* ── LAYOUT B: Classic tall card ── */
@@ -377,7 +397,7 @@
   <div class="nav-right">
     <span class="nav-count" id="nav-count"></span>
     <a class="nav-portal-btn" href="/spacedyn/portal.html">
-      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1);mix-blend-mode:screen;" />
+      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.8) contrast(1.25) drop-shadow(0 0 4px #f5a623);opacity:1;" />
       My Profile
     </a>
   </div>
@@ -493,13 +513,13 @@ function renderCard(m){
 
   const avatarInner=m.photo_url
     ?`<img src="${m.photo_url}" alt="${m.display_name||''}" />`
-    :`<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:contain;padding:8%;filter:${hexToFilter(m.accent_color||'#f5a623')};mix-blend-mode:screen;" />`;
+    :`<img class="cm-default-icon" src="../assets/chazdyn-default-avatar.png" alt="default" style="--icon-tint:${hexToFilter(m.accent_color||'#f5a623')};--icon-glow:${m.accent_color||'#f5a623'};" />`;
 
   // Badge icon — top right of banner
   // Build a CSS filter to tint the logo to the member's accent color
   const badgeInner = m.badge_url
     ? `<img src="${m.badge_url}" alt="" />`
-    : `<img src="../assets/chazdyn-default-avatar.png" alt="" style="width:100%;height:100%;object-fit:contain;padding:8%;filter:${hexToFilter(m.accent_color||'#f5a623')};mix-blend-mode:screen;" />`;
+    : `<img class="cm-default-icon" src="../assets/chazdyn-default-avatar.png" alt="" style="--icon-tint:${hexToFilter(m.accent_color||'#f5a623')};--icon-glow:${m.accent_color||'#f5a623'};" />`;
 
   return`<div class="cm-card fade-up" data-mid="${m.id}" style="--card-accent:${t.a};">
     <div class="cm-scanlines"></div>
@@ -597,7 +617,7 @@ function buildDefaultProfile(m){
   const iFields=[['General',interests.general],['Games',interests.games],['Music',interests.music],['Movies / TV',interests.tv]].filter(f=>f[1]);
   const interestRows=iFields.length?`<div class="ms-interests-grid">${iFields.map(([l,v])=>`<div class="ms-interest-cell"><div class="ms-interest-label">${l}</div><div class="ms-interest-val">${v}</div></div>`).join('')}</div>`:'';
   const socialsHtml=socials.length?`<div class="ms-socials">${socials.map(s=>`<a class="ms-soc-btn" href="${s.url}" target="_blank" rel="noopener">${socialIcon(s.platform)} ${s.handle||s.platform}</a>`).join('')}</div>`:`<div style="padding:10px;font-size:11px;color:#999;font-style:italic;">No links added yet.</div>`;
-  const avatarEl=m.photo_url?`<img class="ms-avatar-img" src="${m.photo_url}" alt="${m.display_name}" />`:`<div class="ms-avatar-init-box" style="background:transparent;"><img src="../assets/chazdyn-default-avatar.png" style="width:100%;height:100%;object-fit:contain;padding:10%;filter:${hexToFilter(m.accent_color||'#f5a623')};mix-blend-mode:screen;" /></div>`;
+  const avatarEl=m.photo_url?`<img class="ms-avatar-img" src="${m.photo_url}" alt="${m.display_name}" />`:`<div class="ms-avatar-init-box" style="background:transparent;--icon-glow:${m.accent_color||'#f5a623'};"><img class="cm-default-icon" src="../assets/chazdyn-default-avatar.png" style="--icon-tint:${hexToFilter(m.accent_color||'#f5a623')};--icon-glow:${m.accent_color||'#f5a623'};" /></div>`;
   const bannerEl=m.banner_url?`<div style="margin-bottom:10px;"><img class="ms-banner-img" src="${m.banner_url}" alt="" /></div>`:'';
   return`<div class="myspace-frame">${bannerEl?'':''}<div class="ms-default-wrap">
     ${bannerEl}
@@ -760,7 +780,7 @@ async function loadGrid(){
   const{data,error}=await sb.from('community_members').select('*').eq('approved',true).order('created_at',{ascending:true});
   const grid=document.getElementById('community-grid');
   if(error||!data||!data.length){
-    grid.innerHTML=`<div class="state-box"><div class="state-icon"><img src="../assets/chazdyn-default-avatar.png" style="width:96px;height:96px;object-fit:contain;filter:invert(1);mix-blend-mode:screen;" /></div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
+    grid.innerHTML=`<div class="state-box"><div class="state-icon"><img class="cm-default-icon" src="../assets/chazdyn-default-avatar.png" style="width:96px!important;height:96px!important;--icon-tint:invert(1);--icon-glow:#f5a623;" /></div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
     return;
   }
   document.getElementById('nav-count').textContent=String(data.length).padStart(2,'0')+' MEMBERS';
