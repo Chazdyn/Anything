@@ -346,10 +346,30 @@
       <div class="fs-head" data-s="music"><span class="fs-title">Profile Music</span><span class="fs-toggle">▼</span></div>
       <div class="fs-body" id="s-music">
         <label class="lbl">Music URL</label>
-        <input type="url" class="inp" id="f-music" placeholder="Direct .mp3 URL or YouTube link" />
-        <p class="hint">Auto-plays when someone opens your profile. Direct .mp3 works best — YouTube shows a player.</p>
-        <label class="lbl">Song Label</label>
-        <input type="text" class="inp" id="f-music-label" placeholder="Song — Artist" maxlength="100" />
+        <input type="url" class="inp" id="f-music" placeholder="YouTube, Spotify, or direct .mp3 URL" />
+        <p class="hint">Paste any YouTube or Spotify link — the player extracts audio automatically. Direct .mp3 URLs also work.</p>
+        <div class="row2" style="margin-top:10px;">
+          <div>
+            <label class="lbl">Song Title</label>
+            <input type="text" class="inp" id="f-music-label" placeholder="Song Title" maxlength="100" />
+          </div>
+          <div>
+            <label class="lbl">Artist</label>
+            <input type="text" class="inp" id="f-music-artist" placeholder="Artist Name" maxlength="100" />
+          </div>
+        </div>
+        <label class="lbl" style="margin-top:1rem;">Player Style</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:500;">
+            <input type="radio" name="player-style" id="player-minimal" value="minimal" checked style="accent-color:var(--gold);" />
+            Minimal bar (audio only)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem;font-family:'Rajdhani',sans-serif;font-weight:500;">
+            <input type="radio" name="player-style" id="player-youtube" value="youtube" style="accent-color:var(--gold);" />
+            YouTube embed (video player)
+          </label>
+        </div>
+        <p class="hint" style="margin-top:6px;">Minimal bar plays audio from YouTube/Spotify in the background. YouTube embed shows the full video player.</p>
       </div>
     </div>
 
@@ -383,6 +403,39 @@
       <div class="fs-body" id="s-socials">
         <div class="soc-list" id="soc-list"></div>
         <button class="add-soc" id="add-soc-btn">+ Add Link</button>
+      </div>
+    </div>
+
+    <!-- TOP 8 -->
+    <div class="fs">
+      <div class="fs-head" data-s="top8"><span class="fs-title">Top 8</span><span class="fs-toggle">▼</span></div>
+      <div class="fs-body" id="s-top8">
+        <div class="row2">
+          <div>
+            <label class="lbl">Category</label>
+            <select class="inp" id="f-top8-category" onchange="onTop8CategoryChange()">
+              <option value="">— None / Hidden —</option>
+              <option value="Streamers">Streamers</option>
+              <option value="Foods">Foods</option>
+              <option value="Animals">Animals</option>
+              <option value="Space Fam">Space Fam (fellow members)</option>
+              <option value="Games">Games</option>
+              <option value="Movies">Movies</option>
+              <option value="Albums">Albums</option>
+              <option value="Shows">Shows</option>
+              <option value="Vibes">Vibes</option>
+              <option value="custom">Custom (set your own title)</option>
+            </select>
+          </div>
+          <div id="top8-custom-title-wrap" style="display:none;">
+            <label class="lbl">Custom Title</label>
+            <input type="text" class="inp" id="f-top8-custom-title" placeholder="My Top 8..." maxlength="40" />
+          </div>
+        </div>
+        <div id="top8-slots" style="margin-top:1rem;display:none;">
+          <p class="hint" style="margin-bottom:10px;">Fill in up to 8 slots. Name is required; image URL is optional.</p>
+          <div id="top8-slots-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+        </div>
       </div>
     </div>
 
@@ -562,6 +615,21 @@ function loadEditor(m) {
   document.getElementById('f-color-hex').value = m.accent_color || '#f5a623';
   document.getElementById('f-music').value = m.music_url || '';
   document.getElementById('f-music-label').value = m.music_label || '';
+  document.getElementById('f-music-artist').value = m.music_artist || '';
+  // Player style
+  const ps = m.music_player_style || 'minimal';
+  document.getElementById('player-minimal').checked = ps === 'minimal';
+  document.getElementById('player-youtube').checked = ps === 'youtube';
+  // Top 8
+  const t8 = m.top8 || {};
+  const t8cat = t8.category || '';
+  document.getElementById('f-top8-category').value = t8cat === 'custom' || (!['','Streamers','Foods','Animals','Space Fam','Games','Movies','Albums','Shows','Vibes'].includes(t8cat) && t8cat) ? 'custom' : t8cat;
+  if (document.getElementById('f-top8-category').value === 'custom') {
+    document.getElementById('f-top8-custom-title').value = t8.custom_title || t8cat || '';
+    document.getElementById('top8-custom-title-wrap').style.display = '';
+  }
+  top8Items = t8.items ? JSON.parse(JSON.stringify(t8.items)) : Array(8).fill(null).map(() => ({name:'',img:''}));
+  renderTop8Slots(!!t8cat);
   document.getElementById('f-video').value = m.video_url || '';
   const i = m.interests || {};
   document.getElementById('f-int-general').value = i.general || '';
@@ -644,6 +712,31 @@ function wireOne(btnId, fileId, urlId, previewType, progId) {
   };
 }
 
+
+// ── TOP 8 ──
+let top8Items = Array(8).fill(null).map(() => ({name:'',img:''}));
+
+function onTop8CategoryChange() {
+  const cat = document.getElementById('f-top8-category').value;
+  document.getElementById('top8-custom-title-wrap').style.display = cat === 'custom' ? '' : 'none';
+  renderTop8Slots(!!cat);
+}
+
+function renderTop8Slots(show) {
+  const wrap = document.getElementById('top8-slots');
+  if (!show) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  const grid = document.getElementById('top8-slots-grid');
+  grid.innerHTML = Array(8).fill(0).map((_, i) => {
+    const item = top8Items[i] || {name:'',img:''};
+    return `<div style="background:var(--bg3);border:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:5px;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;">#${i+1}</div>
+      <input type="text" class="inp" placeholder="Name" value="${item.name||''}" oninput="top8Items[${i}].name=this.value" style="font-size:0.82rem;padding:6px 8px;" maxlength="60" />
+      <input type="text" class="inp" placeholder="Image URL (optional)" value="${item.img||''}" oninput="top8Items[${i}].img=this.value" style="font-size:0.75rem;padding:5px 8px;" />
+    </div>`;
+  }).join('');
+}
+
 // ── SOCIALS ──
 function renderSocials() {
   const list = document.getElementById('soc-list');
@@ -694,6 +787,18 @@ document.getElementById('save-btn').onclick = async () => {
     accent_color: document.getElementById('f-color').value,
     music_url: document.getElementById('f-music').value.trim(),
     music_label: document.getElementById('f-music-label').value.trim(),
+    music_artist: document.getElementById('f-music-artist').value.trim(),
+    music_player_style: document.querySelector('input[name="player-style"]:checked')?.value || 'minimal',
+    top8: (() => {
+      const cat = document.getElementById('f-top8-category').value;
+      if (!cat) return null;
+      const customTitle = document.getElementById('f-top8-custom-title').value.trim();
+      return {
+        category: cat === 'custom' ? (customTitle || 'Custom') : cat,
+        custom_title: customTitle,
+        items: top8Items.filter(i => i.name.trim())
+      };
+    })(),
     video_url: document.getElementById('f-video').value.trim(),
     interests: {
       general: document.getElementById('f-int-general').value.trim(),
