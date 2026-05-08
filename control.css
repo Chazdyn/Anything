@@ -365,7 +365,28 @@ input[type="color"] {
 }
 .upload-zone p { font-size: 0.82rem; margin-top: 0.5rem; }
 
-/* ── CONNECTION STATUS ── */
+/* ── CONNECTION DOTS BUTTON ── */
+.conn-dots-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 5px 10px;
+  cursor: pointer; transition: border-color 0.2s;
+}
+.conn-dots-btn:hover { border-color: rgba(255,255,255,0.15); }
+.conn-dot-item {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  color: #4a5568;
+  transition: background 0.3s, color 0.3s;
+  position: relative;
+}
+.conn-dot-item.ok    { background: rgba(57,255,20,0.15);  color: var(--green); }
+.conn-dot-item.err   { background: rgba(255,59,59,0.15);  color: var(--red); }
+.conn-dot-item.checking { animation: dotpulse 0.8s infinite; }
+@keyframes dotpulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+
 .conn-badge {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em;
