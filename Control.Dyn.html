@@ -18,7 +18,7 @@
 </head>
 <body>
 <!-- Discord Auth Gate -->
-<div id="discord-auth-gate" style="display:none;position:fixed;inset:0;background:#080c10;z-index:9999;display:flex;align-items:center;justify-content:center;">
+<div id="discord-auth-gate" style="position:fixed;inset:0;background:#080c10;z-index:9999;display:flex;align-items:center;justify-content:center;">
   <div style="background:#0f1318;border:1px solid rgba(57,255,20,0.15);padding:3rem;max-width:440px;width:90%;text-align:center;position:relative;">
     <div style="position:absolute;top:0;left:0;width:24px;height:24px;border-top:2px solid #39ff14;border-left:2px solid #39ff14;"></div>
     <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-bottom:2px solid #39ff14;border-right:2px solid #39ff14;"></div>
@@ -2679,7 +2679,6 @@ async function sdTestConnection() {
   // Use new key if entered
   const keyInput = document.getElementById('sb-key-input');
   if (keyInput && keyInput.value.trim()) {
-    localStorage.setItem(CD_SUPABASE_URL, CD_SUPABASE_URL);
     cdSupabase = window.supabase.createClient(CD_SUPABASE_URL, keyInput.value.trim());
   }
   if (!cdSupabase) cdInitSupabase();
@@ -2700,19 +2699,6 @@ async function sdTestConnection() {
     sdLoadMembers(); sdLoadRequests();
   }
 }
-  const { error } = await cdSupabase.from('community_members').select('id').limit(1);
-  const el = document.getElementById('sd-conn-status');
-  if (error) {
-    el.className = 'conn-badge disconnected';
-    el.innerHTML = '<span class="conn-dot"></span>Failed: ' + error.message;
-    toast('Supabase connection failed', 'error');
-  } else {
-    el.className = 'conn-badge connected';
-    el.innerHTML = '<span class="conn-dot"></span>Connected';
-    toast('Supabase connected!', 'success');
-  }
-}
-
 // ══════════════════════════════════════════════
 //  SPACEDYN MEMBER MANAGEMENT
 // ══════════════════════════════════════════════
