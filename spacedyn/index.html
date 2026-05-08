@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet" />
   <!-- !! REPLACE THESE TWO VALUES — see SETUP.md !! -->
   <script>
-    window.SUPABASE_URL = 'https://lqayctcgprumnvlaktms.supabase.co';
-    window.SUPABASE_ANON_KEY = 'sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG';
+    window.SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    window.SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -372,7 +372,7 @@
   <div class="nav-right">
     <span class="nav-count" id="nav-count"></span>
     <a class="nav-portal-btn" href="/spacedyn/portal.html">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:16px;height:16px;object-fit:contain;filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1);opacity:0.8;" />
       My Profile
     </a>
   </div>
@@ -474,12 +474,28 @@ function renderCard(m){
 
   const avatarInner=m.photo_url
     ?`<img src="${m.photo_url}" alt="${m.display_name||''}" />`
-    :`<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:cover;opacity:0.7;" />`;
+    :`<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:cover;filter:${hexToFilter(m.accent_color||'#f5a623')} opacity(0.75);" />`;
 
   // Badge icon — top right of banner
+  // Build a CSS filter to tint the logo to the member's accent color
+  function hexToFilter(hex) {
+    const h=hex.replace('#','');
+    const r=parseInt(h.slice(0,2),16)/255,g=parseInt(h.slice(2,4),16)/255,b=parseInt(h.slice(4,6),16)/255;
+    // approximate hue from rgb
+    const max=Math.max(r,g,b),min=Math.min(r,g,b);
+    let hue=0;
+    if(max!==min){
+      if(max===r) hue=((g-b)/(max-min))%6;
+      else if(max===g) hue=(b-r)/(max-min)+2;
+      else hue=(r-g)/(max-min)+4;
+      hue=Math.round(hue*60); if(hue<0)hue+=360;
+    }
+    const sat=max===0?0:(max-min)/max;
+    return `invert(1) sepia(1) saturate(${Math.round(sat*5+1)}) hue-rotate(${hue-30}deg) brightness(1.1)`;
+  }
   const badgeInner = m.badge_url
     ? `<img src="${m.badge_url}" alt="" />`
-    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:${t.a}"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`;
+    : `<img src="../assets/chazdyn-default-avatar.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:${hexToFilter(m.accent_color||'#f5a623')};" />`;
 
   return`<div class="cm-card fade-up" data-mid="${m.id}" style="--card-accent:${t.a};">
     <div class="cm-scanlines"></div>
@@ -577,7 +593,7 @@ function buildDefaultProfile(m){
   const iFields=[['General',interests.general],['Games',interests.games],['Music',interests.music],['Movies / TV',interests.tv]].filter(f=>f[1]);
   const interestRows=iFields.length?`<div class="ms-interests-grid">${iFields.map(([l,v])=>`<div class="ms-interest-cell"><div class="ms-interest-label">${l}</div><div class="ms-interest-val">${v}</div></div>`).join('')}</div>`:'';
   const socialsHtml=socials.length?`<div class="ms-socials">${socials.map(s=>`<a class="ms-soc-btn" href="${s.url}" target="_blank" rel="noopener">${socialIcon(s.platform)} ${s.handle||s.platform}</a>`).join('')}</div>`:`<div style="padding:10px;font-size:11px;color:#999;font-style:italic;">No links added yet.</div>`;
-  const avatarEl=m.photo_url?`<img class="ms-avatar-img" src="${m.photo_url}" alt="${m.display_name}" />`:`<div class="ms-avatar-init-box" style="background:#ddeeff;">${(m.display_name||'?').charAt(0)}</div>`;
+  const avatarEl=m.photo_url?`<img class="ms-avatar-img" src="${m.photo_url}" alt="${m.display_name}" />`:`<div class="ms-avatar-init-box" style="background:#0a0a0a;"><img src="../assets/chazdyn-default-avatar.png" style="width:80%;height:80%;object-fit:contain;filter:${hexToFilter(m.accent_color||'#f5a623')} opacity(0.8);" /></div>`;
   const bannerEl=m.banner_url?`<div style="margin-bottom:10px;"><img class="ms-banner-img" src="${m.banner_url}" alt="" /></div>`:'';
   return`<div class="myspace-frame">${bannerEl?'':''}<div class="ms-default-wrap">
     ${bannerEl}
@@ -664,7 +680,7 @@ async function loadGrid(){
   const{data,error}=await sb.from('community_members').select('*').eq('approved',true).order('created_at',{ascending:true});
   const grid=document.getElementById('community-grid');
   if(error||!data||!data.length){
-    grid.innerHTML=`<div class="state-box"><div class="state-icon">♡</div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
+    grid.innerHTML=`<div class="state-box"><div class="state-icon"><img src="../assets/chazdyn-default-avatar.png" style="width:80px;opacity:0.08;filter:invert(1);" /></div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
     return;
   }
   document.getElementById('nav-count').textContent=String(data.length).padStart(2,'0')+' MEMBERS';
