@@ -549,13 +549,13 @@ function buildDefaultProfile(m){
       // Minimal player — direct MP3 or YT audio
       const srcAttr=isYT?'':'';  // YT handled via YT API
       musicHtml=`<div class="ms-player" id="ms-player">
-        ${isYT?`<div class="ms-yt-hidden"><iframe id="ms-yt-iframe" src="https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=0" allow="autoplay"></iframe></div>`:''}
+        ${isYT?`<div id="ms-yt-container" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;"></div>`:''}
         ${!isYT?`<audio id="ms-audio" src="${m.music_url}" preload="none"></audio>`:''}
         <div class="ms-player-row">
           <div class="ms-play-btn" id="ms-play-btn">▶</div>
           <div class="ms-track-info">
             <div class="ms-track-title">${title}</div>
-            ${artist?`<div class="ms-track-artist">${artist}</div>`:''}
+            ${artist?`<div class="ms-track-artist">${artist}`:''}
           </div>
         </div>
         <div class="ms-progress-wrap">
@@ -637,14 +637,14 @@ function openProfile(m){
   const pb=document.getElementById('ms-play-btn');
   if(!pb) return;
 
-  const audioEl=document.getElementById('ms-audio');
   const fill=document.getElementById('ms-fill');
   const te=document.getElementById('ms-time');
-
   function fmtTime(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
 
+  const audioEl=document.getElementById('ms-audio');
+
   if(audioEl){
-    // Direct audio file
+    // ── Direct MP3/audio file ──
     activeAudio=audioEl;
     pb.onclick=()=>{
       if(audioEl.paused){audioEl.play();pb.textContent='⏸';pb.classList.add('playing');}
@@ -655,19 +655,95 @@ function openProfile(m){
       if(fill)fill.style.width=(audioEl.currentTime/audioEl.duration*100)+'%';
       if(te)te.textContent=fmtTime(audioEl.currentTime);
     });
-    if(document.getElementById('ms-progress')){
-      document.getElementById('ms-progress').addEventListener('click',e=>{
-        const rect=e.currentTarget.getBoundingClientRect();
-        audioEl.currentTime=((e.clientX-rect.left)/rect.width)*audioEl.duration;
+    const prog=document.getElementById('ms-progress');
+    if(prog) prog.onclick=e=>{
+      const r=prog.getBoundingClientRect();
+      audioEl.currentTime=((e.clientX-r.left)/r.width)*audioEl.duration;
+    };
+    audioEl.play().then(()=>{pb.textContent='⏸';pb.classList.add('playing');}).catch(()=>{});
+
+  } else if(m.music_url && /youtu/.test(m.music_url) && (m.music_player_style||'minimal')==='minimal'){
+    // ── YouTube via IFrame API ──
+    const ytId=m.music_url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1]||'';
+    if(!ytId){pb.style.display='none';return;}
+
+    let ytPlayer=null;
+    let ytReady=false;
+    let progressTimer=null;
+
+    function startProgress(){
+      progressTimer=setInterval(()=>{
+        if(!ytPlayer||!ytReady)return;
+        try{
+          const cur=ytPlayer.getCurrentTime()||0;
+          const dur=ytPlayer.getDuration()||0;
+          if(dur>0){
+            if(fill)fill.style.width=(cur/dur*100)+'%';
+            if(te)te.textContent=fmtTime(cur);
+          }
+        }catch(e){}
+      },250);
+    }
+
+    function loadYTApi(){
+      return new Promise(res=>{
+        if(window.YT&&window.YT.Player){res();return;}
+        const tag=document.createElement('script');
+        tag.src='https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+        window.onYouTubeIframeAPIReady=res;
       });
     }
-    audioEl.play().then(()=>{pb.textContent='⏸';pb.classList.add('playing');}).catch(()=>{});
-  } else {
-    // No direct audio — play button is decorative or YT iframe handles it
-    pb.onclick=()=>{
-      pb.classList.toggle('playing');
-      pb.textContent=pb.classList.contains('playing')?'⏸':'▶';
+
+    pb.onclick=async()=>{
+      if(!ytReady){
+        pb.textContent='…';
+        await loadYTApi();
+        const container=document.getElementById('ms-yt-container');
+        if(!container)return;
+        ytPlayer=new YT.Player(container,{
+          height:'1',width:'1',
+          videoId:ytId,
+          playerVars:{autoplay:1,controls:0,modestbranding:1},
+          events:{
+            onReady:()=>{
+              ytReady=true;
+              ytPlayer.playVideo();
+              pb.textContent='⏸';pb.classList.add('playing');
+              startProgress();
+            },
+            onStateChange:(e)=>{
+              if(e.data===YT.PlayerState.ENDED){
+                pb.textContent='▶';pb.classList.remove('playing');
+                clearInterval(progressTimer);
+              }
+            }
+          }
+        });
+        // Register cleanup
+        activeAudio={pause:()=>{try{ytPlayer.pauseVideo();}catch(e){}clearInterval(progressTimer);},currentTime:0};
+      } else {
+        if(pb.classList.contains('playing')){
+          ytPlayer.pauseVideo();pb.textContent='▶';pb.classList.remove('playing');
+          clearInterval(progressTimer);
+        } else {
+          ytPlayer.playVideo();pb.textContent='⏸';pb.classList.add('playing');
+          startProgress();
+        }
+      }
     };
+
+    const prog=document.getElementById('ms-progress');
+    if(prog) prog.onclick=e=>{
+      if(!ytReady||!ytPlayer)return;
+      const r=prog.getBoundingClientRect();
+      ytPlayer.seekTo(((e.clientX-r.left)/r.width)*(ytPlayer.getDuration()||0),true);
+    };
+
+  } else {
+    // No playable source — hide the player row
+    const playerEl=document.getElementById('ms-player');
+    if(playerEl)playerEl.style.display='none';
   }
 }
 function closeProfile(){stopAudio();backdrop.classList.remove('open');document.body.style.overflow='';setTimeout(()=>{inner.innerHTML='';},360);}
