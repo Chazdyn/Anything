@@ -938,15 +938,10 @@ function loadFromStorage() {
   if (saved) {
     try {
       const s = JSON.parse(saved);
-      // Restore non-credential state only — creds are hardcoded
       const { ghPat, ghOwner, ghRepo, ghBranch, twitchClientId, twitchClientSecret, twitchUsername, ...rest } = s;
       Object.assign(STATE, rest);
     } catch(e) {}
   }
-  // Always auto-connect with hardcoded creds
-  updateGhStatus(true);
-  setTimeout(syncControlDynFromLive, 350);
-  startTwitchPolling();
 }
 
 function saveToStorage() {
@@ -1012,7 +1007,7 @@ function saveSection(section) {
 //  GITHUB API
 // ══════════════════════════════════════════════
 function ghHeaders() {
-  return { 'Authorization': 'token ' + STATE.ghPat, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' };
+  return { 'Authorization': 'Bearer ' + STATE.ghPat, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' };
 }
 function ghBase() { return `https://api.github.com/repos/${STATE.ghOwner}/${STATE.ghRepo}`; }
 
@@ -2568,8 +2563,21 @@ async function cdCheckAuth() {
   gate.style.display = 'none';
   app.style.display = '';
 
-  // Auto-test all connections
-  setTimeout(testAllConnections, 500);
+  // Connect GitHub immediately so actions work right away
+  try {
+    const r = await fetch(ghBase(), { headers: ghHeaders() });
+    if (r.ok) {
+      updateGhStatus(true);
+      setTimeout(syncControlDynFromLive, 300);
+      refreshAssets();
+    }
+  } catch(e) {}
+
+  // Connect Twitch
+  startTwitchPolling();
+
+  // Update all status dots
+  setTimeout(testAllConnections, 800);
 
   const topbarRight = document.querySelector('.topbar-right');
   if (topbarRight && !document.getElementById('cd-logout-btn')) {
