@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet" />
   <!-- !! REPLACE THESE TWO VALUES — see SETUP.md !! -->
   <script>
-    window.SUPABASE_URL = 'https://lqayctcgprumnvlaktms.supabase.co';
-    window.SUPABASE_ANON_KEY = 'sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG';
+    window.SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    window.SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -164,6 +164,50 @@
       padding:8px 20px; background:rgba(0,0,0,0.7);
     }
 
+
+    /* ── LAYOUT TOGGLE ── */
+    .layout-toggle { display:flex; gap:6px; align-items:center; }
+    .layout-btn { background:var(--bg3); border:1px solid var(--border); color:var(--muted); width:34px; height:34px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+    .layout-btn:hover { border-color:var(--gold-border); color:var(--gold); }
+    .layout-btn.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold); }
+    .layout-btn svg { width:15px; height:15px; }
+
+    /* ── BADGE ICON (top-right of banner) ── */
+    .cm-badge {
+      position:absolute; top:10px; right:10px; z-index:3;
+      width:36px; height:36px; border-radius:50%;
+      border:2px solid var(--card-accent,var(--gold));
+      overflow:hidden; background:rgba(0,0,0,0.5);
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 2px 8px rgba(0,0,0,0.5);
+    }
+    .cm-badge img { width:100%; height:100%; object-fit:cover; }
+    .cm-badge svg { width:18px; height:18px; opacity:0.7; }
+
+    /* ── LAYOUT B: Classic tall card ── */
+    .community-grid.layout-b { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:1.25rem; }
+    .layout-b .cm-card { display:flex; flex-direction:column; }
+    .layout-b .cm-banner { height:130px; }
+    .layout-b .cm-accent-bar { display:block; }
+    .layout-b .cm-bottom { min-height:unset; padding:0; display:flex; flex-direction:column; }
+    .layout-b .cm-avatar-wrap {
+      position:relative; top:unset; left:unset;
+      width:60px; height:60px;
+      margin:-30px auto 0;
+      border-width:3px;
+    }
+    .layout-b .cm-name-block {
+      margin-left:0;
+      padding:10px 1rem 1rem;
+      text-align:center;
+    }
+    .layout-b .cm-name { font-size:1.4rem; white-space:normal; }
+    .layout-b .cm-role { text-align:center; }
+    .layout-b .cm-about-b {
+      font-size:0.82rem; color:var(--muted); line-height:1.65;
+      padding:0 1rem 1rem; text-align:center;
+      display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
+    }
     /* LOADING / EMPTY */
     .state-box { grid-column:1/-1; text-align:center; padding:5rem 2rem; }
     .state-icon { font-family:'Bebas Neue',sans-serif; font-size:4rem; opacity:0.07; margin-bottom:1rem; }
@@ -302,6 +346,14 @@
       <div class="section-label">// Members</div>
       <h2 class="section-title">Space Fam</h2>
     </div>
+    <div class="layout-toggle">
+      <button class="layout-btn active" id="layout-a-btn" onclick="setLayout('a')" title="Banner card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="1"/><rect x="2" y="19" width="9" height="2" rx="1"/></svg>
+      </button>
+      <button class="layout-btn" id="layout-b-btn" onclick="setLayout('b')" title="Portrait card">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="1"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+      </button>
+    </div>
   </div>
   <div class="community-grid" id="community-grid">
     <div class="state-box">
@@ -372,11 +424,19 @@ function renderCard(m){
 
   const avatarInner=m.photo_url
     ?`<img src="${m.photo_url}" alt="${m.display_name||''}" />`
-    :`<div class="cm-avatar-init" style="background:${accentDim};color:${t.a};">${(m.display_name||'?').charAt(0)}</div>`;
+    :`<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:cover;opacity:0.7;" />`;
+
+  // Badge icon — top right of banner
+  const badgeInner = m.badge_url
+    ? `<img src="${m.badge_url}" alt="" />`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:${t.a}"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>`;
 
   return`<div class="cm-card fade-up" data-mid="${m.id}" style="--card-accent:${t.a};">
     <div class="cm-scanlines"></div>
-    <div class="cm-banner">${banner}</div>
+    <div class="cm-banner">
+      ${banner}
+      <div class="cm-badge">${badgeInner}</div>
+    </div>
     <div class="cm-accent-bar"></div>
     <div class="cm-bottom">
       <div class="cm-avatar-wrap">${avatarInner}</div>
@@ -385,6 +445,7 @@ function renderCard(m){
         <div class="cm-role">${m.role||'Space Fam'}</div>
       </div>
     </div>
+    <div class="cm-about-b">${m.about||''}</div>
     <div class="cm-view-hint"><div class="cm-view-text">View Profile</div></div>
   </div>`;
 }
@@ -526,10 +587,24 @@ document.getElementById('req-submit').addEventListener('click',async()=>{
   document.getElementById('req-message').value='';
 });
 
+// ── LAYOUT TOGGLE ──
+function setLayout(l) {
+  const grid = document.getElementById('community-grid');
+  grid.classList.toggle('layout-b', l === 'b');
+  document.getElementById('layout-a-btn').classList.toggle('active', l === 'a');
+  document.getElementById('layout-b-btn').classList.toggle('active', l === 'b');
+  localStorage.setItem('spacedyn_layout', l);
+}
+function restoreLayout() {
+  const saved = localStorage.getItem('spacedyn_layout') || 'a';
+  setLayout(saved);
+}
+
 // ── OBSERVER ──
 const obs=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');}),{threshold:0.08});
 document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
 
+restoreLayout();
 loadGrid();
 </script>
 </body>
