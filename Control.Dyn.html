@@ -976,9 +976,11 @@ function showSection(id) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const sec = document.getElementById('section-' + id);
   if (sec) sec.classList.add('active');
-  // highlight nav
+  // highlight nav — exact match to avoid 'thicc' matching 'thicc-settings' etc.
   document.querySelectorAll('.nav-item').forEach(n => {
-    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
+    const oc = n.getAttribute('onclick') || '';
+    const match = oc.match(/showSection\('([^']+)'\)/);
+    if (match && match[1] === id) n.classList.add('active');
   });
   if (id === 'assets') refreshAssets();
   if (id === 'thicc') renderTHICC();
