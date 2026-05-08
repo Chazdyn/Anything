@@ -208,6 +208,56 @@
       padding:0 1rem 1rem; text-align:center;
       display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;
     }
+
+    /* ── MINIMAL MUSIC PLAYER ── */
+    .ms-player {
+      background:linear-gradient(135deg,#0a0a0a,#111);
+      border:1px solid #222; border-top:none;
+      padding:10px 12px; color:#fff;
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .ms-player-row { display:flex; align-items:center; gap:8px; }
+    .ms-play-btn {
+      width:28px; height:28px; border-radius:50%;
+      background:#333; border:1px solid #555; color:#fff;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:11px; flex-shrink:0; transition:all 0.15s;
+    }
+    .ms-play-btn:hover { background:#444; }
+    .ms-play-btn.playing { background:#1a6b3c; color:#4dff8a; border-color:#2a9b5a; }
+    .ms-track-info { flex:1; min-width:0; }
+    .ms-track-title { font-size:11px; color:#e0e0e0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
+    .ms-track-artist { font-size:10px; color:#888; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .ms-progress-wrap { display:flex; align-items:center; gap:6px; }
+    .ms-progress-bar { flex:1; height:3px; background:#333; position:relative; cursor:pointer; border-radius:2px; }
+    .ms-progress-fill { height:100%; background:linear-gradient(90deg,#4da6ff,#7ac6ff); border-radius:2px; width:0%; transition:width 0.25s linear; }
+    .ms-time { font-size:9px; color:#666; min-width:28px; text-align:right; }
+    /* hidden YT iframe for audio extraction */
+    .ms-yt-hidden { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; overflow:hidden; }
+
+    /* ── TOP 8 GRID ── */
+    .ms-top8-header { font-size:12px; font-weight:bold; color:#333; padding:4px 10px; background:linear-gradient(180deg,#ddeeff,#aaccee); border-bottom:1px solid #6699cc; }
+    .ms-top8-grid {
+      display:grid; grid-template-columns:repeat(4,1fr);
+      gap:1px; background:#6699cc;
+    }
+    .ms-top8-item {
+      background:#fff; padding:6px 4px; text-align:center;
+      cursor:pointer; transition:background 0.15s;
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+    }
+    .ms-top8-item:hover { background:#f0f8ff; }
+    .ms-top8-img {
+      width:48px; height:48px; object-fit:cover;
+      border:1px solid #ddeeff; border-radius:2px;
+    }
+    .ms-top8-init {
+      width:48px; height:48px; background:#ddeeff;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.2rem; border-radius:2px;
+    }
+    .ms-top8-name { font-size:10px; color:#333; line-height:1.3; word-break:break-word; }
+
     /* LOADING / EMPTY */
     .state-box { grid-column:1/-1; text-align:center; padding:5rem 2rem; }
     .state-icon { font-family:'Bebas Neue',sans-serif; font-size:4rem; opacity:0.07; margin-bottom:1rem; }
@@ -457,27 +507,45 @@ function stopAudio(){if(activeAudio){activeAudio.pause();activeAudio.currentTime
 function buildDefaultProfile(m){
   const interests=m.interests||{};
   const socials=m.socials||[];
+  const playerStyle=m.music_player_style||'minimal';
+  const title=m.music_label||'Unknown Track';
+  const artist=m.music_artist||'';
+
   let musicHtml='';
   if(m.music_url){
     const isYT=/youtu/.test(m.music_url);
-    const label=m.music_label||'Profile Song';
-    if(!isYT){
-      musicHtml=`<div class="ms-music-box" id="ms-music-box">
-        <div class="ms-music-title">♪ Now Playing</div>
-        <div class="ms-music-track">${label}</div>
-        <div class="ms-music-controls">
-          <div class="ms-music-btn" id="ms-play-btn">▶</div>
-          <div class="ms-music-progress" id="ms-progress"><div class="ms-music-fill" id="ms-fill"></div></div>
-          <div class="ms-music-time" id="ms-time">0:00</div>
-        </div>
-        <audio id="ms-audio" src="${m.music_url}" preload="none"></audio>
-      </div>`;
-    } else {
-      const ytId=m.music_url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1]||'';
+    const isSP=/spotify/.test(m.music_url);
+    const ytId=isYT?(m.music_url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1]||''):'';
+
+    if(playerStyle==='youtube' && isYT){
+      // Full YouTube embed
       musicHtml=`<div class="ms-music-box">
         <div class="ms-music-title">♪ Profile Music</div>
-        <div class="ms-music-track">${label}</div>
-        <iframe width="100%" height="60" src="https://www.youtube.com/embed/${ytId}?autoplay=0" style="border:none;display:block;margin-top:6px;" allow="autoplay"></iframe>
+        <iframe width="100%" height="80" src="https://www.youtube.com/embed/${ytId}?autoplay=0" style="border:none;display:block;margin-top:4px;" allow="autoplay"></iframe>
+      </div>`;
+    } else if(isSP){
+      // Spotify embed
+      const spId=m.music_url.match(/track\/([A-Za-z0-9]+)/)?.[1]||'';
+      musicHtml=spId?`<div class="ms-music-box" style="padding:0;">
+        <iframe src="https://open.spotify.com/embed/track/${spId}?utm_source=generator&theme=0" width="100%" height="80" frameborder="0" allow="autoplay;clipboard-write;encrypted-media;fullscreen;picture-in-picture" loading="lazy" style="display:block;"></iframe>
+      </div>`:'';
+    } else {
+      // Minimal player — direct MP3 or YT audio
+      const srcAttr=isYT?'':'';  // YT handled via YT API
+      musicHtml=`<div class="ms-player" id="ms-player">
+        ${isYT?`<div class="ms-yt-hidden"><iframe id="ms-yt-iframe" src="https://www.youtube.com/embed/${ytId}?enablejsapi=1&autoplay=0" allow="autoplay"></iframe></div>`:''}
+        ${!isYT?`<audio id="ms-audio" src="${m.music_url}" preload="none"></audio>`:''}
+        <div class="ms-player-row">
+          <div class="ms-play-btn" id="ms-play-btn">▶</div>
+          <div class="ms-track-info">
+            <div class="ms-track-title">${title}</div>
+            ${artist?`<div class="ms-track-artist">${artist}</div>`:''}
+          </div>
+        </div>
+        <div class="ms-progress-wrap">
+          <div class="ms-progress-bar" id="ms-progress"><div class="ms-progress-fill" id="ms-fill"></div></div>
+          <div class="ms-time" id="ms-time">0:00</div>
+        </div>
       </div>`;
     }
   }
@@ -487,6 +555,25 @@ function buildDefaultProfile(m){
     if(isYT){const id=m.video_url.match(/(?:v=|youtu\.be\/)([^&?]+)/)?.[1]||'';clipHtml=`<div class="ms-clip-wrap"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;}
     else{clipHtml=`<div class="ms-clip-wrap"><video src="${m.video_url}" controls playsinline></video></div>`;}
   }
+  // Top 8
+  const top8=m.top8||null;
+  let top8Html='';
+  if(top8&&top8.items&&top8.items.length){
+    const catLabel=top8.custom_title||top8.category||'Top 8';
+    const slots=top8.items.slice(0,8);
+    top8Html=`<div class="ms-box">
+      <div class="ms-top8-header">★ ${catLabel}</div>
+      <div class="ms-box-body" style="padding:0;">
+        <div class="ms-top8-grid">
+          ${slots.map(item=>{
+            const img=item.img?`<img class="ms-top8-img" src="${item.img}" alt="${item.name}" onerror="this.style.display='none'" />`:`<div class="ms-top8-init">⭐</div>`;
+            return `<div class="ms-top8-item">${img}<div class="ms-top8-name">${item.name}</div></div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
   const iFields=[['General',interests.general],['Games',interests.games],['Music',interests.music],['Movies / TV',interests.tv]].filter(f=>f[1]);
   const interestRows=iFields.length?`<div class="ms-interests-grid">${iFields.map(([l,v])=>`<div class="ms-interest-cell"><div class="ms-interest-label">${l}</div><div class="ms-interest-val">${v}</div></div>`).join('')}</div>`:'';
   const socialsHtml=socials.length?`<div class="ms-socials">${socials.map(s=>`<a class="ms-soc-btn" href="${s.url}" target="_blank" rel="noopener">${socialIcon(s.platform)} ${s.handle||s.platform}</a>`).join('')}</div>`:`<div style="padding:10px;font-size:11px;color:#999;font-style:italic;">No links added yet.</div>`;
@@ -508,6 +595,7 @@ function buildDefaultProfile(m){
       <div class="ms-right-col">
         <div class="ms-box"><div class="ms-box-header">About ${m.display_name||'Member'}</div><div class="ms-box-body">${m.about||'<em style="color:#999">No bio written yet.</em>'}</div></div>
         ${clipHtml?`<div class="ms-box"><div class="ms-box-header">Featured Clip</div><div class="ms-box-body" style="padding:0;">${clipHtml}</div></div>`:''}
+        ${top8Html}
         ${interestRows?`<div class="ms-box"><div class="ms-box-header">★ Interests</div><div class="ms-box-body" style="padding:0;">${interestRows}</div></div>`:''}
         <div class="ms-box"><div class="ms-box-header">Socials &amp; Links</div>${socialsHtml}</div>
       </div>
@@ -529,15 +617,41 @@ function openProfile(m){
   backdrop.classList.add('open');
   document.body.style.overflow='hidden';
   document.getElementById('modal-shell').scrollTop=0;
+
+  const pb=document.getElementById('ms-play-btn');
+  if(!pb) return;
+
   const audioEl=document.getElementById('ms-audio');
+  const fill=document.getElementById('ms-fill');
+  const te=document.getElementById('ms-time');
+
+  function fmtTime(s){return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');}
+
   if(audioEl){
+    // Direct audio file
     activeAudio=audioEl;
-    const pb=document.getElementById('ms-play-btn');
-    const fill=document.getElementById('ms-fill');
-    const te=document.getElementById('ms-time');
-    pb.addEventListener('click',()=>{if(audioEl.paused){audioEl.play();pb.textContent='⏸';pb.classList.add('playing');}else{audioEl.pause();pb.textContent='▶';pb.classList.remove('playing');}});
-    audioEl.addEventListener('timeupdate',()=>{if(!audioEl.duration)return;fill.style.width=(audioEl.currentTime/audioEl.duration*100)+'%';const s=Math.floor(audioEl.currentTime%60);te.textContent=Math.floor(audioEl.currentTime/60)+':'+String(s).padStart(2,'0');});
+    pb.onclick=()=>{
+      if(audioEl.paused){audioEl.play();pb.textContent='⏸';pb.classList.add('playing');}
+      else{audioEl.pause();pb.textContent='▶';pb.classList.remove('playing');}
+    };
+    audioEl.addEventListener('timeupdate',()=>{
+      if(!audioEl.duration)return;
+      if(fill)fill.style.width=(audioEl.currentTime/audioEl.duration*100)+'%';
+      if(te)te.textContent=fmtTime(audioEl.currentTime);
+    });
+    if(document.getElementById('ms-progress')){
+      document.getElementById('ms-progress').addEventListener('click',e=>{
+        const rect=e.currentTarget.getBoundingClientRect();
+        audioEl.currentTime=((e.clientX-rect.left)/rect.width)*audioEl.duration;
+      });
+    }
     audioEl.play().then(()=>{pb.textContent='⏸';pb.classList.add('playing');}).catch(()=>{});
+  } else {
+    // No direct audio — play button is decorative or YT iframe handles it
+    pb.onclick=()=>{
+      pb.classList.toggle('playing');
+      pb.textContent=pb.classList.contains('playing')?'⏸':'▶';
+    };
   }
 }
 function closeProfile(){stopAudio();backdrop.classList.remove('open');document.body.style.overflow='';setTimeout(()=>{inner.innerHTML='';},360);}
