@@ -21,18 +21,24 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Always pass through API calls
-  if (e.request.url.includes('api.github.com') ||
-      e.request.url.includes('api.twitch.tv') ||
-      e.request.url.includes('id.twitch.tv') ||
-      e.request.url.includes('supabase.co')) {
-    e.respondWith(fetch(e.request).catch(() =>
-      new Response('{}', { headers: { 'Content-Type': 'application/json' }})
-    ));
+  // Only handle GET requests — never try to cache POST/PUT/DELETE
+  if (e.request.method !== 'GET') return;
+
+  // Pass through all API calls without caching
+  const url = e.request.url;
+  if (
+    url.includes('api.github.com') ||
+    url.includes('api.twitch.tv') ||
+    url.includes('id.twitch.tv') ||
+    url.includes('supabase.co') ||
+    url.includes('discord.com') ||
+    url.includes('youtube.com/iframe_api')
+  ) {
+    e.respondWith(fetch(e.request));
     return;
   }
 
-  // Network first everywhere — cache is fallback for offline only
+  // Network first for everything — cache only as offline fallback
   e.respondWith(
     fetch(e.request).then(res => {
       const clone = res.clone();
