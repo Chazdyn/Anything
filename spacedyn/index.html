@@ -377,7 +377,7 @@
   <div class="nav-right">
     <span class="nav-count" id="nav-count"></span>
     <a class="nav-portal-btn" href="/spacedyn/portal.html">
-      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1);opacity:0.9;mix-blend-mode:screen;" />
+      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:18px;height:18px;object-fit:contain;filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1);mix-blend-mode:screen;" />
       My Profile
     </a>
   </div>
@@ -760,7 +760,7 @@ async function loadGrid(){
   const{data,error}=await sb.from('community_members').select('*').eq('approved',true).order('created_at',{ascending:true});
   const grid=document.getElementById('community-grid');
   if(error||!data||!data.length){
-    grid.innerHTML=`<div class="state-box"><div class="state-icon"><img src="../assets/chazdyn-default-avatar.png" style="width:96px;height:96px;object-fit:contain;opacity:0.1;filter:invert(1);mix-blend-mode:screen;" /></div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
+    grid.innerHTML=`<div class="state-box"><div class="state-icon"><img src="../assets/chazdyn-default-avatar.png" style="width:96px;height:96px;object-fit:contain;filter:invert(1);mix-blend-mode:screen;" /></div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
     return;
   }
   document.getElementById('nav-count').textContent=String(data.length).padStart(2,'0')+' MEMBERS';
