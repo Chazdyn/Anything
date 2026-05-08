@@ -51,6 +51,18 @@
     </div>
 
     <div class="topbar-right">
+      <!-- Connection status dots -->
+      <button class="conn-dots-btn" id="conn-dots-btn" onclick="testAllConnections()" title="Test all connections">
+        <span class="conn-dot-item" id="cdot-gh" title="GitHub">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </span>
+        <span class="conn-dot-item" id="cdot-twitch" title="Twitch">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+        </span>
+        <span class="conn-dot-item" id="cdot-supabase" title="Supabase">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10"><path d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C.33 12.6.73 13.39 1.424 13.39h9.678l.004 9.537c.015.986 1.26 1.41 1.874.637l9.262-11.651c.434-.55.034-1.34-.66-1.34h-9.678L11.9 1.036z"/></svg>
+        </span>
+      </button>
       <button class="qa-btn ghost" id="install-btn" style="display:none" onclick="installPWA()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Install App
@@ -147,6 +159,11 @@
           Requests <span id="sd-req-badge" style="display:none;background:#c0392b;color:#fff;font-size:0.6rem;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span>
         </a>
       </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
+        <div class="sidebar-label">Assets & Deploy</div>
         <a class="nav-item" onclick="showSection('assets')" href="#">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
           Assets
@@ -608,35 +625,18 @@
             </div>
           </div>
           <div class="panel-body">
-            <p class="text-muted" style="font-size:0.8rem">All keys are stored locally in your browser only and never sent anywhere except the respective APIs.</p>
+            <p class="text-muted" style="font-size:0.8rem">All credentials are built into the repo — connections are established automatically on load.</p>
             <div class="sep"></div>
 
             <!-- GitHub -->
             <div class="field">
               <label style="color:#6cc644">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                GitHub Personal Access Token
+                GitHub — Chazdyn/Anything
               </label>
-              <div class="flex-row">
-                <input type="password" id="gh-pat" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="flex:1" />
-                <button class="qa-btn ghost" onclick="toggleVisible('gh-pat')">Show</button>
-              </div>
-              <div class="field-row" style="margin-top:0.5rem">
-                <div class="field">
-                  <label>Repo Owner</label>
-                  <input type="text" id="gh-owner" placeholder="Chazdyn" value="Chazdyn" />
-                </div>
-                <div class="field">
-                  <label>Repo Name</label>
-                  <input type="text" id="gh-repo" placeholder="Anything" value="Anything" />
-                </div>
-              </div>
-              <div class="field" style="margin-top:0.5rem">
-                <label>Branch</label>
-                <input type="text" id="gh-branch" placeholder="main" value="main" />
-              </div>
-              <div class="flex-row" style="margin-top:0.5rem">
-                <button class="qa-btn ghost" onclick="saveGitHubCreds()">Save &amp; Test Connection</button>
+              <p class="text-muted" style="font-size:0.8rem;">Token is hardcoded in the repo. Auto-connects on load.</p>
+              <div class="flex-row" style="margin-top:0.5rem;">
+                <button class="qa-btn ghost" onclick="saveGitHubCreds()">Test Connection</button>
                 <span id="gh-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
               </div>
             </div>
@@ -647,38 +647,26 @@
             <div class="field">
               <label style="color:#3ecf8e;">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C.33 12.6.73 13.39 1.424 13.39h9.678l.004 9.537c.015.986 1.26 1.41 1.874.637l9.262-11.651c.434-.55.034-1.34-.66-1.34h-9.678L11.9 1.036z"/></svg>
-                Supabase (SpaceDyn)
+                Supabase — SpaceDyn
               </label>
-              <p class="text-muted" style="font-size:0.8rem;">Credentials are built into the repo. Use the button below to verify the connection is working.</p>
-              <div class="flex-row" style="margin-top:0.75rem;">
+              <p class="text-muted" style="font-size:0.8rem;">Credentials are hardcoded in the repo.</p>
+              <div class="flex-row" style="margin-top:0.5rem;">
                 <button class="qa-btn ghost" onclick="sdTestConnection()">Test Connection</button>
                 <span id="sd-conn-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not tested</span>
               </div>
             </div>
+
+            <div class="sep"></div>
+
+            <!-- Twitch -->
             <div class="field">
               <label style="color:#9147ff">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
-                Twitch API
+                Twitch — chazdyn
               </label>
-              <div class="field-row">
-                <div class="field">
-                  <label>Client ID</label>
-                  <input type="text" id="twitch-client-id" placeholder="Twitch Client ID" />
-                </div>
-                <div class="field">
-                  <label>Client Secret</label>
-                  <div class="flex-row">
-                    <input type="password" id="twitch-client-secret" placeholder="Twitch Client Secret" style="flex:1" />
-                    <button class="qa-btn ghost" onclick="toggleVisible('twitch-client-secret')">Show</button>
-                  </div>
-                </div>
-              </div>
-              <div class="field" style="margin-top:0.5rem">
-                <label>Your Twitch Username</label>
-                <input type="text" id="twitch-username" placeholder="chazdyn" value="chazdyn" />
-              </div>
-              <div class="flex-row" style="margin-top:0.5rem">
-                <button class="qa-btn ghost" onclick="saveTwitchCreds()">Save &amp; Connect</button>
+              <p class="text-muted" style="font-size:0.8rem;">Client ID and Secret are hardcoded. Polls every 30s automatically.</p>
+              <div class="flex-row" style="margin-top:0.5rem;">
+                <button class="qa-btn ghost" onclick="saveTwitchCreds()">Test Connection</button>
                 <span id="twitch-conn-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
               </div>
               <div class="field" style="margin-top:0.75rem">
@@ -898,9 +886,12 @@
 // ══════════════════════════════════════════════
 const STATE = {
   mode: 'preview',
-  ghPat: '', ghOwner: 'Chazdyn', ghRepo: 'Anything', ghBranch: 'main',
+  ghPat: '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',
+  ghOwner: 'Chazdyn', ghRepo: 'Anything', ghBranch: 'main',
   ghConnected: false,
-  twitchClientId: '', twitchClientSecret: '', twitchUsername: 'chazdyn',
+  twitchClientId: 'zd09p34hzxm6jbhvhlcujem2ypid0m',
+  twitchClientSecret: 'm04uukgaitz6ulw1dk0mrrdjm8dprc',
+  twitchUsername: 'chazdyn',
   twitchToken: null, twitchConnected: false, twitchPollTimer: null,
   isLive: false, liveBadgeOn: false,
   showFullUrls: false,
@@ -947,18 +938,15 @@ function loadFromStorage() {
   if (saved) {
     try {
       const s = JSON.parse(saved);
-      Object.assign(STATE, s);
-      // restore UI
-      if (STATE.ghPat) document.getElementById('gh-pat').value = STATE.ghPat;
-      if (STATE.ghOwner) document.getElementById('gh-owner').value = STATE.ghOwner;
-      if (STATE.ghRepo)  document.getElementById('gh-repo').value  = STATE.ghRepo;
-      if (STATE.ghBranch) document.getElementById('gh-branch').value = STATE.ghBranch;
-      if (STATE.twitchClientId) document.getElementById('twitch-client-id').value = STATE.twitchClientId;
-      if (STATE.twitchUsername) document.getElementById('twitch-username').value = STATE.twitchUsername;
-      if (STATE.ghConnected) { updateGhStatus(true); setTimeout(syncControlDynFromLive, 350); }
-      if (STATE.twitchConnected && STATE.twitchClientId) startTwitchPolling();
+      // Restore non-credential state only — creds are hardcoded
+      const { ghPat, ghOwner, ghRepo, ghBranch, twitchClientId, twitchClientSecret, twitchUsername, ...rest } = s;
+      Object.assign(STATE, rest);
     } catch(e) {}
   }
+  // Always auto-connect with hardcoded creds
+  updateGhStatus(true);
+  setTimeout(syncControlDynFromLive, 350);
+  startTwitchPolling();
 }
 
 function saveToStorage() {
@@ -1029,11 +1017,7 @@ function ghHeaders() {
 function ghBase() { return `https://api.github.com/repos/${STATE.ghOwner}/${STATE.ghRepo}`; }
 
 async function saveGitHubCreds() {
-  STATE.ghPat    = document.getElementById('gh-pat').value.trim();
-  STATE.ghOwner  = document.getElementById('gh-owner').value.trim();
-  STATE.ghRepo   = document.getElementById('gh-repo').value.trim();
-  STATE.ghBranch = document.getElementById('gh-branch').value.trim() || 'main';
-  saveToStorage();
+  // Creds are hardcoded — just test the connection
   try {
     const r = await fetch(ghBase(), { headers: ghHeaders() });
     if (r.ok) { updateGhStatus(true); toast('GitHub connected!', 'success'); refreshAssets(); syncControlDynFromLive(); }
@@ -1044,8 +1028,8 @@ async function saveGitHubCreds() {
 function updateGhStatus(ok) {
   STATE.ghConnected = ok;
   const el = document.getElementById('gh-status');
-  el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
-  el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`;
+  if (el) { el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected'); el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`; }
+  setDot('cdot-gh', ok ? 'ok' : 'err');
   saveToStorage();
 }
 
@@ -1754,10 +1738,7 @@ function toggleLiveBadge() {
 //  TWITCH API
 // ══════════════════════════════════════════════
 async function saveTwitchCreds() {
-  STATE.twitchClientId     = document.getElementById('twitch-client-id').value.trim();
-  STATE.twitchClientSecret = document.getElementById('twitch-client-secret').value.trim();
-  STATE.twitchUsername     = document.getElementById('twitch-username').value.trim();
-  saveToStorage();
+  // Creds are hardcoded — just fetch token and connect
   await fetchTwitchToken();
 }
 
@@ -1779,8 +1760,8 @@ async function fetchTwitchToken() {
 function updateTwitchConnStatus(ok) {
   STATE.twitchConnected = ok;
   const el = document.getElementById('twitch-conn-status');
-  el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
-  el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`;
+  if (el) { el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected'); el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`; }
+  setDot('cdot-twitch', ok ? 'ok' : 'err');
   saveToStorage();
 }
 
@@ -2502,6 +2483,45 @@ async function deployTHICC() {
 }
 
 // ══════════════════════════════════════════════
+//  CONNECTION DOTS
+// ══════════════════════════════════════════════
+function setDot(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'conn-dot-item' + (state ? ' ' + state : '');
+}
+
+async function testAllConnections() {
+  // Set all to checking
+  ['cdot-gh','cdot-twitch','cdot-supabase'].forEach(id => setDot(id, 'checking'));
+
+  // GitHub
+  try {
+    const r = await fetch(ghBase(), { headers: ghHeaders() });
+    setDot('cdot-gh', r.ok ? 'ok' : 'err');
+    if (r.ok) updateGhStatus(true);
+  } catch { setDot('cdot-gh', 'err'); }
+
+  // Twitch
+  try {
+    const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${STATE.twitchClientId}&client_secret=${STATE.twitchClientSecret}&grant_type=client_credentials`, { method:'POST' });
+    if (r.ok) {
+      const d = await r.json();
+      STATE.twitchToken = d.access_token;
+      updateTwitchConnStatus(true);
+      setDot('cdot-twitch', 'ok');
+    } else { setDot('cdot-twitch', 'err'); }
+  } catch { setDot('cdot-twitch', 'err'); }
+
+  // Supabase
+  try {
+    if (!cdSupabase) cdInitSupabase();
+    const { error } = await cdSupabase.from('community_members').select('id').limit(1);
+    setDot('cdot-supabase', error ? 'err' : 'ok');
+  } catch { setDot('cdot-supabase', 'err'); }
+}
+
+// ══════════════════════════════════════════════
 //  DISCORD AUTH GATE
 // ══════════════════════════════════════════════
 const CD_ADMIN_DISCORD_ID = '562352729482067968';
@@ -2547,6 +2567,9 @@ async function cdCheckAuth() {
 
   gate.style.display = 'none';
   app.style.display = '';
+
+  // Auto-test all connections
+  setTimeout(testAllConnections, 500);
 
   const topbarRight = document.querySelector('.topbar-right');
   if (topbarRight && !document.getElementById('cd-logout-btn')) {
