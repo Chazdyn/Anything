@@ -1,7 +1,6 @@
 // Control.Dyn Service Worker
-const CACHE = 'controldyn-v1';
+const CACHE = 'controldyn-v2';
 const ASSETS = [
-  './',
   './Control.Dyn.html',
   './control.css',
   './manifest.json',
@@ -22,16 +21,23 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network first for GitHub API calls, cache first for app shell
-  if (e.request.url.includes('api.github.com') || e.request.url.includes('api.twitch.tv') || e.request.url.includes('id.twitch.tv')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('{}', {headers:{'Content-Type':'application/json'}})));
+  // Always pass through API calls
+  if (e.request.url.includes('api.github.com') ||
+      e.request.url.includes('api.twitch.tv') ||
+      e.request.url.includes('id.twitch.tv') ||
+      e.request.url.includes('supabase.co')) {
+    e.respondWith(fetch(e.request).catch(() =>
+      new Response('{}', { headers: { 'Content-Type': 'application/json' }})
+    ));
     return;
   }
+
+  // Network first everywhere — cache is fallback for offline only
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+    fetch(e.request).then(res => {
       const clone = res.clone();
       caches.open(CACHE).then(c => c.put(e.request, clone));
       return res;
-    }))
+    }).catch(() => caches.match(e.request))
   );
 });
