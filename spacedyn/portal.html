@@ -7,6 +7,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Profile — SpaceDyn</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
   <script>
     window.SUPABASE_URL = 'https://lqayctcgprumnvlaktms.supabase.co';
@@ -181,7 +184,7 @@
     </a>
     <div class="nav-divider"></div>
     <span class="nav-logo" style="display:flex;align-items:center;gap:8px;">
-      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:22px;height:22px;object-fit:contain;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);mix-blend-mode:screen;" />
+      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:24px;height:24px;object-fit:contain;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);mix-blend-mode:screen;" />
       My Profile
     </span>
   </div>
@@ -276,7 +279,7 @@
         <div class="img-widget">
           <div class="img-top">
             <div class="img-preview sq" id="av-preview">
-              <img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:70%;height:70%;object-fit:contain;margin:15%;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);opacity:0.7;mix-blend-mode:screen;" />
+              <img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:contain;padding:8%;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);opacity:0.85;mix-blend-mode:screen;" />
             </div>
             <div class="img-controls">
               <div class="img-url-row">
@@ -668,7 +671,7 @@ function setPreview(type, url) {
   if (url && url.trim()) {
     el.innerHTML = `<img src="${url.trim()}" alt="" onerror="this.src='../assets/chazdyn-default-avatar.png'" />`;
   } else if (type === 'av') {
-    el.innerHTML = `<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:70%;height:70%;object-fit:contain;margin:15%;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);opacity:0.7;mix-blend-mode:screen;" />`;
+    el.innerHTML = `<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:contain;padding:8%;filter:invert(1) sepia(1) saturate(3) hue-rotate(5deg) brightness(1.2);opacity:0.85;mix-blend-mode:screen;" />`;
   } else if (type === 'badge') {
     el.innerHTML = `<div class="ph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></div>`;
   } else {
