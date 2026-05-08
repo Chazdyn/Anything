@@ -623,9 +623,10 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
               Connections &amp; API Keys
             </div>
+            <button class="qa-btn ghost" onclick="testAllConnections()">Test All &amp; Reconnect</button>
           </div>
           <div class="panel-body">
-            <p class="text-muted" style="font-size:0.8rem">All credentials are built into the repo — connections are established automatically on load.</p>
+            <p class="text-muted" style="font-size:0.8rem">Credentials are built into the repo and connect automatically. If a service fails, a field will appear so you can paste a fresh key.</p>
             <div class="sep"></div>
 
             <!-- GitHub -->
@@ -634,10 +635,16 @@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                 GitHub — Chazdyn/Anything
               </label>
-              <p class="text-muted" style="font-size:0.8rem;">Token is hardcoded in the repo. Auto-connects on load.</p>
               <div class="flex-row" style="margin-top:0.5rem;">
-                <button class="qa-btn ghost" onclick="saveGitHubCreds()">Test Connection</button>
+                <button class="qa-btn ghost" onclick="saveGitHubCreds()">Test &amp; Connect</button>
                 <span id="gh-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
+              </div>
+              <div id="gh-reauth" style="display:none;margin-top:0.75rem;">
+                <div class="input-hint" style="margin-bottom:6px;color:var(--red);">⚠ Token failed — paste a new one below and click Test &amp; Connect.</div>
+                <div class="flex-row">
+                  <input type="password" id="gh-pat-input" placeholder="github_pat_... or ghp_..." style="flex:1;" />
+                  <button class="qa-btn ghost" onclick="toggleVisible('gh-pat-input')">Show</button>
+                </div>
               </div>
             </div>
 
@@ -649,10 +656,13 @@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C.33 12.6.73 13.39 1.424 13.39h9.678l.004 9.537c.015.986 1.26 1.41 1.874.637l9.262-11.651c.434-.55.034-1.34-.66-1.34h-9.678L11.9 1.036z"/></svg>
                 Supabase — SpaceDyn
               </label>
-              <p class="text-muted" style="font-size:0.8rem;">Credentials are hardcoded in the repo.</p>
               <div class="flex-row" style="margin-top:0.5rem;">
-                <button class="qa-btn ghost" onclick="sdTestConnection()">Test Connection</button>
+                <button class="qa-btn ghost" onclick="sdTestConnection()">Test &amp; Connect</button>
                 <span id="sd-conn-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not tested</span>
+              </div>
+              <div id="sb-reauth" style="display:none;margin-top:0.75rem;">
+                <div class="input-hint" style="margin-bottom:6px;color:var(--red);">⚠ Connection failed — paste a new anon key below.</div>
+                <input type="password" id="sb-key-input" placeholder="eyJ... (anon key)" style="width:100%;" />
               </div>
             </div>
 
@@ -664,10 +674,22 @@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
                 Twitch — chazdyn
               </label>
-              <p class="text-muted" style="font-size:0.8rem;">Client ID and Secret are hardcoded. Polls every 30s automatically.</p>
               <div class="flex-row" style="margin-top:0.5rem;">
-                <button class="qa-btn ghost" onclick="saveTwitchCreds()">Test Connection</button>
+                <button class="qa-btn ghost" onclick="saveTwitchCreds()">Test &amp; Connect</button>
                 <span id="twitch-conn-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
+              </div>
+              <div id="twitch-reauth" style="display:none;margin-top:0.75rem;">
+                <div class="input-hint" style="margin-bottom:6px;color:var(--red);">⚠ Credentials failed — paste new ones below.</div>
+                <div class="field-row">
+                  <div class="field">
+                    <label>Client ID</label>
+                    <input type="text" id="twitch-id-input" placeholder="Client ID" />
+                  </div>
+                  <div class="field">
+                    <label>Client Secret</label>
+                    <input type="password" id="twitch-secret-input" placeholder="Client Secret" />
+                  </div>
+                </div>
               </div>
               <div class="field" style="margin-top:0.75rem">
                 <label>Poll Interval (seconds)</label>
@@ -1012,12 +1034,24 @@ function ghHeaders() {
 function ghBase() { return `https://api.github.com/repos/${STATE.ghOwner}/${STATE.ghRepo}`; }
 
 async function saveGitHubCreds() {
-  // Creds are hardcoded — just test the connection
+  // Use input field value if one was entered
+  const input = document.getElementById('gh-pat-input');
+  if (input && input.value.trim()) STATE.ghPat = input.value.trim();
   try {
     const r = await fetch(ghBase(), { headers: ghHeaders() });
-    if (r.ok) { updateGhStatus(true); toast('GitHub connected!', 'success'); refreshAssets(); syncControlDynFromLive(); }
-    else throw new Error('Auth failed');
-  } catch(e) { updateGhStatus(false); toast('GitHub connection failed: ' + e.message, 'error'); }
+    if (r.ok) {
+      updateGhStatus(true);
+      document.getElementById('gh-reauth').style.display = 'none';
+      if (input) input.value = '';
+      refreshAssets(); syncControlDynFromLive();
+    } else {
+      updateGhStatus(false);
+      document.getElementById('gh-reauth').style.display = 'block';
+    }
+  } catch(e) {
+    updateGhStatus(false);
+    document.getElementById('gh-reauth').style.display = 'block';
+  }
 }
 
 function updateGhStatus(ok) {
@@ -1733,7 +1767,11 @@ function toggleLiveBadge() {
 //  TWITCH API
 // ══════════════════════════════════════════════
 async function saveTwitchCreds() {
-  // Creds are hardcoded — just fetch token and connect
+  // Use input field values if entered
+  const idInput = document.getElementById('twitch-id-input');
+  const secInput = document.getElementById('twitch-secret-input');
+  if (idInput && idInput.value.trim()) STATE.twitchClientId = idInput.value.trim();
+  if (secInput && secInput.value.trim()) STATE.twitchClientSecret = secInput.value.trim();
   await fetchTwitchToken();
 }
 
@@ -1744,11 +1782,17 @@ async function fetchTwitchToken() {
     const d = await r.json();
     STATE.twitchToken = d.access_token;
     updateTwitchConnStatus(true);
-    toast('Twitch connected!', 'success');
+    const reauth = document.getElementById('twitch-reauth');
+    if (reauth) { reauth.style.display = 'none'; }
+    const idInput = document.getElementById('twitch-id-input');
+    const secInput = document.getElementById('twitch-secret-input');
+    if (idInput) idInput.value = '';
+    if (secInput) secInput.value = '';
     startTwitchPolling();
   } catch(e) {
     updateTwitchConnStatus(false);
-    toast('Twitch auth failed: ' + e.message, 'error');
+    const reauth = document.getElementById('twitch-reauth');
+    if (reauth) reauth.style.display = 'block';
   }
 }
 
@@ -2495,12 +2539,14 @@ async function testAllConnections() {
     if (r.ok) {
       updateGhStatus(true);
       setDot('cdot-gh', 'ok');
+      document.getElementById('gh-reauth').style.display = 'none';
       if (!STATE.ghConnected) { refreshAssets(); syncControlDynFromLive(); }
     } else {
       updateGhStatus(false);
       setDot('cdot-gh', 'err');
+      document.getElementById('gh-reauth').style.display = 'block';
     }
-  } catch { updateGhStatus(false); setDot('cdot-gh', 'err'); }
+  } catch { updateGhStatus(false); setDot('cdot-gh', 'err'); document.getElementById('gh-reauth').style.display = 'block'; }
 
   // Twitch — test and reconnect if needed
   try {
@@ -2510,12 +2556,14 @@ async function testAllConnections() {
       STATE.twitchToken = d.access_token;
       updateTwitchConnStatus(true);
       setDot('cdot-twitch', 'ok');
+      document.getElementById('twitch-reauth').style.display = 'none';
       if (!STATE.twitchConnected) startTwitchPolling();
     } else {
       updateTwitchConnStatus(false);
       setDot('cdot-twitch', 'err');
+      document.getElementById('twitch-reauth').style.display = 'block';
     }
-  } catch { updateTwitchConnStatus(false); setDot('cdot-twitch', 'err'); }
+  } catch { updateTwitchConnStatus(false); setDot('cdot-twitch', 'err'); document.getElementById('twitch-reauth').style.display = 'block'; }
 
   // Supabase — test and reconnect if needed
   try {
@@ -2523,13 +2571,15 @@ async function testAllConnections() {
     const { error } = await cdSupabase.from('community_members').select('id').limit(1);
     if (!error) {
       setDot('cdot-supabase', 'ok');
+      document.getElementById('sb-reauth').style.display = 'none';
       const el = document.getElementById('sd-conn-status');
       if (el) { el.className = 'conn-badge connected'; el.innerHTML = '<span class="conn-dot"></span>Connected'; }
       if (!document.getElementById('sd-members-list').children.length) { sdLoadMembers(); sdLoadRequests(); }
     } else {
       setDot('cdot-supabase', 'err');
+      document.getElementById('sb-reauth').style.display = 'block';
     }
-  } catch { setDot('cdot-supabase', 'err'); }
+  } catch { setDot('cdot-supabase', 'err'); document.getElementById('sb-reauth').style.display = 'block'; }
 }
 
 // ══════════════════════════════════════════════
@@ -2626,7 +2676,30 @@ async function cdLogout() {
 }
 
 async function sdTestConnection() {
-  if (!cdSupabase) { toast('Supabase not initialized', 'error'); return; }
+  // Use new key if entered
+  const keyInput = document.getElementById('sb-key-input');
+  if (keyInput && keyInput.value.trim()) {
+    localStorage.setItem(CD_SUPABASE_URL, CD_SUPABASE_URL);
+    cdSupabase = window.supabase.createClient(CD_SUPABASE_URL, keyInput.value.trim());
+  }
+  if (!cdSupabase) cdInitSupabase();
+  const { error } = await cdSupabase.from('community_members').select('id').limit(1);
+  const el = document.getElementById('sd-conn-status');
+  const reauth = document.getElementById('sb-reauth');
+  if (error) {
+    if (el) { el.className = 'conn-badge disconnected'; el.innerHTML = '<span class="conn-dot"></span>Failed'; }
+    if (reauth) reauth.style.display = 'block';
+    setDot('cdot-supabase', 'err');
+    toast('Supabase connection failed', 'error');
+  } else {
+    if (el) { el.className = 'conn-badge connected'; el.innerHTML = '<span class="conn-dot"></span>Connected'; }
+    if (reauth) reauth.style.display = 'none';
+    if (keyInput) keyInput.value = '';
+    setDot('cdot-supabase', 'ok');
+    toast('Supabase connected!', 'success');
+    sdLoadMembers(); sdLoadRequests();
+  }
+}
   const { error } = await cdSupabase.from('community_members').select('id').limit(1);
   const el = document.getElementById('sd-conn-status');
   if (error) {
