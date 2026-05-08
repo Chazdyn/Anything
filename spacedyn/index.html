@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&family=Special+Elite&display=swap" rel="stylesheet" />
   <!-- !! REPLACE THESE TWO VALUES — see SETUP.md !! -->
   <script>
-    window.SUPABASE_URL = 'https://lqayctcgprumnvlaktms.supabase.co';
-    window.SUPABASE_ANON_KEY = 'sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG';
+    window.SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    window.SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -60,27 +60,109 @@
     .section-header::after { content:''; position:absolute; bottom:-1px; left:0; width:80px; height:2px; background:var(--gold); }
     .section-label { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--gold); letter-spacing:0.2em; text-transform:uppercase; margin-bottom:0.4rem; opacity:0.7; }
     .section-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(2rem,4vw,3.5rem); letter-spacing:0.06em; line-height:1; color:var(--text); }
-    .community-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:1.5rem; }
+    .community-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1.5rem; }
 
-    /* CARDS */
-    .cm-card { background:var(--bg2); border:1px solid var(--border); position:relative; overflow:hidden; transition:border-color 0.3s,transform 0.3s; cursor:pointer; }
-    .cm-card:hover { border-color:rgba(245,166,35,0.4); transform:translateY(-4px); }
-    .cm-card::before { content:''; position:absolute; top:0; left:0; width:20px; height:20px; border-top:2px solid var(--gold); border-left:2px solid var(--gold); z-index:3; opacity:0.5; transition:opacity 0.3s; }
-    .cm-card::after { content:''; position:absolute; bottom:0; right:0; width:20px; height:20px; border-bottom:2px solid var(--gold); border-right:2px solid var(--gold); z-index:3; opacity:0.5; transition:opacity 0.3s; }
-    .cm-card:hover::before,.cm-card:hover::after { opacity:1; }
-    .cm-banner { position:relative; width:100%; height:120px; overflow:hidden; background:var(--bg3); }
-    .cm-banner img { width:100%; height:100%; object-fit:cover; transition:transform 0.4s; }
+    /* ── MEMBER CARD ── */
+    .cm-card {
+      position:relative; cursor:pointer; overflow:hidden;
+      background:var(--bg2);
+      border:1px solid var(--border);
+      transition:transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s, border-color 0.3s;
+    }
+    .cm-card:hover {
+      transform:translateY(-5px);
+      border-color:var(--card-accent,var(--gold));
+      box-shadow:0 16px 48px rgba(0,0,0,0.6), 0 0 0 1px var(--card-accent,var(--gold));
+    }
+    /* Corner brackets */
+    .cm-card::before { content:''; position:absolute; top:0; left:0; width:18px; height:18px; border-top:2px solid var(--card-accent,var(--gold)); border-left:2px solid var(--card-accent,var(--gold)); z-index:6; opacity:0.5; transition:opacity 0.3s,width 0.3s,height 0.3s; pointer-events:none; }
+    .cm-card::after  { content:''; position:absolute; bottom:0; right:0; width:18px; height:18px; border-bottom:2px solid var(--card-accent,var(--gold)); border-right:2px solid var(--card-accent,var(--gold)); z-index:6; opacity:0.5; transition:opacity 0.3s,width 0.3s,height 0.3s; pointer-events:none; }
+    .cm-card:hover::before,.cm-card:hover::after { opacity:1; width:26px; height:26px; }
+
+    /* Banner — top 55% of card */
+    .cm-banner {
+      width:100%; height:180px; overflow:hidden;
+      background:var(--bg3); position:relative; flex-shrink:0;
+    }
+    .cm-banner img { width:100%; height:100%; object-fit:cover; transition:transform 0.5s; display:block; }
     .cm-card:hover .cm-banner img { transform:scale(1.05); }
-    .cm-avatar-wrap { position:absolute; bottom:-28px; left:1.25rem; width:56px; height:56px; border:2px solid var(--bg2); overflow:hidden; z-index:2; }
-    .cm-avatar-wrap img { width:100%; height:100%; object-fit:cover; }
-    .cm-avatar-init { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:1.8rem; }
-    .cm-body { padding:2rem 1.25rem 1.25rem; }
-    .cm-name { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:0.06em; line-height:1; }
-    .cm-role { font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; opacity:0.6; margin-top:2px; margin-bottom:0.65rem; }
-    .cm-about { font-size:0.88rem; color:var(--muted); line-height:1.7; font-weight:500; min-height:2.5em; }
-    .cm-open-hint { position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity 0.2s; pointer-events:none; z-index:4; }
-    .cm-card:hover .cm-open-hint { opacity:1; }
-    .cm-open-text { font-family:'Share Tech Mono',monospace; font-size:0.7rem; letter-spacing:0.18em; text-transform:uppercase; color:var(--gold); border:1px solid var(--gold); padding:8px 18px; }
+    /* Bottom fade on banner */
+    .cm-banner::after {
+      content:''; position:absolute; bottom:0; left:0; right:0; height:70px;
+      background:linear-gradient(transparent, var(--bg2));
+      pointer-events:none; z-index:1;
+    }
+
+    /* Accent line */
+    .cm-accent-bar { height:2px; background:var(--card-accent,var(--gold)); flex-shrink:0; position:relative; z-index:2; }
+
+    /* Bottom section */
+    .cm-bottom {
+      position:relative;
+      min-height:90px;
+      display:flex; align-items:center;
+      padding:0 1.25rem 1.25rem 0;
+    }
+
+    /* Avatar — overlaps banner/bottom split, anchored left */
+    .cm-avatar-wrap {
+      position:absolute;
+      left:1.25rem;
+      top:-36px;           /* half out of bottom section, half into banner */
+      width:72px; height:72px;
+      border:3px solid var(--card-accent,var(--gold));
+      overflow:hidden;
+      z-index:3;
+      flex-shrink:0;
+      background:var(--bg2);
+      box-shadow:0 4px 16px rgba(0,0,0,0.5);
+    }
+    .cm-avatar-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
+    .cm-avatar-init {
+      width:100%; height:100%;
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Bebas Neue',sans-serif; font-size:2rem;
+    }
+
+    /* Name block — sits to the right of the avatar space */
+    .cm-name-block {
+      margin-left:calc(1.25rem + 72px + 12px); /* left pad + avatar width + gap */
+      padding-top:1rem;
+      min-width:0; flex:1;
+    }
+    .cm-name {
+      font-family:'Bebas Neue',sans-serif;
+      font-size:1.9rem; letter-spacing:0.06em; line-height:1;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .cm-role {
+      font-family:'Share Tech Mono',monospace;
+      font-size:0.62rem; letter-spacing:0.12em; text-transform:uppercase;
+      opacity:0.5; margin-top:2px;
+    }
+
+    /* Scanlines */
+    .cm-scanlines {
+      position:absolute; inset:0;
+      background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);
+      pointer-events:none; z-index:5;
+    }
+
+    /* Hover view hint */
+    .cm-view-hint {
+      position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; transition:opacity 0.2s; pointer-events:none; z-index:7;
+      background:rgba(0,0,0,0.45);
+    }
+    .cm-card:hover .cm-view-hint { opacity:1; }
+    .cm-view-text {
+      font-family:'Share Tech Mono',monospace; font-size:0.7rem;
+      letter-spacing:0.18em; text-transform:uppercase;
+      color:var(--card-accent,var(--gold));
+      border:1px solid var(--card-accent,var(--gold));
+      padding:8px 20px; background:rgba(0,0,0,0.7);
+    }
 
     /* LOADING / EMPTY */
     .state-box { grid-column:1/-1; text-align:center; padding:5rem 2rem; }
@@ -281,17 +363,29 @@ function socialIcon(p){
 // ── CARD RENDER ──
 function renderCard(m){
   const t=theme(m.accent_color||'#f5a623');
-  const banner=m.banner_url?`<img src="${m.banner_url}" alt="" />`:`<div style="width:100%;height:100%;background:${t.dim}"></div>`;
-  const avatar=m.photo_url?`<img src="${m.photo_url}" alt="${m.display_name}" />`:`<div class="cm-avatar-init" style="background:${t.dim};color:${t.a}">${(m.display_name||'?').charAt(0)}</div>`;
-  return`<div class="cm-card fade-up" data-mid="${m.id}">
-    <div class="cm-banner" style="border-bottom:2px solid ${t.a}">${banner}</div>
-    <div class="cm-avatar-wrap" style="border-color:${t.a}">${avatar}</div>
-    <div class="cm-body">
-      <div class="cm-name" style="color:${t.a}">${m.display_name||'Member'}</div>
-      <div class="cm-role">${m.role||'Space Fam'}</div>
-      <div class="cm-about">${m.about||'No bio yet — check back soon.'}</div>
+  const [r,g,b]=hexToRgb(m.accent_color||'#f5a623');
+  const accentDim=`rgba(${r},${g},${b},0.1)`;
+
+  const banner=m.banner_url
+    ?`<img src="${m.banner_url}" alt="" />`
+    :`<div style="width:100%;height:100%;background:linear-gradient(135deg,${accentDim},var(--bg3));"></div>`;
+
+  const avatarInner=m.photo_url
+    ?`<img src="${m.photo_url}" alt="${m.display_name||''}" />`
+    :`<div class="cm-avatar-init" style="background:${accentDim};color:${t.a};">${(m.display_name||'?').charAt(0)}</div>`;
+
+  return`<div class="cm-card fade-up" data-mid="${m.id}" style="--card-accent:${t.a};">
+    <div class="cm-scanlines"></div>
+    <div class="cm-banner">${banner}</div>
+    <div class="cm-accent-bar"></div>
+    <div class="cm-bottom">
+      <div class="cm-avatar-wrap">${avatarInner}</div>
+      <div class="cm-name-block">
+        <div class="cm-name" style="color:${t.a};">${m.display_name||'Member'}</div>
+        <div class="cm-role">${m.role||'Space Fam'}</div>
+      </div>
     </div>
-    <div class="cm-open-hint"><div class="cm-open-text">View Profile</div></div>
+    <div class="cm-view-hint"><div class="cm-view-text">View Profile</div></div>
   </div>`;
 }
 
