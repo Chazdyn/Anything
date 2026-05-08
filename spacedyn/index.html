@@ -450,7 +450,21 @@ const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
 // ── UTILS ──
 function hexToRgb(hex){const h=hex.replace('#','');const f=h.length===3?h.split('').map(c=>c+c).join(''):h;return[parseInt(f.slice(0,2),16),parseInt(f.slice(2,4),16),parseInt(f.slice(4,6),16)];}
-function theme(hex){const[r,g,b]=hexToRgb(hex||'#f5a623');return{a:hex,ab:`rgba(${r},${g},${b},0.3)`,ad:`rgba(${r},${g},${b},0.1)`,dim:`rgba(${r},${g},${b},0.08)`};}
+function theme(hex){const[r,g,b]=hexToRgb(hex||'#f5a623');return{a:hex,ab:`rgba(${r},${g},${b},0.3)`,ad:`rgba(${r},${g},${b},0.1)`,dim:`rgba(${r},${g},${b},0.08)`,};}
+function hexToFilter(hex) {
+  const h=hex.replace('#','');
+  const r=parseInt(h.slice(0,2),16)/255,g=parseInt(h.slice(2,4),16)/255,b=parseInt(h.slice(4,6),16)/255;
+  const max=Math.max(r,g,b),min=Math.min(r,g,b);
+  let hue=0;
+  if(max!==min){
+    if(max===r) hue=((g-b)/(max-min))%6;
+    else if(max===g) hue=(b-r)/(max-min)+2;
+    else hue=(r-g)/(max-min)+4;
+    hue=Math.round(hue*60); if(hue<0)hue+=360;
+  }
+  const sat=max===0?0:(max-min)/max;
+  return `invert(1) sepia(1) saturate(${Math.round(sat*5+1)}) hue-rotate(${hue-30}deg) brightness(1.1)`;
+}
 function toast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(type?' '+type:'');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
 
 function socialIcon(p){
@@ -480,21 +494,6 @@ function renderCard(m){
 
   // Badge icon — top right of banner
   // Build a CSS filter to tint the logo to the member's accent color
-  function hexToFilter(hex) {
-    const h=hex.replace('#','');
-    const r=parseInt(h.slice(0,2),16)/255,g=parseInt(h.slice(2,4),16)/255,b=parseInt(h.slice(4,6),16)/255;
-    // approximate hue from rgb
-    const max=Math.max(r,g,b),min=Math.min(r,g,b);
-    let hue=0;
-    if(max!==min){
-      if(max===r) hue=((g-b)/(max-min))%6;
-      else if(max===g) hue=(b-r)/(max-min)+2;
-      else hue=(r-g)/(max-min)+4;
-      hue=Math.round(hue*60); if(hue<0)hue+=360;
-    }
-    const sat=max===0?0:(max-min)/max;
-    return `invert(1) sepia(1) saturate(${Math.round(sat*5+1)}) hue-rotate(${hue-30}deg) brightness(1.1)`;
-  }
   const badgeInner = m.badge_url
     ? `<img src="${m.badge_url}" alt="" />`
     : `<img src="../assets/chazdyn-default-avatar.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:${hexToFilter(m.accent_color||'#f5a623')};mix-blend-mode:screen;" />`;
@@ -765,8 +764,9 @@ async function loadGrid(){
   grid.innerHTML=data.map(renderCard).join('');
   grid.querySelectorAll('.cm-card').forEach(card=>{
     const mid=card.dataset.mid;
-    const m=data.find(x=>x.id===mid);
-    if(m)card.addEventListener('click',()=>openProfile(m));
+    const m=data.find(x=>String(x.id)===String(mid));
+    if(m) card.addEventListener('click',()=>openProfile(m));
+    else console.warn('No member found for card mid:', mid, 'available ids:', data.map(x=>x.id));
   });
   document.querySelectorAll('.fade-up').forEach(el=>obs.observe(el));
 }
