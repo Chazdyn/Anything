@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Chazdyn Community</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
+  <script>
+    window.SUPABASE_URL = 'lqayctcgprumnvlaktms.supabase.co';
+    window.SUPABASE_ANON_KEY = 'sb_secret_kC_2-E0y5RC4YmxzojlkoQ_z7is7N3u';
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#080808; --bg2:#0f0f0f; --bg3:#161616; --bg4:#1e1e1e;
+      --gold:#f5a623; --gold2:#e8941a; --gold-dim:rgba(245,166,35,0.15);
+      --gold-border:rgba(245,166,35,0.25);
+      --text:#f0ede8; --muted:#7a7570; --border:rgba(245,166,35,0.12);
+    }
+    html { scroll-behavior:smooth; }
+    body { background:var(--bg); color:var(--text); font-family:'Rajdhani',sans-serif; font-size:16px; line-height:1.6; min-height:100vh; }
+    body::after { content:''; position:fixed; inset:0; background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px); pointer-events:none; z-index:0; }
+
+    /* NAV */
+    nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:0 3rem; height:58px; background:rgba(8,8,8,0.92); backdrop-filter:blur(10px); border-bottom:1px solid var(--border); }
+    .nav-left { display:flex; align-items:center; gap:2rem; }
+    .nav-back { display:flex; align-items:center; gap:8px; color:var(--muted); text-decoration:none; font-size:0.78rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; transition:color 0.2s; }
+    .nav-back:hover { color:var(--gold); }
+    .nav-back svg { width:14px; height:14px; }
+    .nav-divider { width:1px; height:20px; background:var(--border); }
+    .nav-logo { font-family:'Bebas Neue',sans-serif; font-size:1.6rem; letter-spacing:0.1em; color:var(--gold); }
+    .nav-user { display:flex; align-items:center; gap:10px; }
+    .nav-username { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--muted); letter-spacing:0.08em; }
+    .nav-logout { background:none; border:1px solid var(--border); color:var(--muted); font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase; padding:5px 12px; cursor:pointer; transition:all 0.2s; }
+    .nav-logout:hover { border-color:rgba(192,57,43,0.5); color:#c0392b; }
+
+    /* LAYOUT */
+    .page { position:relative; z-index:1; max-width:860px; margin:0 auto; padding:5rem 2rem 6rem; }
+
+    /* LOGIN SCREEN */
+    .login-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; text-align:center; }
+    .login-box { background:var(--bg2); border:1px solid var(--border); padding:3rem; max-width:420px; width:100%; position:relative; }
+    .login-box::before { content:''; position:absolute; top:0; left:0; width:28px; height:28px; border-top:2px solid var(--gold); border-left:2px solid var(--gold); }
+    .login-box::after { content:''; position:absolute; bottom:0; right:0; width:28px; height:28px; border-bottom:2px solid var(--gold); border-right:2px solid var(--gold); }
+    .login-title { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; letter-spacing:0.1em; color:var(--gold); margin-bottom:0.5rem; }
+    .login-sub { font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:var(--muted); letter-spacing:0.1em; line-height:1.8; margin-bottom:2rem; }
+    .discord-btn { display:inline-flex; align-items:center; gap:10px; background:#5865F2; color:#fff; border:none; font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:0.1em; padding:13px 32px; cursor:pointer; transition:background 0.2s; width:100%; justify-content:center; }
+    .discord-btn:hover { background:#4752c4; }
+    .discord-btn svg { width:20px; height:20px; }
+    .login-note { font-family:'Share Tech Mono',monospace; font-size:0.62rem; color:var(--muted); opacity:0.5; margin-top:1rem; line-height:1.7; }
+
+    /* PENDING SCREEN */
+    .pending-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh; text-align:center; }
+    .pending-icon { font-family:'Bebas Neue',sans-serif; font-size:5rem; color:var(--gold); opacity:0.2; margin-bottom:1rem; }
+    .pending-title { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; letter-spacing:0.1em; color:var(--text); margin-bottom:0.5rem; }
+    .pending-sub { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--muted); letter-spacing:0.1em; line-height:1.9; max-width:400px; }
+
+    /* NO PROFILE YET */
+    .no-profile-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:70vh; text-align:center; }
+    .no-profile-title { font-family:'Bebas Neue',sans-serif; font-size:2.2rem; letter-spacing:0.1em; color:var(--text); margin-bottom:0.5rem; }
+    .no-profile-sub { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--muted); letter-spacing:0.1em; line-height:1.9; max-width:400px; margin-bottom:2rem; }
+    .request-btn { display:inline-flex; align-items:center; gap:9px; background:var(--gold); color:#000; font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:0.12em; padding:12px 32px; cursor:pointer; border:none; transition:background 0.2s; }
+    .request-btn:hover { background:var(--gold2); }
+
+    /* EDITOR */
+    .editor-wrap { display:none; }
+    .editor-wrap.visible { display:block; }
+    .editor-header { margin-bottom:2.5rem; }
+    .editor-greeting { font-family:'Bebas Neue',sans-serif; font-size:2.8rem; letter-spacing:0.06em; line-height:1; color:var(--text); margin-bottom:0.4rem; }
+    .editor-greeting span { color:var(--gold); }
+    .editor-sub { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--muted); letter-spacing:0.1em; }
+    .preview-link { display:inline-flex; align-items:center; gap:6px; font-family:'Share Tech Mono',monospace; font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--gold); text-decoration:none; border:1px solid var(--gold-border); padding:6px 14px; transition:all 0.2s; margin-top:0.75rem; }
+    .preview-link:hover { background:var(--gold-dim); }
+    .preview-link svg { width:12px; height:12px; }
+
+    /* FORM SECTIONS */
+    .form-section { background:var(--bg2); border:1px solid var(--border); margin-bottom:1.5rem; }
+    .form-section-header { padding:1rem 1.5rem; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+    .form-section-header:hover { background:var(--bg3); }
+    .form-section-title { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:0.08em; color:var(--text); flex:1; }
+    .form-section-toggle { font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--muted); transition:transform 0.2s; }
+    .form-section-toggle.open { transform:rotate(180deg); }
+    .form-section-body { padding:1.5rem; display:none; }
+    .form-section-body.open { display:block; }
+    .form-label { font-family:'Share Tech Mono',monospace; font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--gold); opacity:0.8; display:block; margin-bottom:6px; margin-top:1rem; }
+    .form-label:first-child { margin-top:0; }
+    .form-input, .form-textarea, .form-select { width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:'Rajdhani',sans-serif; font-size:0.92rem; padding:9px 12px; outline:none; transition:border-color 0.2s; }
+    .form-input:focus, .form-textarea:focus { border-color:var(--gold-border); }
+    .form-textarea { resize:vertical; min-height:100px; }
+    .form-textarea.code { font-family:'Share Tech Mono',monospace; font-size:0.75rem; min-height:280px; }
+    .form-row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .form-hint { font-family:'Share Tech Mono',monospace; font-size:0.62rem; color:var(--muted); opacity:0.55; margin-top:5px; line-height:1.7; }
+    .color-row { display:flex; gap:10px; align-items:center; }
+    .color-pick { width:40px; height:40px; padding:2px; background:var(--bg3); border:1px solid var(--border); cursor:pointer; }
+    .color-pick::-webkit-color-swatch-wrapper { padding:0; }
+    .color-pick::-webkit-color-swatch { border:none; }
+
+    /* SOCIALS */
+    .socials-list { display:flex; flex-direction:column; gap:8px; margin-bottom:10px; }
+    .social-row { display:grid; grid-template-columns:100px 1fr 1fr 32px; gap:6px; align-items:center; }
+    .social-row input { background:var(--bg3); border:1px solid var(--border); color:var(--text); font-family:'Rajdhani',sans-serif; font-size:0.88rem; padding:7px 10px; outline:none; width:100%; }
+    .social-row input:focus { border-color:var(--gold-border); }
+    .social-row-del { background:none; border:1px solid var(--border); color:var(--muted); width:32px; height:32px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s; }
+    .social-row-del:hover { border-color:rgba(192,57,43,0.5); color:#c0392b; }
+    .social-row-del svg { width:12px; height:12px; }
+    .add-social-btn { background:none; border:1px dashed var(--border); color:var(--muted); font-family:'Share Tech Mono',monospace; font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase; padding:8px; cursor:pointer; width:100%; transition:all 0.2s; }
+    .add-social-btn:hover { border-color:var(--gold-border); color:var(--gold); }
+
+    /* CODE NOTE */
+    .code-note { background:var(--bg3); border:1px solid var(--gold-border); border-left:3px solid var(--gold); padding:12px 16px; margin-bottom:1rem; font-family:'Share Tech Mono',monospace; font-size:0.7rem; color:var(--muted); line-height:1.9; }
+    .code-note strong { color:var(--gold); }
+
+    /* SAVE BAR */
+    .save-bar { position:sticky; bottom:0; background:rgba(8,8,8,0.95); border-top:1px solid var(--border); padding:1rem 0; display:flex; align-items:center; gap:12px; z-index:50; backdrop-filter:blur(8px); }
+    .save-btn { background:var(--gold); color:#000; border:none; font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:0.1em; padding:11px 36px; cursor:pointer; transition:background 0.2s; }
+    .save-btn:hover { background:var(--gold2); }
+    .save-btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .save-status { font-family:'Share Tech Mono',monospace; font-size:0.72rem; color:var(--muted); letter-spacing:0.08em; }
+    .save-status.ok { color:#2ecc71; }
+    .save-status.err { color:#c0392b; }
+
+    /* LOADING */
+    .loading-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:80vh; }
+    .spinner { width:32px; height:32px; border:2px solid var(--border); border-top-color:var(--gold); border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:1rem; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .loading-text { font-family:'Share Tech Mono',monospace; font-size:0.75rem; color:var(--muted); letter-spacing:0.15em; text-transform:uppercase; }
+
+    @media(max-width:768px) {
+      nav { padding:0 1.5rem; }
+      .page { padding:4.5rem 1.25rem 5rem; }
+      .form-row-2 { grid-template-columns:1fr; }
+      .social-row { grid-template-columns:1fr 1fr; grid-template-rows:auto auto; }
+      .social-row input:first-child { grid-column:1; }
+      .social-row-del { grid-row:1; grid-column:2; justify-self:end; width:28px; height:28px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-left">
+    <a class="nav-back" href="/community/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      Community
+    </a>
+    <div class="nav-divider"></div>
+    <span class="nav-logo">My Profile</span>
+  </div>
+  <div class="nav-user" id="nav-user" style="display:none;">
+    <span class="nav-username" id="nav-username"></span>
+    <button class="nav-logout" id="logout-btn">Sign Out</button>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- LOADING -->
+  <div class="loading-screen" id="loading-screen">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading...</div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="login-screen" id="login-screen" style="display:none;">
+    <div class="login-box">
+      <div class="login-title">Member Portal</div>
+      <div class="login-sub">Sign in with Discord to edit<br/>your community profile.</div>
+      <button class="discord-btn" id="discord-login-btn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.079.111 18.1.129 18.11a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+        Continue with Discord
+      </button>
+      <div class="login-note">Only approved community members can log in.<br/>Not a member yet? <a href="/community/" style="color:var(--gold);">Request to join</a> on the community page.</div>
+    </div>
+  </div>
+
+  <!-- PENDING APPROVAL -->
+  <div class="pending-screen" id="pending-screen" style="display:none;">
+    <div class="pending-icon">⏳</div>
+    <div class="pending-title">Request Pending</div>
+    <div class="pending-sub">Chazdyn hasn't approved your profile yet.<br/>Check back soon — he'll review it and get you set up.</div>
+  </div>
+
+  <!-- NO PROFILE (logged in but no member record) -->
+  <div class="no-profile-screen" id="no-profile-screen" style="display:none;">
+    <div class="no-profile-title">You're not on the list yet</div>
+    <div class="no-profile-sub">Head back to the community page and hit "Request to Join" — once Chazdyn approves it, your profile will appear here.</div>
+    <a href="/community/" class="request-btn">← Go to Community Page</a>
+  </div>
+
+  <!-- PROFILE EDITOR -->
+  <div class="editor-wrap" id="editor-wrap">
+    <div class="editor-header">
+      <div class="editor-greeting">Hey, <span id="editor-name">there</span></div>
+      <div class="editor-sub">// Edit your community profile below — changes go live instantly</div>
+      <a class="preview-link" href="/community/" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        View Live Profile
+      </a>
+    </div>
+
+    <!-- BASIC INFO -->
+    <div class="form-section">
+      <div class="form-section-header" data-section="basic">
+        <span class="form-section-title">Basic Info</span>
+        <span class="form-section-toggle open">▼</span>
+      </div>
+      <div class="form-section-body open" id="section-basic">
+        <div class="form-row-2">
+          <div>
+            <label class="form-label">Display Name</label>
+            <input type="text" class="form-input" id="f-name" maxlength="80" />
+          </div>
+          <div>
+            <label class="form-label">Role / Title</label>
+            <input type="text" class="form-input" id="f-role" placeholder="Hype Machine" maxlength="60" />
+          </div>
+        </div>
+        <label class="form-label">Short Bio (shown on card + profile)</label>
+        <textarea class="form-textarea" id="f-about" placeholder="Tell people about yourself..." maxlength="1000"></textarea>
+        <label class="form-label">Mood</label>
+        <input type="text" class="form-input" id="f-mood" placeholder="Vibing 🎮" maxlength="60" />
+      </div>
+    </div>
+
+    <!-- MEDIA -->
+    <div class="form-section">
+      <div class="form-section-header" data-section="media">
+        <span class="form-section-title">Avatar, Banner &amp; Colors</span>
+        <span class="form-section-toggle">▼</span>
+      </div>
+      <div class="form-section-body" id="section-media">
+        <div class="form-row-2">
+          <div>
+            <label class="form-label">Avatar URL</label>
+            <input type="url" class="form-input" id="f-photo" placeholder="https://..." />
+            <p class="form-hint">Link to a square image (jpg, png, gif). Use Imgur or Discord CDN.</p>
+          </div>
+          <div>
+            <label class="form-label">Banner URL</label>
+            <input type="url" class="form-input" id="f-banner" placeholder="https://..." />
+            <p class="form-hint">Wide image shown at top of your card and profile.</p>
+          </div>
+        </div>
+        <label class="form-label">Accent Color</label>
+        <div class="color-row">
+          <input type="color" class="color-pick" id="f-color" value="#f5a623" />
+          <input type="text" class="form-input" id="f-color-hex" value="#f5a623" style="max-width:120px;" placeholder="#f5a623" />
+        </div>
+      </div>
+    </div>
+
+    <!-- MUSIC -->
+    <div class="form-section">
+      <div class="form-section-header" data-section="music">
+        <span class="form-section-title">Profile Music</span>
+        <span class="form-section-toggle">▼</span>
+      </div>
+      <div class="form-section-body" id="section-music">
+        <label class="form-label">Music URL</label>
+        <input type="url" class="form-input" id="f-music" placeholder="Direct .mp3 URL or YouTube link" />
+        <p class="form-hint">Auto-plays when someone opens your profile (direct audio files only — YouTube shows a player). Use a host like archive.org or direct Discord CDN links.</p>
+        <label class="form-label">Song Label</label>
+        <input type="text" class="form-input" id="f-music-label" placeholder="Song Title — Artist" maxlength="100" />
+      </div>
+    </div>
+
+    <!-- CLIP -->
+    <div class="form-section">
+      <div class="form-section-header" data-section="clip">
+        <span class="form-section-title">Featured Clip</span>
+        <span class="form-section-toggle">▼</span>
+      </div>
+      <div class="form-section-body" id="section-clip">
+        <label class="form-label">Video URL</label>
+        <input type="url" class="form-input" id="f-video" placeholder="YouTube, Twitch clip, or direct video URL" />
+      </div>
+    </div>
+
+    <!-- INTERESTS -->
+    <div class="form-section">
+      <div class="form-section-header" data-section="interests">
+        <span class="form-section-title">Interests</span>
+        <span class="form-section-toggle">▼</span>
+      </div>
+      <div class="form-section-body" id="section-interests">
+        <div class="form-row-2">
+          <div>
+            <label class="form-label">General Interests</label>
+            <input type="text" class="form-input" id="f-int-general" placeholder="Gaming, Music, Cooking" maxlength="200" />
+          </div>
+          <div>
+            <label class="form-label">Favorite Games</label>
+            <input type="text" class="form-input" id="f-int-games" placeholder="COD, Minecraft..." maxlength="200" />
+          </div>
+        </div>
+        <div class="form-row-2" style="margin-top:10px;">
+          <div>
+            <label class="form-label">Favorite Music</label>
+            <input type="text" class="form-input" id="f-int-music" placeholder="Genre or artists" maxlength="200" />
+          </div>
+          <div>
+            <label class="form-label">Favorite Movies / TV</label>
+            <input type="text" class="form-input" id="f-int-tv" placeholder="Shows, movies" maxlength="200" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOCIALS -->
+    <div class="form-section">
+      <div class="form-section-header" data-section="socials">
+        <span class="form-section-title">Socials &amp; Links</span>
+        <span class="form-section-toggle">▼</span>
+      </div>
+      <div class="form-section-body" id="section-socials">
+        <div class="socials-list" id="socials-list"></div>
+        <button class="add-social-btn" id="add-social-btn">+ Add Link</button>
+      </div>
+    </div>
+
+    <!-- CUSTOM HTML -->
+    <div class="form-section">
+      <div class="form-section-header" data-section="html">
+        <span class="form-section-title">Custom Profile HTML</span>
+        <span class="form-section-toggle">▼</span>
+      </div>
+      <div class="form-section-body" id="section-html">
+        <div class="code-note">
+          <strong>Full MySpace-style customization.</strong> Leave blank to use the default layout.<br/>
+          Write any HTML — include a <strong>&lt;style&gt;</strong> tag to override backgrounds, fonts, colors.<br/>
+          Template vars: <strong>{{name}}</strong> <strong>{{avatar}}</strong> <strong>{{banner}}</strong> <strong>{{about}}</strong> <strong>{{role}}</strong>
+        </div>
+        <textarea class="form-textarea code" id="f-custom-html" placeholder="<!-- Leave blank for default MySpace layout -->&#10;&#10;<!-- Example:&#10;<style>&#10;  .myspace-frame { background: hotpink !important; }&#10;</style>&#10;<div>Your custom HTML here...</div>&#10;-->"></textarea>
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <button class="save-btn" id="save-btn">Save Profile</button>
+      <span class="save-status" id="save-status"></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const sb = supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+let currentMember = null;
+let currentSocials = [];
+
+// ── SCREENS ──
+function show(id) {
+  ['loading-screen','login-screen','pending-screen','no-profile-screen','editor-wrap'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = s === id ? (s === 'editor-wrap' ? 'block' : 'flex') : 'none';
+  });
+  if (id === 'editor-wrap') document.getElementById('editor-wrap').classList.add('visible');
+}
+
+// ── AUTH ──
+document.getElementById('discord-login-btn').addEventListener('click', async () => {
+  await sb.auth.signInWithOAuth({
+    provider: 'discord',
+    options: { redirectTo: window.location.href }
+  });
+});
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  document.getElementById('nav-user').style.display = 'none';
+  show('login-screen');
+});
+
+// ── INIT ──
+async function init() {
+  show('loading-screen');
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { show('login-screen'); return; }
+
+  const user = session.user;
+  const discordId = user.user_metadata?.provider_id || user.id;
+  const discordName = user.user_metadata?.full_name || user.user_metadata?.name || user.email || 'member';
+
+  document.getElementById('nav-user').style.display = 'flex';
+  document.getElementById('nav-username').textContent = discordName;
+
+  // Check if they have a member record
+  const { data: member } = await sb.from('community_members')
+    .select('*')
+    .eq('discord_id', discordId)
+    .single();
+
+  if (!member) {
+    // Check if they have a pending request
+    const { data: req } = await sb.from('join_requests')
+      .select('id')
+      .eq('discord_id', discordId)
+      .single();
+    show(req ? 'pending-screen' : 'no-profile-screen');
+    return;
+  }
+
+  if (!member.approved) { show('pending-screen'); return; }
+
+  currentMember = member;
+  populateEditor(member);
+  show('editor-wrap');
+}
+
+// ── POPULATE EDITOR ──
+function populateEditor(m) {
+  document.getElementById('editor-name').textContent = m.display_name || 'there';
+  document.getElementById('f-name').value = m.display_name || '';
+  document.getElementById('f-role').value = m.role || '';
+  document.getElementById('f-about').value = m.about || '';
+  document.getElementById('f-mood').value = m.mood || '';
+  document.getElementById('f-photo').value = m.photo_url || '';
+  document.getElementById('f-banner').value = m.banner_url || '';
+  document.getElementById('f-color').value = m.accent_color || '#f5a623';
+  document.getElementById('f-color-hex').value = m.accent_color || '#f5a623';
+  document.getElementById('f-music').value = m.music_url || '';
+  document.getElementById('f-music-label').value = m.music_label || '';
+  document.getElementById('f-video').value = m.video_url || '';
+  const interests = m.interests || {};
+  document.getElementById('f-int-general').value = interests.general || '';
+  document.getElementById('f-int-games').value = interests.games || '';
+  document.getElementById('f-int-music').value = interests.music || '';
+  document.getElementById('f-int-tv').value = interests.tv || '';
+  document.getElementById('f-custom-html').value = m.custom_html || '';
+  currentSocials = JSON.parse(JSON.stringify(m.socials || []));
+  renderSocials();
+}
+
+// ── SOCIALS ──
+function renderSocials() {
+  const list = document.getElementById('socials-list');
+  list.innerHTML = currentSocials.map((s, i) => `
+  <div class="social-row">
+    <input type="text" value="${s.platform||''}" placeholder="Platform" class="soc-plat" data-i="${i}" />
+    <input type="text" value="${s.url||''}" placeholder="URL" class="soc-url" data-i="${i}" />
+    <input type="text" value="${s.handle||''}" placeholder="@handle" class="soc-handle" data-i="${i}" />
+    <button class="social-row-del" data-i="${i}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>`).join('');
+  list.querySelectorAll('.soc-plat').forEach(i => i.addEventListener('input', () => { currentSocials[i.dataset.i].platform = i.value; }));
+  list.querySelectorAll('.soc-url').forEach(i => i.addEventListener('input', () => { currentSocials[i.dataset.i].url = i.value; }));
+  list.querySelectorAll('.soc-handle').forEach(i => i.addEventListener('input', () => { currentSocials[i.dataset.i].handle = i.value; }));
+  list.querySelectorAll('.social-row-del').forEach(btn => btn.addEventListener('click', () => { currentSocials.splice(parseInt(btn.dataset.i), 1); renderSocials(); }));
+}
+document.getElementById('add-social-btn').addEventListener('click', () => { currentSocials.push({platform:'',url:'',handle:''}); renderSocials(); });
+
+// ── COLOR SYNC ──
+document.getElementById('f-color').addEventListener('input', e => { document.getElementById('f-color-hex').value = e.target.value; });
+document.getElementById('f-color-hex').addEventListener('input', e => { if(/^#[0-9a-f]{6}$/i.test(e.target.value)) document.getElementById('f-color').value = e.target.value; });
+
+// ── COLLAPSIBLE SECTIONS ──
+document.querySelectorAll('.form-section-header').forEach(header => {
+  header.addEventListener('click', () => {
+    const key = header.dataset.section;
+    const body = document.getElementById('section-' + key);
+    const toggle = header.querySelector('.form-section-toggle');
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    toggle.classList.toggle('open', !isOpen);
+  });
+});
+
+// ── SAVE ──
+document.getElementById('save-btn').addEventListener('click', async () => {
+  if (!currentMember) return;
+  const btn = document.getElementById('save-btn');
+  const status = document.getElementById('save-status');
+  btn.disabled = true; btn.textContent = 'Saving...'; status.textContent = '';
+
+  const updates = {
+    display_name: document.getElementById('f-name').value.trim() || currentMember.display_name,
+    role: document.getElementById('f-role').value.trim(),
+    about: document.getElementById('f-about').value.trim(),
+    mood: document.getElementById('f-mood').value.trim(),
+    photo_url: document.getElementById('f-photo').value.trim(),
+    banner_url: document.getElementById('f-banner').value.trim(),
+    accent_color: document.getElementById('f-color').value,
+    music_url: document.getElementById('f-music').value.trim(),
+    music_label: document.getElementById('f-music-label').value.trim(),
+    video_url: document.getElementById('f-video').value.trim(),
+    interests: {
+      general: document.getElementById('f-int-general').value.trim(),
+      games: document.getElementById('f-int-games').value.trim(),
+      music: document.getElementById('f-int-music').value.trim(),
+      tv: document.getElementById('f-int-tv').value.trim(),
+    },
+    socials: currentSocials.filter(s => s.platform && s.url),
+    custom_html: document.getElementById('f-custom-html').value,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error } = await sb.from('community_members').update(updates).eq('id', currentMember.id);
+  btn.disabled = false; btn.textContent = 'Save Profile';
+  if (error) {
+    status.textContent = '✗ Save failed — ' + error.message;
+    status.className = 'save-status err';
+  } else {
+    status.textContent = '✓ Saved!';
+    status.className = 'save-status ok';
+    currentMember = { ...currentMember, ...updates };
+    document.getElementById('editor-name').textContent = updates.display_name;
+    setTimeout(() => { status.textContent = ''; }, 3000);
+  }
+});
+
+// Handle OAuth redirect
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN') init();
+});
+
+init();
+</script>
+</body>
+</html>
