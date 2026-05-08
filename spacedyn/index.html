@@ -372,7 +372,7 @@
   <div class="nav-right">
     <span class="nav-count" id="nav-count"></span>
     <a class="nav-portal-btn" href="/spacedyn/portal.html">
-      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:16px;height:16px;object-fit:contain;filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1);opacity:0.8;" />
+      <img src="../assets/chazdyn-default-avatar.png" alt="" style="width:16px;height:16px;object-fit:contain;filter:invert(1) sepia(1) saturate(2) hue-rotate(5deg) brightness(1.1);opacity:0.8;mix-blend-mode:screen;" />
       My Profile
     </a>
   </div>
@@ -474,7 +474,7 @@ function renderCard(m){
 
   const avatarInner=m.photo_url
     ?`<img src="${m.photo_url}" alt="${m.display_name||''}" />`
-    :`<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:100%;height:100%;object-fit:cover;filter:${hexToFilter(m.accent_color||'#f5a623')} opacity(0.75);" />`;
+    :`<img src="../assets/chazdyn-default-avatar.png" alt="default" style="width:70%;height:70%;object-fit:contain;margin:15%;filter:${hexToFilter(m.accent_color||'#f5a623')};mix-blend-mode:screen;" />`;
 
   // Badge icon — top right of banner
   // Build a CSS filter to tint the logo to the member's accent color
@@ -495,7 +495,7 @@ function renderCard(m){
   }
   const badgeInner = m.badge_url
     ? `<img src="${m.badge_url}" alt="" />`
-    : `<img src="../assets/chazdyn-default-avatar.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:${hexToFilter(m.accent_color||'#f5a623')};" />`;
+    : `<img src="../assets/chazdyn-default-avatar.png" alt="" style="width:100%;height:100%;object-fit:contain;filter:${hexToFilter(m.accent_color||'#f5a623')};mix-blend-mode:screen;" />`;
 
   return`<div class="cm-card fade-up" data-mid="${m.id}" style="--card-accent:${t.a};">
     <div class="cm-scanlines"></div>
@@ -593,7 +593,7 @@ function buildDefaultProfile(m){
   const iFields=[['General',interests.general],['Games',interests.games],['Music',interests.music],['Movies / TV',interests.tv]].filter(f=>f[1]);
   const interestRows=iFields.length?`<div class="ms-interests-grid">${iFields.map(([l,v])=>`<div class="ms-interest-cell"><div class="ms-interest-label">${l}</div><div class="ms-interest-val">${v}</div></div>`).join('')}</div>`:'';
   const socialsHtml=socials.length?`<div class="ms-socials">${socials.map(s=>`<a class="ms-soc-btn" href="${s.url}" target="_blank" rel="noopener">${socialIcon(s.platform)} ${s.handle||s.platform}</a>`).join('')}</div>`:`<div style="padding:10px;font-size:11px;color:#999;font-style:italic;">No links added yet.</div>`;
-  const avatarEl=m.photo_url?`<img class="ms-avatar-img" src="${m.photo_url}" alt="${m.display_name}" />`:`<div class="ms-avatar-init-box" style="background:#0a0a0a;"><img src="../assets/chazdyn-default-avatar.png" style="width:80%;height:80%;object-fit:contain;filter:${hexToFilter(m.accent_color||'#f5a623')} opacity(0.8);" /></div>`;
+  const avatarEl=m.photo_url?`<img class="ms-avatar-img" src="${m.photo_url}" alt="${m.display_name}" />`:`<div class="ms-avatar-init-box" style="background:transparent;"><img src="../assets/chazdyn-default-avatar.png" style="width:80%;height:80%;object-fit:contain;filter:${hexToFilter(m.accent_color||'#f5a623')};mix-blend-mode:screen;" /></div>`;
   const bannerEl=m.banner_url?`<div style="margin-bottom:10px;"><img class="ms-banner-img" src="${m.banner_url}" alt="" /></div>`:'';
   return`<div class="myspace-frame">${bannerEl?'':''}<div class="ms-default-wrap">
     ${bannerEl}
@@ -680,7 +680,7 @@ async function loadGrid(){
   const{data,error}=await sb.from('community_members').select('*').eq('approved',true).order('created_at',{ascending:true});
   const grid=document.getElementById('community-grid');
   if(error||!data||!data.length){
-    grid.innerHTML=`<div class="state-box"><div class="state-icon"><img src="../assets/chazdyn-default-avatar.png" style="width:80px;opacity:0.08;filter:invert(1);" /></div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
+    grid.innerHTML=`<div class="state-box"><div class="state-icon"><img src="../assets/chazdyn-default-avatar.png" style="width:80px;opacity:0.08;filter:invert(1);mix-blend-mode:screen;" /></div><div class="state-text">${error?'Could not load members.':'No members yet — be the first!'}</div></div>`;
     return;
   }
   document.getElementById('nav-count').textContent=String(data.length).padStart(2,'0')+' MEMBERS';
