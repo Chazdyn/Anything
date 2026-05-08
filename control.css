@@ -53,6 +53,67 @@ body {
   border-right: 1px solid var(--border2);
   display: flex; flex-direction: column;
   overflow-y: auto; flex-shrink: 0;
+  transition: width 0.22s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Tucked state */
+.sidebar.tucked {
+  width: 44px;
+  overflow-y: hidden;
+}
+.sidebar.tucked .sidebar-label,
+.sidebar.tucked .nav-item span,
+.sidebar.tucked .sidebar-divider,
+.sidebar.tucked .sd-req-badge-wrap {
+  opacity: 0;
+  pointer-events: none;
+}
+.sidebar.tucked .nav-item {
+  padding: 0.5rem 0;
+  justify-content: center;
+  border-left-color: transparent;
+}
+.sidebar.tucked .nav-item.active {
+  background: rgba(57,255,20,0.08);
+  border-left-color: transparent;
+}
+.sidebar.tucked .nav-item svg {
+  flex-shrink: 0;
+}
+.sidebar.tucked .sidebar-section {
+  padding: 0.5rem 0;
+}
+
+/* Tuck toggle button — sits at bottom of sidebar, always visible */
+.sidebar-tuck-btn {
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 8px 10px;
+  background: var(--bg2);
+  border-top: 1px solid var(--border2);
+  margin-top: auto;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.sidebar.tucked .sidebar-tuck-btn {
+  justify-content: center;
+  padding: 8px 0;
+}
+.sidebar-tuck-btn svg {
+  width: 15px; height: 15px;
+  color: var(--muted);
+  transition: transform 0.22s ease, color 0.15s;
+  flex-shrink: 0;
+}
+.sidebar-tuck-btn:hover svg { color: var(--green); }
+.sidebar.tucked .sidebar-tuck-btn svg {
+  transform: rotate(180deg);
 }
 
 .content {
