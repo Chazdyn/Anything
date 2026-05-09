@@ -112,6 +112,9 @@
     .ta.code { font-family:'Share Tech Mono',monospace; font-size:0.75rem; min-height:280px; }
     .row2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .hint { font-family:'Share Tech Mono',monospace; font-size:0.62rem; color:var(--muted); opacity:0.55; margin-top:5px; line-height:1.7; }
+    .wrong-field-editor-warning { display:none; margin-top:8px; padding:10px 12px; border:1px solid rgba(245,166,35,.65); border-left:3px solid var(--gold); background:rgba(245,166,35,.11); color:#ffe7bf; font-family:'Share Tech Mono',monospace; font-size:.68rem; line-height:1.7; }
+    .wrong-field-editor-warning.show { display:block; }
+    .wrong-field-editor-warning strong { color:var(--gold); }
     .color-row { display:flex; gap:10px; align-items:center; }
     .cpick { width:40px; height:40px; padding:2px; background:var(--bg3); border:1px solid var(--border); cursor:pointer; }
     .cpick::-webkit-color-swatch-wrapper { padding:0; }
@@ -266,6 +269,7 @@
         </div>
         <label class="lbl">Bio</label>
         <textarea class="ta" id="f-about" placeholder="Tell people about yourself..." maxlength="1000"></textarea>
+        <div class="wrong-field-editor-warning" id="bio-field-warning"><strong>Script injected into wrong field.</strong><br/>Try the <strong>Custom HTML</strong> field instead.</div>
         <label class="lbl">Mood</label>
         <input type="text" class="inp" id="f-mood" placeholder="Vibing 🎮" maxlength="60" />
       </div>
@@ -615,6 +619,7 @@ function loadEditor(m) {
   document.getElementById('f-name').value = m.display_name || '';
   document.getElementById('f-role').value = m.role || '';
   document.getElementById('f-about').value = m.about || '';
+  syncBioWarning();
   document.getElementById('f-mood').value = m.mood || '';
   document.getElementById('f-photo').value = m.photo_url || '';
   document.getElementById('f-banner').value = m.banner_url || '';
@@ -777,6 +782,23 @@ document.querySelectorAll('.fs-head').forEach(h => {
   };
 });
 
+// ── BIO FIELD FAILSAFE WARNING ──
+function looksLikeWrongFieldInjection(value){
+  const s=String(value ?? '').trim();
+  if(!s) return false;
+  return /<\s*(style|script|link|meta|iframe|object|embed|svg|canvas|section|article|div|span|img|a|ul|ol|li|table|form|input|button|textarea|audio|video)\b/i.test(s)
+    || /<\/[a-z][\w:-]*>/i.test(s)
+    || /(?:^|\n)\s*[.#][\w-]+\s*\{/i.test(s)
+    || /\{[\s\S]{0,240}(?:color|background|font|display|position|margin|padding|border|box-shadow|grid|flex)\s*:/i.test(s);
+}
+function syncBioWarning(){
+  const bio=document.getElementById('f-about');
+  const warn=document.getElementById('bio-field-warning');
+  if(!bio || !warn) return;
+  warn.classList.toggle('show', looksLikeWrongFieldInjection(bio.value));
+}
+document.getElementById('f-about')?.addEventListener('input', syncBioWarning);
+
 // ── SAVE ──
 document.getElementById('save-btn').onclick = async () => {
   if (!member) return;
@@ -836,6 +858,7 @@ document.getElementById('save-btn').onclick = async () => {
 // ── BOOT ──
 sb.auth.onAuthStateChange((event) => { if (event === 'SIGNED_IN') init(); });
 init();
+setTimeout(syncBioWarning, 0);
 </script>
 </body>
 </html>

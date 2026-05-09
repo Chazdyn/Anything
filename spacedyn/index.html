@@ -301,6 +301,18 @@
     .ms-top8-name { font-size:10px; color:#333; line-height:1.3; word-break:break-word; }
     .ms-custom-html-slot { margin-top:10px; }
     .ms-custom-html-slot:empty { display:none; }
+    .sd-wrong-field-warning {
+      margin:8px 0;
+      padding:10px 12px;
+      border:1px solid rgba(245,166,35,.65);
+      border-left:4px solid #f5a623;
+      background:rgba(245,166,35,.12);
+      color:#ffe7bf;
+      font-size:12px;
+      line-height:1.45;
+      font-weight:700;
+    }
+    .sd-wrong-field-warning strong { color:#fff3d6; }
 
     /* LOADING / EMPTY */
     .state-box { grid-column:1/-1; text-align:center; padding:5rem 2rem; }
@@ -548,6 +560,35 @@ function socialIcon(p){
   return`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
 }
 
+// ── BIO FAILSAFE ──
+// Bio/About is intentionally treated as plain text. If full layout/CSS code is pasted there,
+// show a friendly warning instead of letting it break the profile/page.
+function escapeHtml(value){
+  return String(value ?? '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+function looksLikeWrongFieldInjection(value){
+  const s=String(value ?? '').trim();
+  if(!s) return false;
+  return /<\s*(style|script|link|meta|iframe|object|embed|svg|canvas|section|article|div|span|img|a|ul|ol|li|table|form|input|button|textarea|audio|video)\b/i.test(s)
+    || /<\/[a-z][\w:-]*>/i.test(s)
+    || /(?:^|\n)\s*[.#][\w-]+\s*\{/i.test(s)
+    || /\{[\s\S]{0,240}(?:color|background|font|display|position|margin|padding|border|box-shadow|grid|flex)\s*:/i.test(s);
+}
+function wrongFieldWarning(){
+  return `<div class="sd-wrong-field-warning"><strong>Script injected into wrong field.</strong><br>Try the <strong>Custom HTML</strong> field instead.</div>`;
+}
+function renderBio(value, fallback=''){
+  const raw=String(value ?? '').trim();
+  if(!raw) return fallback;
+  if(looksLikeWrongFieldInjection(raw)) return wrongFieldWarning();
+  return escapeHtml(raw).replace(/\n/g,'<br>');
+}
+
 // ── CARD RENDER ──
 function renderCard(m){
   const t=theme(m.accent_color||'#f5a623');
@@ -582,7 +623,7 @@ function renderCard(m){
         <div class="cm-role">${m.role||'Space Fam'}</div>
       </div>
     </div>
-    <div class="cm-about-b">${m.about||''}</div>
+    <div class="cm-about-b">${renderBio(m.about,'')}</div>
     <div class="cm-view-hint"><div class="cm-view-text">View Profile</div></div>
   </div>`;
 }
@@ -682,7 +723,7 @@ function buildDefaultProfile(m){
         ${musicHtml}
       </div>
       <div class="ms-right-col">
-        <div class="ms-box"><div class="ms-box-header">About ${m.display_name||'Member'}</div><div class="ms-box-body">${m.about||'<em style="color:#999">No bio written yet.</em>'}</div></div>
+        <div class="ms-box"><div class="ms-box-header">About ${m.display_name||'Member'}</div><div class="ms-box-body">${renderBio(m.about,'<em style="color:#999">No bio written yet.</em>')}</div></div>
         ${clipHtml?`<div class="ms-box"><div class="ms-box-header">Featured Clip</div><div class="ms-box-body" style="padding:0;">${clipHtml}</div></div>`:''}
         ${top8Html}
         ${interestRows?`<div class="ms-box"><div class="ms-box-header">★ Interests</div><div class="ms-box-body" style="padding:0;">${interestRows}</div></div>`:''}
@@ -698,7 +739,7 @@ function applyVars(html,m){
     .replace(/\{\{name\}\}/g,m.display_name||'')
     .replace(/\{\{avatar\}\}/g,m.photo_url||'')
     .replace(/\{\{banner\}\}/g,m.banner_url||'')
-    .replace(/\{\{about\}\}/g,m.about||'')
+    .replace(/\{\{about\}\}/g,renderBio(m.about,''))
     .replace(/\{\{role\}\}/g,m.role||'')
     .replace(/\{\{mood\}\}/g,m.mood||'')
     .replace(/\{\{accent\}\}/g,m.accent_color||'#f5a623')
