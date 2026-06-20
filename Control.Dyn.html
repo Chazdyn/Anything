@@ -31,6 +31,16 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057.1 18.079.111 18.1.129 18.11a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
       Sign in with Discord
     </button>
+    <button onclick="cdStartQrLogin()" style="display:inline-flex;align-items:center;gap:10px;background:transparent;color:#39ff14;border:1px solid rgba(57,255,20,0.35);font-family:'Bebas Neue',sans-serif;font-size:1.05rem;letter-spacing:0.1em;padding:12px 32px;cursor:pointer;width:100%;justify-content:center;margin-top:0.75rem;">
+      <span style="font-size:1.1rem;line-height:1">▦</span>
+      Scan QR on Phone
+    </button>
+    <div id="cd-qr-login-panel" style="display:none;margin-top:1rem;padding:1rem;border:1px solid rgba(57,255,20,0.16);background:#080c10;">
+      <div style="font-family:monospace;font-size:0.72rem;color:#9aa3ad;margin-bottom:0.75rem;">Scan this with your phone. Discord opens there, not on this computer.</div>
+      <div id="cd-qr-code" style="display:flex;justify-content:center;margin-bottom:0.75rem;"></div>
+      <div id="cd-qr-status" style="font-family:monospace;font-size:0.7rem;color:#39ff14;">Waiting for phone approval…</div>
+      <button onclick="cdCancelQrLogin()" style="margin-top:0.75rem;background:transparent;color:#9aa3ad;border:1px solid rgba(255,255,255,0.12);font-family:monospace;font-size:0.7rem;padding:7px 12px;cursor:pointer;">Cancel QR login</button>
+    </div>
     <div style="font-size:0.65rem;color:#3a4250;margin-top:1rem;font-family:monospace;">Only Chazdyn's Discord account can access this panel.</div>
   </div>
 </div>
@@ -2695,11 +2705,164 @@ function cdInitSupabase() {
   return !!cdSupabase;
 }
 
+
+const CD_QR_TABLE = 'control_dyn_qr_logins';
+const CD_QR_SESSION_KEY = 'controlDynQrAdminSession';
+let cdQrLogin = { code:null, poll:null, expiresAt:null };
+
+function cdRandomCode(bytes = 24) {
+  const a = new Uint8Array(bytes);
+  crypto.getRandomValues(a);
+  return Array.from(a, b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function cdHasQrAdminSession() {
+  try {
+    const raw = localStorage.getItem(CD_QR_SESSION_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (!s || s.discordId !== CD_ADMIN_DISCORD_ID || Date.now() > s.expiresAt) {
+      localStorage.removeItem(CD_QR_SESSION_KEY);
+      return false;
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+function cdQrSetStatus(msg, color = '#39ff14') {
+  const el = document.getElementById('cd-qr-status');
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+async function cdStartQrLogin() {
+  cdInitSupabase();
+  if (!cdSupabase) return cdQrSetStatus('Supabase is not available.', '#ff5f5f');
+  cdCancelQrLogin(false);
+  const code = cdRandomCode(24);
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+  const mobileUrl = new URL(window.location.href);
+  mobileUrl.search = '';
+  mobileUrl.hash = '';
+  mobileUrl.searchParams.set('qr_login', code);
+  const { error } = await cdSupabase.from(CD_QR_TABLE).insert({ code, status:'pending', expires_at:expiresAt });
+  if (error) {
+    cdQrSetStatus('QR table is not ready. Run SUPABASE_QR_LOGIN_SETUP.sql first.', '#ffb84d');
+    return;
+  }
+  cdQrLogin.code = code;
+  cdQrLogin.expiresAt = Date.parse(expiresAt);
+  const qr = document.getElementById('cd-qr-code');
+  const panel = document.getElementById('cd-qr-login-panel');
+  if (panel) panel.style.display = 'block';
+  if (qr) qr.innerHTML = `<img alt="Control.Dyn QR login" width="220" height="220" style="background:#fff;padding:10px;border-radius:10px" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(mobileUrl.toString())}">`;
+  cdQrSetStatus('Waiting for phone approval…');
+  cdQrLogin.poll = setInterval(cdPollQrLogin, 2000);
+  cdPollQrLogin();
+}
+
+function cdCancelQrLogin(clearPanel = true) {
+  if (cdQrLogin.poll) clearInterval(cdQrLogin.poll);
+  cdQrLogin = { code:null, poll:null, expiresAt:null };
+  if (clearPanel) {
+    const panel = document.getElementById('cd-qr-login-panel');
+    const qr = document.getElementById('cd-qr-code');
+    if (panel) panel.style.display = 'none';
+    if (qr) qr.innerHTML = '';
+  }
+}
+
+async function cdPollQrLogin() {
+  if (!cdQrLogin.code || !cdSupabase) return;
+  if (Date.now() > cdQrLogin.expiresAt) {
+    cdCancelQrLogin(false);
+    cdQrSetStatus('QR expired. Generate a fresh one.', '#ffb84d');
+    return;
+  }
+  const { data, error } = await cdSupabase.from(CD_QR_TABLE)
+    .select('status, approved_by, approved_name, expires_at')
+    .eq('code', cdQrLogin.code)
+    .maybeSingle();
+  if (error) return cdQrSetStatus('Waiting…', '#9aa3ad');
+  if (data && data.status === 'approved' && data.approved_by === CD_ADMIN_DISCORD_ID) {
+    localStorage.setItem(CD_QR_SESSION_KEY, JSON.stringify({
+      discordId: CD_ADMIN_DISCORD_ID,
+      name: data.approved_name || 'Chazdyn',
+      approvedAt: Date.now(),
+      expiresAt: Date.now() + 8 * 60 * 60 * 1000
+    }));
+    await cdSupabase.from(CD_QR_TABLE).update({ status:'consumed', consumed_at:new Date().toISOString() }).eq('code', cdQrLogin.code);
+    cdCancelQrLogin();
+    cdCheckAuth();
+  }
+}
+
+async function cdHandleMobileQrLogin() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('qr_login');
+  if (!code) return false;
+  cdInitSupabase();
+  const gate = document.getElementById('discord-auth-gate');
+  const app = document.querySelector('.app');
+  if (app) app.style.display = 'none';
+  if (gate) {
+    gate.style.display = 'flex';
+    gate.innerHTML = `<div style="background:#0f1318;border:1px solid rgba(57,255,20,0.15);padding:2.5rem;max-width:440px;width:90%;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:0.1em;color:#39ff14;margin-bottom:0.5rem;">CONTROL.DYN QR</div>
+      <div id="cd-mobile-qr-status" style="font-family:monospace;font-size:0.82rem;color:#9aa3ad;margin-bottom:1.25rem;">Checking your Discord session…</div>
+      <button onclick="cdApproveQrFromPhone('${code.replace(/'/g,'')}')" style="background:#5865F2;color:#fff;border:none;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:0.1em;padding:13px 28px;cursor:pointer;width:100%;">Approve Control.Dyn Login</button>
+    </div>`;
+  }
+  const { data:{ session } } = await cdSupabase.auth.getSession();
+  if (!session) {
+    const redirectTo = new URL(window.location.href);
+    await cdSupabase.auth.signInWithOAuth({ provider:'discord', options:{ redirectTo:redirectTo.toString() } });
+    return true;
+  }
+  await cdApproveQrFromPhone(code);
+  return true;
+}
+
+async function cdApproveQrFromPhone(code) {
+  cdInitSupabase();
+  const status = document.getElementById('cd-mobile-qr-status');
+  if (status) status.textContent = 'Approving…';
+  const { data:{ session } } = await cdSupabase.auth.getSession();
+  if (!session) return cdDiscordLogin();
+  const discordId = session.user.user_metadata?.provider_id || session.user.id;
+  if (discordId !== CD_ADMIN_DISCORD_ID) {
+    if (status) { status.textContent = 'Access denied. This is not Chazdyn\'s Discord account.'; status.style.color = '#ff5f5f'; }
+    return;
+  }
+  const name = session.user.user_metadata?.full_name || session.user.user_metadata?.name || 'Chazdyn';
+  const { error } = await cdSupabase.from(CD_QR_TABLE)
+    .update({ status:'approved', approved_by:discordId, approved_name:name, approved_at:new Date().toISOString() })
+    .eq('code', code)
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString());
+  if (error) {
+    if (status) { status.textContent = 'Could not approve. Make sure the Supabase QR table/policies are installed.'; status.style.color = '#ffb84d'; }
+    return;
+  }
+  if (status) { status.textContent = 'Approved. You can return to the public computer now.'; status.style.color = '#39ff14'; }
+}
+
 async function cdCheckAuth() {
   const gate = document.getElementById('discord-auth-gate');
   const app = document.querySelector('.app');
 
   cdInitSupabase();
+
+  if (cdHasQrAdminSession()) {
+    gate.style.display = 'none';
+    app.style.display = '';
+    try {
+      const r = await fetch(ghBase(), { headers: ghHeaders() });
+      if (r.ok) { updateGhStatus(true); setTimeout(syncControlDynFromLive, 300); refreshAssets(); }
+    } catch(e) {}
+    startTwitchPolling();
+    setTimeout(testAllConnections, 800);
+    return;
+  }
 
   if (!cdSupabase) {
     gate.style.display = 'flex';
@@ -2768,6 +2931,7 @@ async function cdDiscordLogin() {
 }
 
 async function cdLogout() {
+  localStorage.removeItem(CD_QR_SESSION_KEY);
   if (cdSupabase) await cdSupabase.auth.signOut();
   location.reload();
 }
@@ -2926,7 +3090,7 @@ init();
 // Setup right-click on preview after DOM ready
 setTimeout(setupPreviewContextMenu, 500);
 // Discord auth check — shows gate if not logged in
-setTimeout(cdCheckAuth, 100);
+setTimeout(async () => { if (!(await cdHandleMobileQrLogin())) cdCheckAuth(); }, 100);
 // Handle OAuth redirect
 if (cdInitSupabase()) {
   cdSupabase.auth.onAuthStateChange((event) => {
