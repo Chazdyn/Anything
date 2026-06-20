@@ -99,6 +99,10 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
           Preview
         </a>
+        <a class="nav-item" onclick="showSection('index-editor')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13l-2 2 2 2M14 13l2 2-2 2"/></svg>
+          Index Editor
+        </a>
       </div>
 
       <div class="sidebar-divider"></div>
@@ -288,9 +292,30 @@
           <div class="preview-wrap" style="border-radius:0">
             <div class="preview-bar">
               <span class="preview-dot preview" id="preview-dot"></span>
-              <span id="preview-url-bar" style="font-family:monospace;font-size:0.72rem;">../index.html</span>
+              <span id="preview-url-bar" style="font-family:monospace;font-size:0.72rem;">index.html</span>
             </div>
-            <iframe id="preview-frame" src="../index.html" style="height:70vh"></iframe>
+            <iframe id="preview-frame" src="index.html" style="height:70vh"></iframe>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ INDEX EDITOR ════ -->
+      <section class="section" id="section-index-editor">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M10 13l-2 2 2 2M14 13l2 2-2 2"/></svg>
+              index.html Editor
+            </div>
+            <div class="flex-row">
+              <button class="qa-btn ghost" onclick="loadIndexEditor()">Load Current</button>
+              <button class="qa-btn ghost" onclick="previewIndexEditor()">Preview HTML</button>
+              <button class="qa-btn primary" onclick="saveIndexEditor()">Save index.html</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:0.8rem">Direct editor for the live main page. Load current first, make edits, preview, then save to GitHub.</p>
+            <textarea id="index-html-editor" spellcheck="false" style="min-height:58vh;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:0.78rem;white-space:pre;overflow:auto" placeholder="Click Load Current to pull index.html from GitHub..."></textarea>
           </div>
         </div>
       </section>
@@ -911,11 +936,11 @@
 // ══════════════════════════════════════════════
 const STATE = {
   mode: 'preview',
-  ghPat: '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',
+  ghPat: '',
   ghOwner: 'Chazdyn', ghRepo: 'Anything', ghBranch: 'main',
   ghConnected: false,
   twitchClientId: 'zd09p34hzxm6jbhvhlcujem2ypid0m',
-  twitchClientSecret: 'm04uukgaitz6ulw1dk0mrrdjm8dprc',
+  twitchClientSecret: '',
   twitchUsername: 'chazdyn',
   twitchToken: null, twitchConnected: false, twitchPollTimer: null,
   isLive: false, liveBadgeOn: false,
@@ -947,6 +972,7 @@ function init() {
   renderChangelog();
   renderBackupsList();
   updateDashboard();
+  setPreviewSrc('preview');
 
   // drag-and-drop on asset zone
   const zone = document.getElementById('asset-drop-zone');
@@ -992,6 +1018,7 @@ function showSection(id) {
   });
   if (id === 'assets') refreshAssets();
   if (id === 'thicc') renderTHICC();
+  if (id === 'index-editor') loadIndexEditor(false);
 }
 
 // ══════════════════════════════════════════════
@@ -1016,6 +1043,7 @@ function onFieldChange(key, value) {
 // ══════════════════════════════════════════════
 function saveSection(section) {
   Object.assign(STATE.config, STATE.pendingChanges);
+  markDraftUpdated();
   STATE.pendingChanges = {};
   // apply clips & schedule from editors
   if (section === 'clips') STATE.config.clips = STATE.clips;
@@ -1035,6 +1063,25 @@ function ghHeaders() {
   return { 'Authorization': 'Bearer ' + STATE.ghPat, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' };
 }
 function ghBase() { return `https://api.github.com/repos/${STATE.ghOwner}/${STATE.ghRepo}`; }
+
+function getLocalIndexPath() {
+  return location.pathname.includes('/assets/') ? '../index.html' : 'index.html';
+}
+function normalizeSitePath(path) {
+  if (!path) return path;
+  if (/^(https?:|data:|blob:|mailto:|tel:|#)/i.test(path)) return path;
+  return path.replace(/^\.\.\//, '');
+}
+function markDraftUpdated() {
+  STATE.config = STATE.config || {};
+  STATE.config._draftUpdated = new Date().toISOString();
+}
+function buildConfigSeedScript(config) {
+  const configJsonStr = JSON.stringify(config || {});
+  const payload = JSON.stringify(configJsonStr);
+  const _sc = '\u003c/script>';
+  return '\n<script data-controldyn>(function(){try{var live=JSON.parse(' + payload + ');var raw=localStorage.getItem("chazdyn_config");var cur=raw?JSON.parse(raw):null;var liveTime=Date.parse(live._lastDeploy||0)||0;var draftTime=cur?(Date.parse(cur._draftUpdated||0)||0):0;if(!cur||draftTime<=liveTime){localStorage.setItem("chazdyn_config",JSON.stringify(live));}}catch(e){localStorage.setItem("chazdyn_config",' + payload + ');}})();' + _sc;
+}
 
 async function saveGitHubCreds() {
   // Use input field value if one was entered
@@ -1219,6 +1266,55 @@ function applyConfigToEditor(c) {
   if (c.schedule) { STATE.schedule = c.schedule; renderScheduleEditor(); }
 }
 
+
+// ══════════════════════════════════════════════
+//  INDEX.HTML DIRECT EDITOR
+// ══════════════════════════════════════════════
+async function loadIndexEditor(showToast = true) {
+  const ta = document.getElementById('index-html-editor');
+  if (!ta) return;
+  if (ta.value.trim() && ta.dataset.loaded === '1' && showToast === false) return;
+  if (!STATE.ghConnected) {
+    try {
+      const r = await fetch(getLocalIndexPath() + '?v=' + Date.now());
+      ta.value = await r.text();
+      ta.dataset.loaded = '1';
+      if (showToast) toast('Loaded local index.html preview copy', 'success');
+    } catch(e) { if (showToast) toast('Could not load local index.html: ' + e.message, 'error'); }
+    return;
+  }
+  const html = await readFile('index.html');
+  if (!html) return;
+  ta.value = html;
+  ta.dataset.loaded = '1';
+  if (showToast) toast('Loaded index.html from GitHub', 'success');
+}
+
+function previewIndexEditor() {
+  const ta = document.getElementById('index-html-editor');
+  if (!ta || !ta.value.trim()) { toast('Load or paste index.html first', 'warning'); return; }
+  const blob = new Blob([ta.value], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const frame = document.getElementById('preview-frame');
+  if (frame) frame.src = url;
+  const bar = document.getElementById('preview-url-bar');
+  if (bar) bar.textContent = 'Unsaved index.html editor preview';
+  showSection('preview');
+}
+
+async function saveIndexEditor() {
+  const ta = document.getElementById('index-html-editor');
+  if (!ta || !ta.value.trim()) { toast('Nothing to save', 'warning'); return; }
+  if (!STATE.ghConnected) { toast('Connect GitHub first in Connections', 'error'); return; }
+  await createBackup('Pre-index-editor backup');
+  const ok = await commitFile('index.html', ta.value, 'Control.Dyn index.html editor save: ' + new Date().toLocaleString());
+  if (ok) {
+    toast('index.html saved to GitHub', 'success');
+    logChange('deploy', 'index.html saved from direct editor');
+    setPreviewSrc('preview');
+  }
+}
+
 // ══════════════════════════════════════════════
 //  DEPLOY
 // ══════════════════════════════════════════════
@@ -1247,10 +1343,8 @@ async function deployToLive() {
     const html = await readFile('index.html');
     if (!html) { toast('Could not read index.html from GitHub', 'error'); return; }
 
-    // Inject config as a localStorage pre-seed script
-    const configJsonStr = JSON.stringify(STATE.config);
-    const _sc = '\u003c/script>';
-    const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');' + _sc;
+    // Inject config as a guarded localStorage seed. It will not clobber newer Control.Dyn draft edits on refresh.
+    const configScript = buildConfigSeedScript(STATE.config);
     let updated = html.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
     updated = updated.replace('</head>', configScript + '</head>');
 
@@ -1873,6 +1967,7 @@ function syncColorFromText(colorId, textId) {
 }
 
 function pushTheme() {
+  markDraftUpdated();
   STATE.config.accentColor = document.getElementById('theme-green').value;
   STATE.config.accent2Color = document.getElementById('theme-cyan').value;
   STATE.config.bgColor = document.getElementById('theme-bg').value;
@@ -1953,9 +2048,10 @@ function setPreviewSrc(mode) {
     dot.className = 'preview-dot live';
     urlBar.textContent = 'https://chazdyn.com (live)';
   } else {
-    frame.src = '../index.html';
+    const localPath = getLocalIndexPath();
+    frame.src = localPath + '?v=' + Date.now();
     dot.className = 'preview-dot preview';
-    urlBar.textContent = '../index.html (local preview)';
+    urlBar.textContent = localPath + ' (local preview)';
   }
 }
 
@@ -2508,9 +2604,7 @@ async function deployTHICC() {
     try {
       const indexHtml = await readFile('index.html');
       if (indexHtml) {
-        const configJsonStr = JSON.stringify(STATE.config);
-        const _sc2 = '\u003c/script>';
-        const configScript = '\n<script data-controldyn>localStorage.setItem("chazdyn_config",' + JSON.stringify(configJsonStr) + ');' + _sc2;
+        const configScript = buildConfigSeedScript(STATE.config);
         let updatedIndex = indexHtml.replace(/<script data-controldyn>[\s\S]*?<\/script>/,'');
         updatedIndex = updatedIndex.replace('</head>', configScript + '</head>');
         await commitFile('index.html', updatedIndex, 'THICC roster sync: ' + new Date().toLocaleString());
@@ -2828,6 +2922,7 @@ async function sdDenyRequest(rid) {
 }
 
 renderTHICC();
+init();
 // Setup right-click on preview after DOM ready
 setTimeout(setupPreviewContextMenu, 500);
 // Discord auth check — shows gate if not logged in

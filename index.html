@@ -432,7 +432,7 @@
         <div class="screen-plate"><span>Late Night</span><img src="assets/Chazdyn_Lime_Icon_Transparent_1920x1080.png" alt="" /><span>Chazdyn</span></div>
         <div class="screen-frame">
           <div class="scr-glow"></div>
-          <img src="assets/chazdyn-hero.jpg" alt="Chazdyn artwork" />
+          <img src="assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg" alt="Chazdyn artwork" />
           <span class="scr-corner tl"></span><span class="scr-corner tr"></span>
           <span class="scr-corner bl"></span><span class="scr-corner br"></span>
           <span class="on-air"><span class="d"></span>ON AIR</span>
@@ -451,7 +451,7 @@
     <div class="about-grid">
       <div class="host-card fade-up">
         <div class="host-portrait">
-          <img id="about-avatar" src="assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg" alt="Chazdyn" />
+          <img id="about-avatar" src="assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg" alt="Chazdyn" onerror="this.onerror=null;this.src='assets/chazdyn-default-avatar.png';" />
         </div>
         <div class="host-cap">
           <span class="host-handle">@Chazdyn</span>
@@ -710,6 +710,19 @@
         document.getElementById('live-badge').classList.add('is-live');
         const nl = document.getElementById('nav-live'); if (nl) nl.classList.add('is-live');
       }
+
+      const normalizeSitePath = path => {
+        if (!path) return path;
+        if (/^(https?:|data:|blob:|mailto:|tel:|#)/i.test(path)) return path;
+        return path.replace(/^\.\.\//, '');
+      };
+
+      if (cfg.heroEyebrow) { const el = document.querySelector('.eyebrow'); if (el) el.textContent = cfg.heroEyebrow; }
+      if (cfg.heroTagline) { const el = document.querySelector('.hero-subtitle'); if (el) el.textContent = cfg.heroTagline; }
+      if (cfg.avatarUrl) { const el = document.getElementById('about-avatar'); if (el) el.src = normalizeSitePath(cfg.avatarUrl); }
+      if (cfg.aboutBio) { const el = document.querySelector('.host-bio'); if (el) el.textContent = cfg.aboutBio; }
+      if (cfg.aboutLong) { const el = document.querySelector('#about .lead'); if (el) el.textContent = cfg.aboutLong; }
+      if (Array.isArray(cfg.aboutTags)) { const wrap = document.querySelector('.tag-row'); if (wrap) wrap.innerHTML = cfg.aboutTags.map(t => `<span>${String(t).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}</span>`).join(''); }
 
       if (cfg.twitchUrl)  document.querySelectorAll('a[href*="twitch.tv"]').forEach(a => a.href = cfg.twitchUrl);
       if (cfg.discordUrl) document.querySelectorAll('a[href*="discord"]').forEach(a => a.href = cfg.discordUrl);
