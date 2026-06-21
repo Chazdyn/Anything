@@ -21,7 +21,7 @@
 </head>
 <body>
 <!-- Discord Auth Gate -->
-<div id="discord-auth-gate" style="position:fixed;inset:0;background:#080c10;z-index:9999;display:flex;align-items:center;justify-content:center;">
+<div id="discord-auth-gate" style="position:fixed;inset:0;background:#080c10;z-index:9999;display:none;align-items:center;justify-content:center;">
   <div style="background:#0f1318;border:1px solid rgba(57,255,20,0.15);padding:3rem;max-width:440px;width:90%;text-align:center;position:relative;">
     <div style="position:absolute;top:0;left:0;width:24px;height:24px;border-top:2px solid #39ff14;border-left:2px solid #39ff14;"></div>
     <div style="position:absolute;bottom:0;right:0;width:24px;height:24px;border-bottom:2px solid #39ff14;border-right:2px solid #39ff14;"></div>
@@ -35,7 +35,7 @@
   </div>
 </div>
 
-<div class="app" style="display:none;">
+<div class="app">
 
   <!-- ── TOPBAR ── -->
   <header class="topbar">
@@ -2958,7 +2958,7 @@ renderTHICC();
 init();
 // Setup right-click on preview after DOM ready
 setTimeout(setupPreviewContextMenu, 500);
-// Discord auth check — shows gate if not logged in
+// Discord auth check — fail-safe; does not lock local/dev editor
 setTimeout(cdCheckAuth, 100);
 // Handle OAuth redirect
 if (cdInitSupabase()) {
