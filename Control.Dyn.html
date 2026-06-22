@@ -679,6 +679,7 @@
                   <button class="qa-btn ghost" onclick="toggleVisible('gh-pat-input')">Show</button>
                 </div>
               </div>
+              <div id="gh-permission-help" class="input-hint" style="display:none;margin-top:0.75rem;padding:0.75rem;border:1px solid rgba(255,193,7,.35);border-radius:12px;background:rgba(255,193,7,.08);color:var(--amber);line-height:1.45"></div>
             </div>
 
             <div class="sep"></div>
@@ -1111,9 +1112,45 @@ function saveSection(section) {
 //  GITHUB API
 // ══════════════════════════════════════════════
 function ghHeaders() {
-  return { 'Authorization': 'Bearer ' + STATE.ghPat, 'Content-Type': 'application/json', 'Accept': 'application/vnd.github.v3+json' };
+  return {
+    'Authorization': 'Bearer ' + STATE.ghPat,
+    'Content-Type': 'application/json',
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
 }
 function ghBase() { return `https://api.github.com/repos/${STATE.ghOwner}/${STATE.ghRepo}`; }
+
+function ghHelpBox(message) {
+  const el = document.getElementById('gh-permission-help');
+  if (!el) return;
+  if (!message) { el.style.display = 'none'; el.innerHTML = ''; return; }
+  el.style.display = 'block';
+  el.innerHTML = message;
+}
+
+function explainGitHubApiError(status, detail, response) {
+  const accepted = response && response.headers ? (response.headers.get('x-accepted-github-permissions') || '') : '';
+  const scopes = response && response.headers ? (response.headers.get('x-oauth-scopes') || '') : '';
+  const wantsWrite = /contents\s*=\s*write/i.test(accepted) || /PUT|contents/i.test(detail || '');
+  if (status === 403 && /personal access token|Resource not accessible/i.test(detail || '')) {
+    return `GitHub accepted the token, but it does not have permission to write this repo.<br><br>` +
+      `<strong>Fix:</strong> create or edit a fine-grained PAT for <span class="mono">${STATE.ghOwner}/${STATE.ghRepo}</span> with:<br>` +
+      `• Repository access: <strong>Only select repositories → ${STATE.ghRepo}</strong><br>` +
+      `• Repository permissions → <strong>Contents: Read and write</strong><br>` +
+      `• Metadata: Read-only is automatic<br>` +
+      `• Then paste the new token here and click <strong>Test &amp; Connect</strong>.<br>` +
+      (accepted ? `<br><span class="mono">GitHub requested: ${accepted}</span>` : '') +
+      (scopes ? `<br><span class="mono">Token scopes: ${scopes}</span>` : '');
+  }
+  if (status === 404) {
+    return `GitHub could not see <span class="mono">${STATE.ghOwner}/${STATE.ghRepo}</span>. For a fine-grained token, make sure the token's resource owner and selected repository are exactly this repo.`;
+  }
+  if (status === 401) {
+    return `GitHub rejected the token. Paste a fresh PAT and click <strong>Test &amp; Connect</strong>.`;
+  }
+  return detail ? `GitHub error ${status}: ${detail}` : '';
+}
 
 function getLocalIndexPath() {
   return location.pathname.includes('/assets/') ? '../index.html' : 'index.html';
@@ -1143,15 +1180,21 @@ async function saveGitHubCreds() {
     if (r.ok) {
       updateGhStatus(true);
       document.getElementById('gh-reauth').style.display = 'none';
+      ghHelpBox('');
       if (input) input.value = '';
       refreshAssets(); syncControlDynFromLive();
     } else {
+      const err = await r.json().catch(() => ({}));
+      const detail = err.message || r.statusText || r.status;
       updateGhStatus(false);
       document.getElementById('gh-reauth').style.display = 'block';
+      ghHelpBox(explainGitHubApiError(r.status, detail, r));
+      toast('GitHub connection failed — check the yellow help box.', 'error');
     }
   } catch(e) {
     updateGhStatus(false);
     document.getElementById('gh-reauth').style.display = 'block';
+    ghHelpBox('GitHub connection failed: ' + e.message);
   }
 }
 
@@ -1189,10 +1232,13 @@ async function commitFile(path, content, message, isBinary = false) {
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       const detail = err.message || r.statusText || r.status;
+      const explanation = explainGitHubApiError(r.status, detail, r);
+      ghHelpBox(explanation);
       toast(`GitHub error ${r.status}: ${detail}`, 'error');
       logChange('error', `commitFile failed (${r.status}): ${detail}`);
       return false;
     }
+    ghHelpBox('');
     return true;
   } catch(e) {
     toast('Commit error: ' + e.message, 'error');
@@ -1892,7 +1938,7 @@ async function deleteAsset(path, sha) {
     body: JSON.stringify({ message: '🗑 Delete asset: ' + path, sha, branch: STATE.ghBranch })
   });
   if (r.ok) { toast('Asset deleted', 'success'); logChange('edit', 'Deleted asset: ' + path); refreshAssets(); }
-  else toast('Delete failed', 'error');
+  else { const err = await r.json().catch(() => ({})); ghHelpBox(explainGitHubApiError(r.status, err.message || r.statusText || r.status, r)); toast('Delete failed: ' + (err.message || r.status), 'error'); }
 }
 
 // ══════════════════════════════════════════════
