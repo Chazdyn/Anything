@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Control.Dyn" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="control.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -659,7 +659,7 @@
             <button class="qa-btn ghost" onclick="testAllConnections()">Test All &amp; Reconnect</button>
           </div>
           <div class="panel-body">
-            <p class="text-muted" style="font-size:0.8rem">Credentials are built into the repo and connect automatically. If a service fails, a field will appear so you can paste a fresh key.</p>
+            <p class="text-muted" style="font-size:0.8rem">Credentials are stored locally in this browser and connect automatically. If a service fails, a field appears so you can paste a fresh key. <strong class="text-green">For deploys to work, your GitHub token must have Contents: Read and write.</strong></p>
             <div class="sep"></div>
 
             <!-- GitHub -->
@@ -673,6 +673,7 @@
                 <button class="qa-btn ghost" onclick="showGitHubSecretEditor()">Edit Secret</button>
                 <button class="qa-btn danger" onclick="clearGitHubSecret()">Forget Secret</button>
                 <span id="gh-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
+                <button class="qa-btn ghost" onclick="saveGitHubCreds()" title="Verify the token can actually push to the repo">Verify Push Access</button>
                 <span id="gh-secret-summary" class="input-hint" style="font-size:0.75rem;color:var(--muted);"></span>
               </div>
               <div id="gh-reauth" style="display:none;margin-top:0.75rem;padding:0.75rem;border:1px solid rgba(108,198,68,.22);border-radius:12px;background:rgba(108,198,68,.05);">
@@ -969,6 +970,7 @@ const STATE = {
   ghPat: '',
   ghOwner: 'Chazdyn', ghRepo: 'Anything', ghBranch: 'main',
   ghConnected: false,
+  ghCanWrite: null,
   twitchClientId: 'zd09p34hzxm6jbhvhlcujem2ypid0m',
   twitchClientSecret: '',
   twitchUsername: 'chazdyn',
@@ -1104,10 +1106,16 @@ async function reconnectSavedServices() {
   if (STATE.ghPat) {
     try {
       const r = await fetch(ghBase(), { headers: ghHeaders(), cache:'no-store' });
-      updateGhStatus(r.ok);
+      let canWrite = null;
+      if (r.ok) { try { const d = await r.clone().json(); canWrite = !!(d.permissions && d.permissions.push); } catch(_){} }
+      updateGhStatus(r.ok, canWrite);
       if (r.ok) {
         const reauth = document.getElementById('gh-reauth');
         if (reauth) reauth.style.display = 'none';
+        if (canWrite === false) {
+          showGitHubSecretEditor('This token can READ the repo but cannot PUSH. Paste a token with Contents: Read and write.');
+          ghHelpBox(explainGitHubApiError(403, 'personal access token cannot write contents', r));
+        }
         await syncControlDynFromLive(true);
         setPreviewSrc('preview');
       } else {
@@ -1252,14 +1260,24 @@ async function saveGitHubCreds() {
   try {
     const r = await fetch(ghBase(), { headers: ghHeaders(), cache:'no-store' });
     if (r.ok) {
-      updateGhStatus(true);
+      let canWrite = null;
+      try { const d = await r.clone().json(); canWrite = !!(d.permissions && d.permissions.push); } catch(_){}
+      updateGhStatus(true, canWrite);
       const reauth = document.getElementById('gh-reauth');
+      if (canWrite === false) {
+        // Token authenticates and can read, but cannot push. Catch this BEFORE a failed deploy.
+        if (reauth) reauth.style.display = 'block';
+        ghHelpBox(explainGitHubApiError(403, 'personal access token cannot write contents', r));
+        refreshGitHubSecretUi();
+        toast('Connected, but this token cannot push. Needs Contents: Read and write.', 'error');
+        return;
+      }
       if (reauth) reauth.style.display = 'none';
       ghHelpBox('');
       if (input) input.value = '';
       refreshGitHubSecretUi();
       refreshAssets(); syncControlDynFromLive();
-      toast('GitHub connected using the saved local secret', 'success');
+      toast('GitHub connected — push access verified', 'success');
     } else {
       const err = await r.json().catch(() => ({}));
       const detail = err.message || r.statusText || r.status;
@@ -1275,11 +1293,21 @@ async function saveGitHubCreds() {
   }
 }
 
-function updateGhStatus(ok) {
+function updateGhStatus(ok, canWrite) {
   STATE.ghConnected = ok;
+  if (typeof canWrite === 'boolean') STATE.ghCanWrite = canWrite;
+  else if (!ok) STATE.ghCanWrite = false;
   const el = document.getElementById('gh-status');
-  if (el) { el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected'); el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`; }
-  setDot('cdot-gh', ok ? 'ok' : 'err');
+  if (el) {
+    if (ok && STATE.ghCanWrite === false) {
+      el.className = 'conn-badge warning';
+      el.innerHTML = `<span class="conn-dot"></span>Read-only — can't push`;
+    } else {
+      el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
+      el.innerHTML = `<span class="conn-dot"></span>${ok ? (STATE.ghCanWrite === false ? 'Read-only' : 'Connected · can push') : 'Not connected'}`;
+    }
+  }
+  setDot('cdot-gh', ok ? (STATE.ghCanWrite === false ? 'warn' : 'ok') : 'err');
   refreshGitHubSecretUi();
   saveToStorage();
 }
@@ -1297,6 +1325,12 @@ async function getFileSha(path) {
 // Commit a file to GitHub
 async function commitFile(path, content, message, isBinary = false) {
   if (!STATE.ghConnected) { toast('Connect GitHub first', 'error'); return false; }
+  if (STATE.ghCanWrite === false) {
+    toast("This GitHub token can't push. Open Connections and paste one with Contents: Read and write.", 'error');
+    ghHelpBox(explainGitHubApiError(403, 'personal access token cannot write contents', null));
+    logChange('error', 'Deploy blocked: token has no write/push access');
+    return false;
+  }
   // Strip emoji — some PAT permission levels reject emoji in commit messages
   const safeMsg = message.replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}]/gu, '').trim();
   try {
@@ -3022,9 +3056,16 @@ async function testAllConnections() {
   try {
     const r = await fetch(ghBase(), { headers: ghHeaders() });
     if (r.ok) {
-      updateGhStatus(true);
-      setDot('cdot-gh', 'ok');
-      document.getElementById('gh-reauth').style.display = 'none';
+      let canWrite = null;
+      try { const d = await r.clone().json(); canWrite = !!(d.permissions && d.permissions.push); } catch(_){}
+      updateGhStatus(true, canWrite);
+      setDot('cdot-gh', canWrite === false ? 'warn' : 'ok');
+      if (canWrite === false) {
+        showGitHubSecretEditor("This token can read but can't push. Paste one with Contents: Read and write.");
+        ghHelpBox(explainGitHubApiError(403, 'personal access token cannot write contents', r));
+      } else {
+        document.getElementById('gh-reauth').style.display = 'none';
+      }
       refreshAssets();
       await syncControlDynFromLive();
       setPreviewSrc('preview');
