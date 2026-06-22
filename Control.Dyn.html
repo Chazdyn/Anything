@@ -882,6 +882,17 @@
   <div id="ctx-items"></div>
 </div>
 
+<!-- In-preview field editor -->
+<div id="preview-field-editor" class="preview-field-editor" aria-hidden="true">
+  <div class="ctx-header" id="preview-field-title">Edit Field</div>
+  <div class="ctx-element-label" id="preview-field-hint"></div>
+  <div id="preview-field-control"></div>
+  <div class="preview-field-actions">
+    <button class="qa-btn ghost" type="button" onclick="closePreviewFieldEditor()">Cancel</button>
+    <button class="qa-btn primary" type="button" onclick="savePreviewFieldEditor()">Apply to Preview</button>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-container"></div>
 
@@ -974,6 +985,7 @@ function init() {
   renderBackupsList();
   updateDashboard();
   setPreviewSrc('preview');
+  reconnectSavedServices();
 
   // drag-and-drop on asset zone
   const zone = document.getElementById('asset-drop-zone');
@@ -990,17 +1002,51 @@ function loadFromStorage() {
   if (saved) {
     try {
       const s = JSON.parse(saved);
-      const { ghPat, ghOwner, ghRepo, ghBranch, twitchClientId, twitchClientSecret, twitchUsername, ...rest } = s;
-      Object.assign(STATE, rest);
-    } catch(e) {}
+      // Preserve credentials on reopen. These are intentionally local-only and never deployed.
+      Object.assign(STATE, s);
+      STATE.twitchToken = null;
+      STATE.twitchPollTimer = null;
+      STATE.ghConnected = false;
+      STATE.twitchConnected = false;
+    } catch(e) { console.warn('Control.Dyn state restore failed:', e); }
   }
+  hydrateCredentialInputs();
+}
+
+function hydrateCredentialInputs() {
+  setVal('gh-owner', STATE.ghOwner);
+  setVal('gh-repo', STATE.ghRepo);
+  setVal('gh-branch', STATE.ghBranch);
+  setVal('twitch-id-input', STATE.twitchClientId);
+  setVal('twitch-secret-input', STATE.twitchClientSecret);
+  setVal('twitch-username-input', STATE.twitchUsername);
 }
 
 function saveToStorage() {
   const toSave = {...STATE};
-  // don't save token in memory — just creds
+  // Keep API tokens local to this browser only; never deploy them into site HTML.
   delete toSave.twitchToken;
+  delete toSave.twitchPollTimer;
   localStorage.setItem('controldyn_state', JSON.stringify(toSave));
+}
+
+async function reconnectSavedServices() {
+  if (STATE.ghPat) {
+    try {
+      const r = await fetch(ghBase(), { headers: ghHeaders(), cache:'no-store' });
+      updateGhStatus(r.ok);
+      if (r.ok) {
+        const reauth = document.getElementById('gh-reauth');
+        if (reauth) reauth.style.display = 'none';
+        await syncControlDynFromLive(true);
+        setPreviewSrc('preview');
+      } else {
+        const reauth = document.getElementById('gh-reauth');
+        if (reauth) reauth.style.display = 'block';
+      }
+    } catch(e) { updateGhStatus(false); }
+  }
+  if (STATE.twitchClientId && STATE.twitchClientSecret) fetchTwitchToken(true);
 }
 
 // ══════════════════════════════════════════════
@@ -1172,15 +1218,35 @@ async function readFile(path) {
 // ══════════════════════════════════════════════
 //  LIVE DATA SYNC
 // ══════════════════════════════════════════════
-function extractScriptPayload(html, attr, storageKey) {
-  const re = new RegExp("<script\\s+" + attr + "[^>]*>\\s*localStorage\\.setItem\\([\"']" + storageKey + "[\"']\\s*,\\s*([\\s\\S]*?)\\);?\\s*<\\/script>", 'i');
-  const m = html.match(re);
-  if (!m) return null;
-  try { return JSON.parse(JSON.parse(m[1])); }
-  catch(e) {
-    try { return JSON.parse(m[1]); }
+function parsePossiblyDoubleJson(raw) {
+  if (!raw) return null;
+  try {
+    const first = JSON.parse(raw);
+    return typeof first === 'string' ? JSON.parse(first) : first;
+  } catch(e) {
+    try { return (new Function('return ' + raw))(); }
     catch(_) { return null; }
   }
+}
+
+function extractScriptPayload(html, attr, storageKey) {
+  // Supports both old direct localStorage.setItem deploys and newer guarded deploy scripts.
+  const attrNeedle = attr.toLowerCase();
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+  const hit = scripts.find(m => (m[1] || '').toLowerCase().includes(attrNeedle));
+  if (!hit) return null;
+  const body = hit[2] || '';
+
+  let m = body.match(new RegExp('localStorage\\.setItem\\(["\\\']' + storageKey + '["\\\']\\s*,\\s*([\\s\\S]*?)\\);?', 'i'));
+  if (m) { const direct = parsePossiblyDoubleJson(m[1]); if (direct) return direct; }
+
+  m = body.match(/var\s+live\s*=\s*JSON\.parse\(((?:\"(?:\\.|[^\"\\])*\")|(?:'(?:\\.|[^'\\])*'))\)/i);
+  if (m) return parsePossiblyDoubleJson(m[1]);
+
+  // Last-chance: grab the first JSON.parse(...) payload in the deploy script.
+  m = body.match(/JSON\.parse\(((?:\"(?:\\.|[^\"\\])*\")|(?:'(?:\\.|[^'\\])*'))\)/i);
+  if (m) return parsePossiblyDoubleJson(m[1]);
+  return null;
 }
 
 function extractDefaultMembers(html) {
@@ -1190,7 +1256,7 @@ function extractDefaultMembers(html) {
   catch(e) { console.warn('Could not parse DEFAULT_MEMBERS:', e); return null; }
 }
 
-async function syncControlDynFromLive() {
+async function syncControlDynFromLive(silent = false) {
   if (!STATE.ghConnected) return;
   try {
     const [indexHtml, thiccHtml] = await Promise.all([readFile('index.html'), readFile('thicc/index.html')]);
@@ -1215,7 +1281,7 @@ async function syncControlDynFromLive() {
     if (changed) {
       saveToStorage();
       updateDashboard();
-      toast('Pulled current live fields into Control.Dyn', 'success');
+      if (!silent) toast('Pulled current live fields into Control.Dyn', 'success');
       logChange('sync', 'Loaded current live site fields');
     }
   } catch(e) {
@@ -1873,13 +1939,14 @@ async function saveTwitchCreds() {
   await fetchTwitchToken();
 }
 
-async function fetchTwitchToken() {
+async function fetchTwitchToken(silent = false) {
   try {
     const r = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${STATE.twitchClientId}&client_secret=${STATE.twitchClientSecret}&grant_type=client_credentials`, { method:'POST' });
     if (!r.ok) throw new Error('Bad credentials');
     const d = await r.json();
     STATE.twitchToken = d.access_token;
     updateTwitchConnStatus(true);
+    saveToStorage();
     const reauth = document.getElementById('twitch-reauth');
     if (reauth) { reauth.style.display = 'none'; }
     const idInput = document.getElementById('twitch-id-input');
@@ -2040,19 +2107,35 @@ function updateDashboard() {
 // ══════════════════════════════════════════════
 //  PREVIEW
 // ══════════════════════════════════════════════
-function setPreviewSrc(mode) {
+async function setPreviewSrc(mode) {
   const frame = document.getElementById('preview-frame');
   const dot   = document.getElementById('preview-dot');
   const urlBar = document.getElementById('preview-url-bar');
+  if (!frame) return;
   if (mode === 'live') {
-    frame.src = 'https://chazdyn.com';
-    dot.className = 'preview-dot live';
-    urlBar.textContent = 'https://chazdyn.com (live)';
+    frame.src = 'https://chazdyn.com?v=' + Date.now();
+    if (dot) dot.className = 'preview-dot live';
+    if (urlBar) urlBar.textContent = 'https://chazdyn.com (live)';
+  } else if (STATE.ghConnected) {
+    if (dot) dot.className = 'preview-dot preview';
+    if (urlBar) urlBar.textContent = 'index.html from GitHub (fresh live source)';
+    try {
+      const html = await readFile('index.html');
+      if (html) {
+        if (STATE.previewBlobUrl) URL.revokeObjectURL(STATE.previewBlobUrl);
+        STATE.previewBlobUrl = URL.createObjectURL(new Blob([html], { type:'text/html' }));
+        frame.src = STATE.previewBlobUrl;
+      }
+    } catch(e) {
+      const localPath = getLocalIndexPath();
+      frame.src = localPath + '?v=' + Date.now();
+      if (urlBar) urlBar.textContent = localPath + ' (local fallback)';
+    }
   } else {
     const localPath = getLocalIndexPath();
     frame.src = localPath + '?v=' + Date.now();
-    dot.className = 'preview-dot preview';
-    urlBar.textContent = localPath + ' (local preview)';
+    if (dot) dot.className = 'preview-dot preview';
+    if (urlBar) urlBar.textContent = localPath + ' (local preview)';
   }
   if (VISUAL_EDITOR.enabled) setTimeout(bindPreviewVisualEditor, 50);
 }
@@ -2087,6 +2170,17 @@ function toast(msg, type = 'info') {
 // ══════════════════════════════════════════════
 //  CLICK-TO-EDIT VISUAL EDITOR
 // ══════════════════════════════════════════════
+
+// Field ids used by the visual editor map back to the config keys deployed into index.html.
+const FIELD_CONFIG_MAP = {
+  'hero-live-badge':'isLive', 'hero-eyebrow':'heroEyebrow', 'hero-tagline':'heroTagline',
+  'hero-twitch-url':'twitchUrl', 'hero-discord-url':'discordUrl',
+  'about-avatar-url':'avatarUrl', 'about-short-bio':'aboutBio', 'about-long-bio':'aboutLong', 'about-tags':'aboutTags',
+  'music-video-url':'musicVideoUrl', 'music-yt-url':'musicYtUrl', 'music-spotify-url':'musicSpotUrl', 'music-sc-url':'musicScUrl',
+  'soc-twitch':'twitchUrl', 'soc-discord':'discordUrl', 'soc-tiktok':'tiktokUrl', 'soc-insta':'instaUrl', 'soc-thicc':'thiccUrl',
+  'theme-green':'accentColor', 'theme-cyan':'accent2Color', 'theme-bg':'bgColor', 'theme-display-font':'displayFont', 'theme-body-font':'bodyFont'
+};
+const PREVIEW_EDITOR = { match:null };
 
 // Map of element selectors/keywords → {section, fieldId, label}
 const CTX_MAP = [
@@ -2147,8 +2241,8 @@ function buildCtxActions(matches) {
   if (list.length) {
     list.forEach(match => items.push({
       icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-      label: `Edit: ${match.label}`,
-      action: () => jumpToField(match.section, match.field)
+      label: `Edit here: ${match.label}`,
+      action: () => openPreviewFieldEditor(match, PREVIEW_EDITOR.x || 120, PREVIEW_EDITOR.y || 120)
     }));
     items.push({ sep: true });
   } else {
@@ -2177,6 +2271,74 @@ function buildCtxActions(matches) {
   });
 
   return items;
+}
+
+function getFieldCurrentValue(fieldId) {
+  const el = document.getElementById(fieldId);
+  if (el) return el.type === 'checkbox' ? !!el.checked : el.value;
+  const key = FIELD_CONFIG_MAP[fieldId];
+  return key ? (STATE.config || {})[key] : '';
+}
+
+function closePreviewFieldEditor() {
+  const box = document.getElementById('preview-field-editor');
+  if (box) { box.classList.remove('visible'); box.setAttribute('aria-hidden', 'true'); }
+  PREVIEW_EDITOR.match = null;
+}
+
+function openPreviewFieldEditor(match, x = 120, y = 120) {
+  if (!match || !match.field) {
+    toast('That area has multiple settings. Click a specific text/link/image inside it.', 'warning');
+    return;
+  }
+  hideCtxMenu();
+  PREVIEW_EDITOR.match = match;
+  PREVIEW_EDITOR.x = x; PREVIEW_EDITOR.y = y;
+  const box = document.getElementById('preview-field-editor');
+  const title = document.getElementById('preview-field-title');
+  const hint = document.getElementById('preview-field-hint');
+  const control = document.getElementById('preview-field-control');
+  if (!box || !title || !control) return;
+
+  const value = getFieldCurrentValue(match.field);
+  const isCheck = match.field === 'hero-live-badge';
+  const isLong = ['about-short-bio','about-long-bio','hero-tagline'].includes(match.field);
+  title.textContent = 'Edit: ' + match.label;
+  hint.textContent = 'Saved instantly to this preview draft. Use Deploy when you want it live.';
+  control.innerHTML = isCheck
+    ? `<label class="preview-field-check"><input id="preview-field-value" type="checkbox" ${value ? 'checked' : ''}/> Show live badge</label>`
+    : (isLong ? `<textarea id="preview-field-value" rows="5"></textarea>` : `<input id="preview-field-value" type="text" />`);
+  const input = document.getElementById('preview-field-value');
+  if (input && !isCheck) input.value = Array.isArray(value) ? value.join(', ') : (value || '');
+
+  box.style.left = '0'; box.style.top = '0';
+  box.classList.add('visible'); box.setAttribute('aria-hidden', 'false');
+  const bw = box.offsetWidth, bh = box.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+  box.style.left = Math.max(8, Math.min(x, vw - bw - 8)) + 'px';
+  box.style.top  = Math.max(8, Math.min(y, vh - bh - 8)) + 'px';
+  setTimeout(() => input && input.focus(), 30);
+}
+
+function savePreviewFieldEditor() {
+  const match = PREVIEW_EDITOR.match;
+  const input = document.getElementById('preview-field-value');
+  if (!match || !input) return;
+  let value = input.type === 'checkbox' ? input.checked : input.value;
+  if (match.field === 'about-tags') value = String(value).split(',').map(x => x.trim()).filter(Boolean);
+  const key = FIELD_CONFIG_MAP[match.field];
+  if (!key) { toast('No config mapping for this field yet', 'warning'); return; }
+
+  STATE.config = STATE.config || {};
+  STATE.config[key] = value;
+  STATE.pendingChanges[key] = value;
+  markDraftUpdated();
+  localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+  applyConfigToEditor(STATE.config);
+  saveToStorage();
+  closePreviewFieldEditor();
+  setPreviewSrc('preview');
+  toast(match.label + ' updated in the preview', 'success');
+  logChange('edit', match.label + ' updated from preview');
 }
 
 function jumpToField(section, fieldId) {
@@ -2308,15 +2470,18 @@ function handlePreviewEditClick(e) {
   const el = e.target;
   const matches = getVisualMatchesFromElement(el);
   const elementLabel = (el.textContent?.trim() || el.alt || el.getAttribute?.('aria-label') || el.id || el.className || el.tagName || '').toString();
-  showCtxMenu(x, y, matches, elementLabel);
+  PREVIEW_EDITOR.x = x; PREVIEW_EDITOR.y = y;
+  if (matches.length === 1 && matches[0].field) openPreviewFieldEditor(matches[0], x, y);
+  else showCtxMenu(x, y, matches, elementLabel);
 }
 
 // Close menu on app click/scroll/escape. Preview clicks are handled inside the iframe above.
 document.addEventListener('click', e => {
   if (!e.target.closest('#ctx-menu') && !e.target.closest('#visual-edit-toggle')) hideCtxMenu();
+  if (!e.target.closest('#preview-field-editor') && !e.target.closest('#visual-edit-toggle')) closePreviewFieldEditor();
 });
 document.addEventListener('scroll', hideCtxMenu, true);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideCtxMenu(); if (VISUAL_EDITOR.enabled) disableVisualEditor(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideCtxMenu(); closePreviewFieldEditor(); if (VISUAL_EDITOR.enabled) disableVisualEditor(); } });
 
 // ══════════════════════════════════════════════
 //  PWA INSTALL
@@ -2670,7 +2835,9 @@ async function testAllConnections() {
       updateGhStatus(true);
       setDot('cdot-gh', 'ok');
       document.getElementById('gh-reauth').style.display = 'none';
-      if (!STATE.ghConnected) { refreshAssets(); syncControlDynFromLive(); }
+      refreshAssets();
+      await syncControlDynFromLive();
+      setPreviewSrc('preview');
     } else {
       updateGhStatus(false);
       setDot('cdot-gh', 'err');
@@ -2687,7 +2854,8 @@ async function testAllConnections() {
       updateTwitchConnStatus(true);
       setDot('cdot-twitch', 'ok');
       document.getElementById('twitch-reauth').style.display = 'none';
-      if (!STATE.twitchConnected) startTwitchPolling();
+      saveToStorage();
+      startTwitchPolling();
     } else {
       updateTwitchConnStatus(false);
       setDot('cdot-twitch', 'err');
@@ -2956,8 +3124,6 @@ async function sdDenyRequest(rid) {
 
 renderTHICC();
 init();
-// Setup right-click on preview after DOM ready
-setTimeout(setupPreviewContextMenu, 500);
 // Discord auth check — fail-safe; does not lock local/dev editor
 setTimeout(cdCheckAuth, 100);
 // Handle OAuth redirect
