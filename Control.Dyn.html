@@ -668,16 +668,29 @@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:middle;margin-right:4px"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
                 GitHub — Chazdyn/Anything
               </label>
-              <div class="flex-row" style="margin-top:0.5rem;">
+              <div class="flex-row" style="margin-top:0.5rem;gap:0.5rem;flex-wrap:wrap;">
                 <button class="qa-btn ghost" onclick="saveGitHubCreds()">Test &amp; Connect</button>
+                <button class="qa-btn ghost" onclick="showGitHubSecretEditor()">Edit Secret</button>
+                <button class="qa-btn danger" onclick="clearGitHubSecret()">Forget Secret</button>
                 <span id="gh-status" class="conn-badge disconnected"><span class="conn-dot"></span>Not connected</span>
+                <span id="gh-secret-summary" class="input-hint" style="font-size:0.75rem;color:var(--muted);"></span>
               </div>
-              <div id="gh-reauth" style="display:none;margin-top:0.75rem;">
-                <div class="input-hint" style="margin-bottom:6px;color:var(--red);">⚠ Token failed — paste a new one below and click Test &amp; Connect.</div>
-                <div class="flex-row">
-                  <input type="password" id="gh-pat-input" placeholder="github_pat_... or ghp_..." style="flex:1;" />
+              <div id="gh-reauth" style="display:none;margin-top:0.75rem;padding:0.75rem;border:1px solid rgba(108,198,68,.22);border-radius:12px;background:rgba(108,198,68,.05);">
+                <div class="input-hint" id="gh-secret-editor-hint" style="margin-bottom:6px;color:var(--muted);">Paste or edit the GitHub PAT Control.Dyn should use locally in this browser.</div>
+                <div class="flex-row" style="gap:0.5rem;flex-wrap:wrap;">
+                  <input type="password" id="gh-pat-input" placeholder="github_pat_... or ghp_..." style="flex:1;min-width:260px;" autocomplete="off" spellcheck="false" />
                   <button class="qa-btn ghost" onclick="toggleVisible('gh-pat-input')">Show</button>
+                  <button class="qa-btn primary" onclick="saveGitHubCreds()">Save &amp; Test</button>
                 </div>
+                <details style="margin-top:0.75rem;">
+                  <summary style="cursor:pointer;color:var(--cyan);font-size:0.78rem;">Advanced repo target</summary>
+                  <div class="grid two" style="margin-top:0.65rem;gap:0.65rem;">
+                    <label class="field"><span class="input-hint">Owner</span><input id="gh-owner" value="Chazdyn" /></label>
+                    <label class="field"><span class="input-hint">Repo</span><input id="gh-repo" value="Anything" /></label>
+                    <label class="field"><span class="input-hint">Branch</span><input id="gh-branch" value="main" /></label>
+                    <div class="field"><span class="input-hint">Current target</span><div class="mono" id="gh-target-summary" style="font-size:0.8rem;color:var(--muted);"></div></div>
+                  </div>
+                </details>
               </div>
               <div id="gh-permission-help" class="input-hint" style="display:none;margin-top:0.75rem;padding:0.75rem;border:1px solid rgba(255,193,7,.35);border-radius:12px;background:rgba(255,193,7,.08);color:var(--amber);line-height:1.45"></div>
             </div>
@@ -1025,6 +1038,58 @@ function hydrateCredentialInputs() {
   setVal('twitch-id-input', STATE.twitchClientId);
   setVal('twitch-secret-input', STATE.twitchClientSecret);
   setVal('twitch-username-input', STATE.twitchUsername);
+  refreshGitHubSecretUi();
+}
+
+function tokenLabel(token) {
+  if (!token) return 'No GitHub secret saved';
+  const start = token.slice(0, token.startsWith('github_pat_') ? 12 : 4);
+  const end = token.slice(-6);
+  return `Saved locally: ${start}…${end}`;
+}
+
+function refreshGitHubSecretUi() {
+  const summary = document.getElementById('gh-secret-summary');
+  if (summary) summary.textContent = tokenLabel(STATE.ghPat);
+  const target = document.getElementById('gh-target-summary');
+  if (target) target.textContent = `${STATE.ghOwner}/${STATE.ghRepo} @ ${STATE.ghBranch}`;
+  setVal('gh-owner', STATE.ghOwner);
+  setVal('gh-repo', STATE.ghRepo);
+  setVal('gh-branch', STATE.ghBranch);
+}
+
+function showGitHubSecretEditor(message) {
+  const box = document.getElementById('gh-reauth');
+  const input = document.getElementById('gh-pat-input');
+  const hint = document.getElementById('gh-secret-editor-hint');
+  if (box) box.style.display = 'block';
+  if (input) {
+    input.value = STATE.ghPat || '';
+    setTimeout(() => input.focus(), 20);
+  }
+  if (hint) hint.textContent = message || 'Edit the GitHub PAT Control.Dyn should use locally in this browser. This never deploys into index.html.';
+  refreshGitHubSecretUi();
+}
+
+function clearGitHubSecret() {
+  STATE.ghPat = '';
+  STATE.ghConnected = false;
+  const input = document.getElementById('gh-pat-input');
+  if (input) input.value = '';
+  updateGhStatus(false);
+  saveToStorage();
+  showGitHubSecretEditor('GitHub secret forgotten. Paste the PAT you want Control.Dyn to use, then Save & Test.');
+  toast('GitHub secret forgotten locally', 'info');
+}
+
+function applyGitHubTargetInputs() {
+  const owner = document.getElementById('gh-owner')?.value?.trim();
+  const repo = document.getElementById('gh-repo')?.value?.trim();
+  const branch = document.getElementById('gh-branch')?.value?.trim();
+  if (owner) STATE.ghOwner = owner;
+  if (repo) STATE.ghRepo = repo;
+  if (branch) STATE.ghBranch = branch;
+  refreshGitHubSecretUi();
 }
 
 function saveToStorage() {
@@ -1172,28 +1237,40 @@ function buildConfigSeedScript(config) {
 }
 
 async function saveGitHubCreds() {
-  // Use input field value if one was entered
+  applyGitHubTargetInputs();
   const input = document.getElementById('gh-pat-input');
-  if (input && input.value.trim()) STATE.ghPat = input.value.trim();
+  const pasted = input ? input.value.trim() : '';
+  if (pasted) STATE.ghPat = pasted;
+  if (!STATE.ghPat) {
+    updateGhStatus(false);
+    showGitHubSecretEditor('No GitHub secret is saved. Paste your PAT, then Save & Test.');
+    toast('Paste a GitHub token first', 'error');
+    return;
+  }
+  saveToStorage();
+  refreshGitHubSecretUi();
   try {
-    const r = await fetch(ghBase(), { headers: ghHeaders() });
+    const r = await fetch(ghBase(), { headers: ghHeaders(), cache:'no-store' });
     if (r.ok) {
       updateGhStatus(true);
-      document.getElementById('gh-reauth').style.display = 'none';
+      const reauth = document.getElementById('gh-reauth');
+      if (reauth) reauth.style.display = 'none';
       ghHelpBox('');
       if (input) input.value = '';
+      refreshGitHubSecretUi();
       refreshAssets(); syncControlDynFromLive();
+      toast('GitHub connected using the saved local secret', 'success');
     } else {
       const err = await r.json().catch(() => ({}));
       const detail = err.message || r.statusText || r.status;
       updateGhStatus(false);
-      document.getElementById('gh-reauth').style.display = 'block';
+      showGitHubSecretEditor('GitHub rejected this saved secret for the current repo target. Edit it here and Save & Test again.');
       ghHelpBox(explainGitHubApiError(r.status, detail, r));
-      toast('GitHub connection failed — check the yellow help box.', 'error');
+      toast(`GitHub connection failed ${r.status}: ${detail}`, 'error');
     }
   } catch(e) {
     updateGhStatus(false);
-    document.getElementById('gh-reauth').style.display = 'block';
+    showGitHubSecretEditor('GitHub connection failed before GitHub could answer. Check the secret and repo target.');
     ghHelpBox('GitHub connection failed: ' + e.message);
   }
 }
@@ -1203,6 +1280,7 @@ function updateGhStatus(ok) {
   const el = document.getElementById('gh-status');
   if (el) { el.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected'); el.innerHTML = `<span class="conn-dot"></span>${ok ? 'Connected' : 'Not connected'}`; }
   setDot('cdot-gh', ok ? 'ok' : 'err');
+  refreshGitHubSecretUi();
   saveToStorage();
 }
 
@@ -2953,9 +3031,9 @@ async function testAllConnections() {
     } else {
       updateGhStatus(false);
       setDot('cdot-gh', 'err');
-      document.getElementById('gh-reauth').style.display = 'block';
+      showGitHubSecretEditor('GitHub test failed. Edit the saved PAT here, then Save & Test.');
     }
-  } catch { updateGhStatus(false); setDot('cdot-gh', 'err'); document.getElementById('gh-reauth').style.display = 'block'; }
+  } catch { updateGhStatus(false); setDot('cdot-gh', 'err'); showGitHubSecretEditor('GitHub test failed before GitHub could answer. Edit the saved PAT here, then Save & Test.'); }
 
   // Twitch — test and reconnect if needed
   try {
