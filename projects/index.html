@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chazdyn — Projects</title>
+  <meta name="description" content="Projects by Chazdyn: PadForge, L6 Router, chazdyn.com, stream production, creator tools, and live broadcast experiments." />
+  <meta name="theme-color" content="#0b0907" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    :root {
+      --bg:#0b0907; --bg2:#100c08; --panel:#15100b; --panel2:#1d150d;
+      --gold:#c9a25c; --gold2:#ecd49a; --gold-deep:#7e6536; --cream:#f3ebdb;
+      --text:#e7dcca; --muted:#a3947b; --faint:#6b6049; --line:rgba(201,162,92,.16); --line2:rgba(201,162,92,.32);
+      --ink:#0a0704; --serif:'Cormorant Garamond', Georgia, serif; --body:'DM Sans', system-ui, sans-serif; --mono:'Space Mono', monospace; --wrap:1200px;
+    }
+    html { scroll-behavior:smooth; }
+    body { background:var(--bg); color:var(--text); font-family:var(--body); line-height:1.75; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+    body::before { content:''; position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.55; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E"); }
+    a { color:inherit; text-decoration:none; }
+    img { display:block; max-width:100%; }
+    .wrap { max-width:var(--wrap); margin:0 auto; padding:0 2.3rem; }
+    .label { font-family:var(--mono); font-size:.62rem; letter-spacing:.32em; text-transform:uppercase; color:var(--gold); }
+    .display { font-family:var(--serif); font-weight:600; line-height:1; color:var(--cream); }
+    .btn { display:inline-flex; align-items:center; gap:10px; font-family:var(--mono); font-weight:700; font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; padding:1rem 1.55rem; border:1px solid var(--line2); color:var(--cream); transition:all .22s; }
+    .btn:hover { border-color:var(--gold); color:var(--gold2); background:rgba(201,162,92,.05); transform:translateY(-1px); }
+    .btn-primary { background:linear-gradient(100deg, var(--gold2), var(--gold)); color:var(--ink); border-color:transparent; }
+    .btn-primary:hover { color:var(--ink); box-shadow:0 14px 42px rgba(201,162,92,.28); }
+
+    .masthead { position:fixed; top:0; left:0; right:0; z-index:20; display:flex; align-items:center; justify-content:space-between; gap:2rem; padding:1.05rem 2.4rem; background:linear-gradient(180deg, rgba(11,9,7,.96), rgba(11,9,7,.66)); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); }
+    .brand { display:flex; align-items:center; gap:13px; }
+    .brand img { width:36px; height:36px; object-fit:contain; filter:drop-shadow(0 0 7px rgba(198,240,0,.4)); }
+    .brand-name { font-family:var(--serif); font-weight:600; font-size:1.5rem; letter-spacing:.16em; text-transform:uppercase; color:var(--cream); line-height:1; }
+    .brand-sub { font-family:var(--mono); font-size:.5rem; letter-spacing:.38em; text-transform:uppercase; color:var(--gold); margin-top:5px; }
+    .nav { display:flex; align-items:center; gap:1.7rem; }
+    .nav a { font-family:var(--mono); font-size:.64rem; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); }
+    .nav a:hover { color:var(--cream); }
+    @media (max-width:760px){ .nav { display:none; } .masthead{ padding:.85rem 1.4rem; } .wrap{ padding:0 1.4rem; } }
+
+    .hero { position:relative; min-height:74vh; display:flex; align-items:flex-end; padding-top:6rem; overflow:hidden; }
+    .hero-bg { position:absolute; inset:0; z-index:0; background:url('../assets/chazdyn-office.png') center/cover no-repeat; opacity:.42; }
+    .hero::after { content:''; position:absolute; inset:0; z-index:1; background:linear-gradient(100deg, rgba(11,9,7,.97) 0%, rgba(11,9,7,.82) 44%, rgba(11,9,7,.35) 100%), linear-gradient(0deg, var(--bg) 0%, transparent 46%); }
+    .hero-inner { position:relative; z-index:2; padding:0 0 5rem; max-width:830px; }
+    h1 { font-family:var(--serif); font-size:clamp(3rem, 8vw, 6.3rem); font-weight:600; line-height:.94; color:var(--cream); margin:1.2rem 0 1.5rem; }
+    h1 em { color:var(--gold2); font-style:italic; }
+    .hero p { color:#d4c5aa; font-family:var(--serif); font-style:italic; font-size:clamp(1.15rem, 2.3vw, 1.55rem); max-width:54ch; }
+    .hero-actions { display:flex; gap:.9rem; flex-wrap:wrap; margin-top:2rem; }
+
+    main, footer { position:relative; z-index:2; }
+    .section { padding:6.5rem 0; }
+    .section-head { display:flex; align-items:end; justify-content:space-between; gap:1.5rem; margin-bottom:2.2rem; flex-wrap:wrap; }
+    h2 { font-family:var(--serif); font-weight:600; font-size:clamp(2.3rem, 5vw, 4rem); color:var(--cream); line-height:1; }
+    h2 em { color:var(--gold2); font-style:italic; }
+    .section-kicker { color:var(--muted); max-width:48ch; }
+
+    .project-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:1.2rem; }
+    .project-card { position:relative; overflow:hidden; min-height:330px; display:flex; flex-direction:column; justify-content:space-between; padding:1.6rem; border:1px solid var(--line); background:linear-gradient(180deg, rgba(201,162,92,.055), rgba(201,162,92,.015)), var(--panel); transition:all .24s; }
+    .project-card:hover { transform:translateY(-4px); border-color:var(--line2); box-shadow:0 24px 60px rgba(0,0,0,.38); }
+    .project-card::before { content:''; position:absolute; inset:0; opacity:.08; background:radial-gradient(circle at 20% 0%, var(--gold2), transparent 34%); pointer-events:none; }
+    .project-top, .project-bottom { position:relative; z-index:1; }
+    .project-number { font-family:var(--mono); font-size:.62rem; letter-spacing:.18em; text-transform:uppercase; color:var(--gold-deep); margin-bottom:1rem; }
+    h3 { font-family:var(--serif); font-weight:600; font-size:2.15rem; line-height:1; color:var(--cream); margin-bottom:.9rem; }
+    .project-card p { color:#c4b699; font-size:.98rem; margin-bottom:1rem; }
+    .tags { display:flex; flex-wrap:wrap; gap:7px; margin-top:1.2rem; }
+    .tags span { font-family:var(--mono); font-size:.55rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); border:1px solid var(--line); padding:5px 9px; }
+    .status { display:inline-flex; font-family:var(--mono); font-size:.55rem; letter-spacing:.14em; text-transform:uppercase; color:var(--gold2); border:1px solid var(--line2); padding:5px 9px; }
+    .wide { grid-column:1 / -1; min-height:260px; }
+    .wide .project-bottom { max-width:820px; }
+    @media (max-width:820px){ .project-grid{ grid-template-columns:1fr; } .wide{ grid-column:auto; } }
+
+    .stack { display:grid; grid-template-columns:.85fr 1.15fr; gap:2rem; align-items:start; }
+    .note { border:1px solid var(--line); background:linear-gradient(180deg, rgba(201,162,92,.05), transparent); padding:1.6rem; }
+    .note h3 { font-size:1.75rem; }
+    .note p { color:var(--muted); }
+    .work-list { border-top:1px solid var(--line); }
+    .work-row { display:grid; grid-template-columns:auto 1fr; gap:1rem; padding:1.3rem .1rem; border-bottom:1px solid var(--line); }
+    .work-row .n { font-family:var(--mono); color:var(--gold-deep); font-size:.65rem; }
+    .work-row strong { display:block; font-family:var(--serif); font-size:1.35rem; color:var(--cream); line-height:1.1; margin-bottom:.25rem; }
+    .work-row span { color:var(--muted); font-size:.95rem; }
+    @media (max-width:860px){ .stack{ grid-template-columns:1fr; } }
+
+    footer { padding:4rem 0 4.4rem; border-top:1px solid var(--line); }
+    .foot { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; flex-wrap:wrap; }
+    .foot-name { font-family:var(--serif); letter-spacing:.16em; text-transform:uppercase; color:var(--muted); }
+    .foot-copy { font-family:var(--mono); font-size:.6rem; color:var(--faint); }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <a class="brand" href="/">
+      <img src="../assets/chazdyn-mark.png" alt="Chazdyn logo" />
+      <span><span class="brand-name">Chazdyn</span><br><span class="brand-sub">Projects · Tools · Streams</span></span>
+    </a>
+    <nav class="nav">
+      <a href="/">Home</a>
+      <a href="/streams/">Streams</a>
+      <a href="/thicc/">THICC</a>
+      <a href="https://twitch.tv/chazdyn" target="_blank" rel="noopener">Twitch</a>
+    </nav>
+  </header>
+
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="wrap hero-inner">
+      <span class="label">The Workbench</span>
+      <h1>Projects with <em>teeth, knobs, buttons, and lore.</em></h1>
+      <p>The stuff behind the broadcast: creator tools, audio routing experiments, stream overlays, custom websites, and the increasingly unreasonable idea that everything should feel handmade.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="/streams/">Open Stream Network</a>
+        <a class="btn" href="/Control.Dyn.html">Control.Dyn</a>
+      </div>
+    </div>
+  </section>
+
+  <main>
+    <section class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <span class="label">Active Projects</span>
+            <h2 style="margin-top:.75rem">What I'm <em>building</em></h2>
+          </div>
+          <p class="section-kicker">Not portfolio fluff — these are tools and systems built around the way I actually stream, play, route audio, and help other creators make their rooms feel less generic.</p>
+        </div>
+
+        <div class="project-grid">
+          <article class="project-card">
+            <div class="project-top">
+              <div class="project-number">Project 01</div>
+              <h3>PadForge</h3>
+              <p>A custom control program that turns a Novation Launchpad MK2 into something closer to an Elgato Stream Deck: profiles, folders, button states, soundboard ideas, lighting behavior, icons, and creator-first shortcuts.</p>
+            </div>
+            <div class="project-bottom">
+              <span class="status">In Development</span>
+              <div class="tags"><span>Launchpad MK2</span><span>Stream Deck-style UI</span><span>Lighting</span><span>Profiles</span></div>
+            </div>
+          </article>
+
+          <article class="project-card">
+            <div class="project-top">
+              <div class="project-number">Project 02</div>
+              <h3>L6 Router</h3>
+              <p>A custom routing and DSP tool for the Zoom LiveTrak L6, built around stream reality: mic chains, bypass paths, per-channel control, guitar routing, and keeping the broadcast mix from turning into a haunted patch bay.</p>
+            </div>
+            <div class="project-bottom">
+              <span class="status">Prototype / Tooling</span>
+              <div class="tags"><span>Zoom LiveTrak L6</span><span>Custom DSP</span><span>Audio Routing</span><span>Stream Mix</span></div>
+            </div>
+          </article>
+
+          <article class="project-card wide">
+            <div class="project-top">
+              <div class="project-number">Project 03</div>
+              <h3>chazdyn.com</h3>
+              <p>This site is not just a landing page. It includes Control.Dyn for live editing, the THICC roster, SpaceDyn, creator-network stream pages, Twitch reward mirroring, Streamer.bot WebSocket actions through Cloudflare Tunnel, and a growing set of static-site systems designed to feel dynamic without needing a traditional backend.</p>
+            </div>
+            <div class="project-bottom">
+              <span class="status">Live / Expanding</span>
+              <div class="tags"><span>Control.Dyn</span><span>Supabase</span><span>Streamer.bot</span><span>Twitch OAuth</span><span>Creator Pages</span><span>Static Site</span></div>
+            </div>
+          </article>
+
+          <article class="project-card">
+            <div class="project-top">
+              <div class="project-number">Project 04</div>
+              <h3>Chazdyn Stream Build</h3>
+              <p>The broadcast room itself: The Morning After Dark, music-show concepts, Morrowind book-club layouts, Streamer.bot automation, OBS scenes, overlays, audio chains, guitar tones, and bits that can survive contact with chat.</p>
+            </div>
+            <div class="project-bottom">
+              <span class="status">On Air</span>
+              <div class="tags"><span>OBS</span><span>Streamer.bot</span><span>Guitar</span><span>Morrowind</span></div>
+            </div>
+          </article>
+
+          <article class="project-card">
+            <div class="project-top">
+              <div class="project-number">Project 05</div>
+              <h3>ShyShackle Stream Build</h3>
+              <p>Branding and broadcast work for ShyShackle: spooky overlays, panels, alerts, stream scenes, stingers, profile visuals, Stream Deck layouts, and a horror/occult visual language that stays clean instead of becoming cluttered.</p>
+            </div>
+            <div class="project-bottom">
+              <span class="status">Collaborative</span>
+              <div class="tags"><span>Spooky Branding</span><span>Panels</span><span>Alerts</span><span>Overlays</span></div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="background:linear-gradient(180deg, transparent, var(--bg2), transparent);">
+      <div class="wrap stack">
+        <aside class="note">
+          <span class="label">Why this page exists</span>
+          <h3 style="margin-top:1rem">The stream is also the workshop.</h3>
+          <p>Some creators make overlays. Some make apps. Some make music. The point here is that it all keeps feeding the same thing: a broadcast that feels specific, handmade, and a little dangerous to explain to a normal person.</p>
+        </aside>
+        <div class="work-list">
+          <div class="work-row"><div class="n">01</div><div><strong>Creator tools</strong><span>Control surfaces, static-site controls, Twitch integrations, Supabase-backed creator data, and anything that makes running a stream less annoying.</span></div></div>
+          <div class="work-row"><div class="n">02</div><div><strong>Broadcast design</strong><span>OBS scenes, overlays, panels, alerts, stingers, Twitch pages, and channel identity systems for both Chazdyn and ShyShackle.</span></div></div>
+          <div class="work-row"><div class="n">03</div><div><strong>Audio and performance</strong><span>Guitar tones, Ableton sessions, Line 6 Pod Go ideas, LiveTrak L6 routing, and music formats that avoid sounding like everyone else's request stream.</span></div></div>
+          <div class="work-row"><div class="n">04</div><div><strong>Web experiments</strong><span>chazdyn.com, creator spaces, stream pages, SpaceDyn, THICC roster pages, QR-auth ideas, and browser-first tools that can still be deployed as a static site.</span></div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <div class="foot-name">Chazdyn · Projects</div>
+      <div class="foot-copy">© <span id="year">2026</span> Chazdyn · Built in Washington State</div>
+    </div>
+  </footer>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
