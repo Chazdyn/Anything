@@ -346,11 +346,15 @@
             <div class="sep"></div>
             <div class="field">
               <label>Eyebrow Text</label>
-              <input type="text" id="hero-eyebrow" placeholder="Streamer · Musician · Dad · Washington State" value="Streamer · Musician · Dad · Washington State" oninput="onFieldChange('heroEyebrow', this.value)" />
+              <input type="text" id="hero-eyebrow" placeholder="Est. Washington State — Musician & Host" value="Est. Washington State — Musician & Host" oninput="onFieldChange('heroEyebrow', this.value)" />
             </div>
             <div class="field">
-              <label>Tagline</label>
-              <input type="text" id="hero-tagline" placeholder="Always one more match." value="Always one more match." oninput="onFieldChange('heroTagline', this.value)" />
+              <label>Main Hero Title</label>
+              <textarea id="hero-title" rows="3" placeholder="A lifelong musician, building a late night worth staying up for." oninput="onFieldChange('heroTitle', this.value)">A lifelong musician, building a late night worth staying up for.</textarea>
+            </div>
+            <div class="field">
+              <label>Hero Subtitle</label>
+              <textarea id="hero-tagline" rows="3" placeholder="Games and good company on stream today — with live music sets and a proper talk show next on the bill." oninput="onFieldChange('heroTagline', this.value)">Games and good company on stream today — with live music sets and a proper talk show next on the bill.</textarea>
             </div>
             <div class="field-row">
               <div class="field">
@@ -380,7 +384,7 @@
             <div class="field">
               <label>Avatar Image</label>
               <div class="flex-row">
-                <input type="text" id="about-avatar-url" placeholder="assets/Chazdyn Avatar.JPG" value="assets/Chazdyn Avatar.JPG" oninput="onFieldChange('avatarUrl', this.value)" style="flex:1" />
+                <input type="text" id="about-avatar-url" placeholder="assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg" value="assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg" oninput="onFieldChange('avatarUrl', this.value)" style="flex:1" />
                 <button class="qa-btn ghost" onclick="document.getElementById('avatar-file-input').click()">Upload</button>
                 <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="uploadAsset(this, 'about-avatar-url', 'avatarUrl')" />
               </div>
@@ -388,15 +392,15 @@
             </div>
             <div class="field">
               <label>Short Bio (card)</label>
-              <textarea id="about-short-bio" oninput="onFieldChange('aboutBio', this.value)">Husband. Dad. Musician. And yes, I stream too — usually sneaking in one more match while the house is quiet.</textarea>
+              <textarea id="about-short-bio" oninput="onFieldChange('aboutBio', this.value)">Music has been the constant my whole life — long before any of it was on camera. The stream started as a place to share the games I love and keep good company after dark.</textarea>
             </div>
             <div class="field">
               <label>Long Bio (main text)</label>
-              <textarea id="about-long-bio" style="min-height:100px" oninput="onFieldChange('aboutLong', this.value)">I'm Chazdyn — a Black Ops 6 main, amateur musician, full-time dad, and professional yapper from Washington State. My streams are less about perfection and more about having a genuinely good time with good people.</textarea>
+              <textarea id="about-long-bio" style="min-height:100px" oninput="onFieldChange('aboutLong', this.value)">Now I'm building toward the things I actually want to make: live sets straight from the room, and a late-night talk show I've been quietly tuning the rig for. None of it's fully here yet — but it's coming, and you'll catch it as it happens.</textarea>
             </div>
             <div class="field">
               <label>Tags (comma-separated)</label>
-              <input type="text" id="about-tags" value="Black Ops 6, Party Games, Musician, Dad Life, Washington, Chatty &amp; Chill" oninput="onFieldChange('aboutTags', this.value.split(',').map(t=>t.trim()))" />
+              <input type="text" id="about-tags" value="Guitar, Songwriting, Late Nights, Good Company" oninput="onFieldChange('aboutTags', this.value.split(',').map(t=>t.trim()))" />
             </div>
           </div>
         </div>
@@ -1162,7 +1166,7 @@ function updateGhStatus(ok) {
 // Get file SHA from GitHub
 async function getFileSha(path) {
   try {
-    const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders(), cache:'no-store' });
     if (!r.ok) return null;
     const d = await r.json();
     return d.sha;
@@ -1200,7 +1204,7 @@ async function commitFile(path, content, message, isBinary = false) {
 // Read a file from GitHub
 async function readFile(path) {
   try {
-    const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    const r = await fetch(`${ghBase()}/contents/${path}?ref=${STATE.ghBranch}`, { headers: ghHeaders(), cache:'no-store' });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       toast(`Cannot read ${path}: ${err.message || r.status}`, 'error');
@@ -1256,19 +1260,80 @@ function extractDefaultMembers(html) {
   catch(e) { console.warn('Could not parse DEFAULT_MEMBERS:', e); return null; }
 }
 
+
+function textOf(doc, selector) {
+  const el = doc.querySelector(selector);
+  return el ? (el.textContent || '').replace(/\s+/g, ' ').trim() : '';
+}
+function attrOf(doc, selector, attr) {
+  const el = doc.querySelector(selector);
+  return el ? (el.getAttribute(attr) || '').trim() : '';
+}
+function hrefOf(doc, selector) { return attrOf(doc, selector, 'href'); }
+function firstUsefulHref(doc, selectors) {
+  for (const sel of selectors) {
+    const v = hrefOf(doc, sel);
+    if (v && v !== '#') return v;
+  }
+  return '';
+}
+function deriveIndexConfigFromHtml(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const rootStyle = textOf(doc, 'style');
+  const rootVar = (name) => {
+    const m = rootStyle.match(new RegExp('--' + name + '\\s*:\\s*([^;]+);'));
+    return m ? m[1].trim() : '';
+  };
+  const cfg = {};
+  const set = (k, v) => { if (v !== undefined && v !== null && String(v).trim() !== '') cfg[k] = v; };
+
+  set('heroEyebrow', textOf(doc, '.hero-eyebrow .eyebrow, .eyebrow'));
+  set('heroTitle', textOf(doc, '.hero-title'));
+  set('heroTagline', textOf(doc, '.hero-subtitle'));
+  set('avatarUrl', attrOf(doc, '#about-avatar, .byline img', 'src'));
+  set('aboutBio', textOf(doc, '#host .host-body p.lead, .host-body p.lead'));
+  set('aboutLong', textOf(doc, '#host .host-body p:not(.lead), .host-body p:not(.lead)'));
+  const tags = [...doc.querySelectorAll('.tag-row span')].map(el => (el.textContent || '').trim()).filter(Boolean);
+  if (tags.length) cfg.aboutTags = tags;
+
+  set('twitchUrl', firstUsefulHref(doc, ['.mh-watch[href*="twitch.tv"]','a[href*="twitch.tv"]']));
+  set('discordUrl', firstUsefulHref(doc, ['a[href*="discord.gg"]','a[href*="discord.com"]','a[href*="discord"]']));
+  set('tiktokUrl', firstUsefulHref(doc, ['a[href*="tiktok"]']));
+  set('instaUrl', firstUsefulHref(doc, ['a[href*="instagram"]']));
+  set('thiccUrl', firstUsefulHref(doc, ['a[href*="/thicc"]','a[href$="thicc"]']));
+
+  set('musicVideoUrl', attrOf(doc, '#music-video-wrap iframe, #music-video-wrap video', 'src'));
+  set('musicYtUrl', firstUsefulHref(doc, ['#music-yt','a[href*="youtube"]','a[href*="youtu.be"]']));
+  set('musicSpotUrl', firstUsefulHref(doc, ['#music-spotify','a[href*="spotify"]']));
+  set('musicScUrl', firstUsefulHref(doc, ['#music-soundcloud','a[href*="soundcloud"]']));
+
+  set('accentColor', rootVar('gold') || rootVar('accent') || rootVar('green'));
+  set('accent2Color', rootVar('gold2') || rootVar('accent2') || rootVar('cyan'));
+  set('bgColor', rootVar('bg'));
+  set('displayFont', rootVar('serif').replace(/^['"]|['"].*$/g, '') || 'Cormorant Garamond');
+  set('bodyFont', rootVar('body').replace(/^['"]|['"].*$/g, '') || 'DM Sans');
+
+  const liveBadge = doc.querySelector('#live-badge.is-live, #nav-live.is-live, .live-badge.is-live');
+  cfg.isLive = !!liveBadge;
+  cfg._source = 'derived-from-current-index-html';
+  cfg._sourceUpdated = new Date().toISOString();
+  return cfg;
+}
+
 async function syncControlDynFromLive(silent = false) {
   if (!STATE.ghConnected) return;
   try {
     const [indexHtml, thiccHtml] = await Promise.all([readFile('index.html'), readFile('thicc/index.html')]);
     let changed = false;
     if (indexHtml) {
-      const liveConfig = extractScriptPayload(indexHtml, 'data-controldyn', 'chazdyn_config');
-      if (liveConfig && typeof liveConfig === 'object') {
-        STATE.config = {...STATE.config, ...liveConfig};
-        localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
-        applyConfigToEditor(STATE.config);
-        changed = true;
-      }
+      const injectedConfig = extractScriptPayload(indexHtml, 'data-controldyn', 'chazdyn_config') || {};
+      const pageConfig = deriveIndexConfigFromHtml(indexHtml);
+      // Current index.html wins. Do not merge old local Control.Dyn fields back over the live page.
+      STATE.config = {...injectedConfig, ...pageConfig};
+      STATE.pendingChanges = {};
+      localStorage.setItem('chazdyn_config', JSON.stringify(STATE.config));
+      applyConfigToEditor(STATE.config);
+      changed = true;
     }
     if (thiccHtml) {
       const liveMembers = extractScriptPayload(thiccHtml, 'data-thicc-deploy', 'chazdyn_thicc') || (STATE.config && Array.isArray(STATE.config.thiccMembers) ? STATE.config.thiccMembers : null) || extractDefaultMembers(thiccHtml);
@@ -1281,8 +1346,8 @@ async function syncControlDynFromLive(silent = false) {
     if (changed) {
       saveToStorage();
       updateDashboard();
-      if (!silent) toast('Pulled current live fields into Control.Dyn', 'success');
-      logChange('sync', 'Loaded current live site fields');
+      if (!silent) toast('Rebuilt Control.Dyn fields from the current index.html', 'success');
+      logChange('sync', 'Rebuilt editable fields from current index.html DOM');
     }
   } catch(e) {
     console.warn('Live sync failed:', e);
@@ -1300,6 +1365,7 @@ function setVal(id, value) {
 function applyConfigToEditor(c) {
   setVal('hero-live-badge', c.isLive);
   setVal('hero-eyebrow', c.heroEyebrow);
+  setVal('hero-title', c.heroTitle);
   setVal('hero-tagline', c.heroTagline);
   setVal('hero-twitch-url', c.twitchUrl);
   setVal('hero-discord-url', c.discordUrl);
@@ -1654,7 +1720,7 @@ async function refreshAssets() {
   STATE.showFullUrls = document.getElementById('show-full-urls').checked;
   if (!STATE.ghConnected) { document.getElementById('assets-grid').innerHTML = '<div style="color:var(--muted);font-size:0.82rem;grid-column:1/-1">Connect GitHub to browse assets.</div>'; return; }
   try {
-    const r = await fetch(`${ghBase()}/contents/assets?ref=${STATE.ghBranch}`, { headers: ghHeaders() });
+    const r = await fetch(`${ghBase()}/contents/assets?ref=${STATE.ghBranch}`, { headers: ghHeaders(), cache:'no-store' });
     if (!r.ok) { toast('Could not load assets', 'error'); return; }
     STATE.assets = await r.json();
     renderAssets();
@@ -2173,7 +2239,7 @@ function toast(msg, type = 'info') {
 
 // Field ids used by the visual editor map back to the config keys deployed into index.html.
 const FIELD_CONFIG_MAP = {
-  'hero-live-badge':'isLive', 'hero-eyebrow':'heroEyebrow', 'hero-tagline':'heroTagline',
+  'hero-live-badge':'isLive', 'hero-eyebrow':'heroEyebrow', 'hero-title':'heroTitle', 'hero-tagline':'heroTagline',
   'hero-twitch-url':'twitchUrl', 'hero-discord-url':'discordUrl',
   'about-avatar-url':'avatarUrl', 'about-short-bio':'aboutBio', 'about-long-bio':'aboutLong', 'about-tags':'aboutTags',
   'music-video-url':'musicVideoUrl', 'music-yt-url':'musicYtUrl', 'music-spotify-url':'musicSpotUrl', 'music-sc-url':'musicScUrl',
@@ -2185,9 +2251,9 @@ const PREVIEW_EDITOR = { match:null };
 // Map of element selectors/keywords → {section, fieldId, label}
 const CTX_MAP = [
   // Hero
-  { match: ['hero-title','CHAZDYN','hero title'],       section:'hero',     field:'hero-tagline',    label:'Hero Title' },
-  { match: ['hero-tagline','Always one more match'],    section:'hero',     field:'hero-tagline',    label:'Tagline' },
-  { match: ['hero-eyebrow','Streamer'],                 section:'hero',     field:'hero-eyebrow',    label:'Eyebrow Text' },
+  { match: ['hero-title','hero title'],                 section:'hero',     field:'hero-title',       label:'Hero Title' },
+  { match: ['hero-subtitle','hero-tagline'],           section:'hero',     field:'hero-tagline',    label:'Hero Subtitle' },
+  { match: ['hero-eyebrow','eyebrow'],                  section:'hero',     field:'hero-eyebrow',    label:'Eyebrow Text' },
   { match: ['live-badge','Live on Twitch'],             section:'hero',     field:'hero-live-badge', label:'Live Badge' },
   { match: ['btn-primary','btn-green','Watch Live'],    section:'hero',     field:'hero-twitch-url', label:'Watch Live Button' },
   { match: ['Join Discord'],                            section:'hero',     field:'hero-discord-url',label:'Discord Button' },
@@ -2196,7 +2262,7 @@ const CTX_MAP = [
   { match: ['about-bio','about-text'],                  section:'about',    field:'about-short-bio', label:'Bio Text' },
   { match: ['about-handle'],                            section:'about',    field:'about-tags',      label:'Handles' },
   { match: ['avatar-ring','about-avatar'],              section:'about',    field:'about-avatar-url',label:'Avatar Image' },
-  { match: ['tag','Black Ops','Party Games'],           section:'about',    field:'about-tags',      label:'Tags' },
+  { match: ['tag-row','Guitar','Songwriting','Late Nights'], section:'about', field:'about-tags',      label:'Tags' },
   // Clips
   { match: ['clip','clip-card','clip-title','Best Moments'], section:'clips', field:null,            label:'Clips' },
   // Music
@@ -2302,7 +2368,7 @@ function openPreviewFieldEditor(match, x = 120, y = 120) {
 
   const value = getFieldCurrentValue(match.field);
   const isCheck = match.field === 'hero-live-badge';
-  const isLong = ['about-short-bio','about-long-bio','hero-tagline'].includes(match.field);
+  const isLong = ['about-short-bio','about-long-bio','hero-title','hero-tagline'].includes(match.field);
   title.textContent = 'Edit: ' + match.label;
   hint.textContent = 'Saved instantly to this preview draft. Use Deploy when you want it live.';
   control.innerHTML = isCheck
