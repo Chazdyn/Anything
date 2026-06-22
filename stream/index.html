@@ -134,6 +134,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
 .tw-login svg{width:15px;height:15px}
 .tw-login.in{background:rgba(12,16,22,.7);border:1px solid var(--border);backdrop-filter:blur(10px);color:var(--text)}
 .tw-login.in img{width:22px;height:22px;border-radius:50%}
+.tw-login.in:disabled{cursor:default;opacity:1}
 
 /* side rail (chat + redeem toggles) */
 .rail{position:absolute;top:50%;right:18px;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:12px;
@@ -589,6 +590,7 @@ function renderWatch(c){
    </div>`;
 
   refreshTwitchLoginUi();
+  hydrateTwitchUser();
   armIdle();
   if(c.isLive && onRealDomain) loadPlayer();         // auto-load real player on chazdyn.com
   if(c.sbWsUrl) connectStreamerbot(c.sbWsUrl);
@@ -626,9 +628,10 @@ function toggleRedeems(){
 /* ─── Twitch login (counts the viewer legitimately / chat identity) ─── */
 function twitchLogin(){
   const tok=localStorage.getItem('stream_twitch_token');
-  if(tok){ // already signed in → sign out
-    localStorage.removeItem('stream_twitch_token'); localStorage.removeItem('stream_twitch_user');
-    refreshTwitchLoginUi(); toast('Signed out of Twitch','ok'); return;
+  if(tok){
+    const u=localStorage.getItem('stream_twitch_user');
+    const name=u ? (JSON.parse(u).name || 'Twitch') : 'Twitch';
+    toast('Twitch is already signed in as '+name,'ok'); return;
   }
   if(!CONFIG.twitchClientId || CONFIG.twitchClientId==='YOUR_TWITCH_CLIENT_ID'){
     toast('Twitch sign-in needs a Client ID — see README_TWITCH.md','err'); return;
@@ -654,15 +657,38 @@ async function handleTwitchRedirect(){
   history.replaceState(null,'',streamUrl(back));
   return true;
 }
+async function hydrateTwitchUser(){
+  const token=localStorage.getItem('stream_twitch_token');
+  if(!token || localStorage.getItem('stream_twitch_user') || !CONFIG.twitchClientId) return;
+  try{
+    const r=await fetch('https://api.twitch.tv/helix/users',{headers:{'Authorization':'Bearer '+token,'Client-Id':CONFIG.twitchClientId}});
+    const d=await r.json();
+    if(d.data&&d.data[0]){
+      localStorage.setItem('stream_twitch_user',JSON.stringify({name:d.data[0].display_name,pic:d.data[0].profile_image_url}));
+      refreshTwitchLoginUi();
+    } else if(r.status===401) {
+      localStorage.removeItem('stream_twitch_token');
+      localStorage.removeItem('stream_twitch_user');
+      refreshTwitchLoginUi();
+    }
+  }catch(e){}
+}
 function refreshTwitchLoginUi(){
   const btn=document.getElementById('twLogin'); if(!btn) return;
   const u=localStorage.getItem('stream_twitch_user');
-  if(localStorage.getItem('stream_twitch_token') && u){
-    const user=JSON.parse(u);
+  const token=localStorage.getItem('stream_twitch_token');
+  if(token){
+    const user=u ? JSON.parse(u) : {};
     btn.className='tw-login in';
-    btn.innerHTML=`<img src="${esc(user.pic)}" alt=""/> ${esc(user.name)}`;
+    btn.disabled=true;
+    btn.setAttribute('aria-disabled','true');
+    btn.title='Twitch account connected';
+    btn.innerHTML=`${user.pic?`<img src="${esc(user.pic)}" alt=""/>`:''} Twitch: Signed in${user.name?' as '+esc(user.name):''}`;
   }else{
     btn.className='tw-login';
+    btn.disabled=false;
+    btn.removeAttribute('aria-disabled');
+    btn.title='Sign in with Twitch';
     btn.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2L2 6v14h5v3l3-3h4l7-7V2H4zm16 9l-3 3h-4l-3 3v-3H5V4h15v7zm-5-5h-2v5h2V6zm-5 0H8v5h2V6z"/></svg> Sign in with Twitch`;
   }
 }
