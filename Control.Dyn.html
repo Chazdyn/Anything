@@ -925,7 +925,7 @@
             </div>
           </div>
           <div class="panel-body">
-            <p class="text-muted" style="font-size:0.8rem">Add, edit, approve and remove channels on <span class="mono text-cyan">chazdyn.com/stream/</span>. Toggle <strong class="text-green">Listed</strong> to show/hide a channel in the public directory (its page stays reachable by direct link). Each channel reads live from Supabase.</p>
+            <p class="text-muted" style="font-size:0.8rem">Add, edit, approve and remove channels on <span class="mono text-cyan">chazdyn.com/stream/</span>. Toggle <strong class="text-green">Listed</strong> to show/hide a channel in the public directory. Live creators are automatically shown above offline creators; use the order controls below to decide how they rank.</p>
             <div class="sep"></div>
             <div id="sn-creators-list"><div style="color:var(--muted);font-size:0.82rem;">Connect Supabase, then Refresh to load channels.</div></div>
           </div>
@@ -970,6 +970,10 @@
             <div class="field-row">
               <div class="field"><label>Accent</label><div class="color-row"><input type="color" id="sn-add-accent" value="#4dff1f" /><input type="text" id="sn-add-accent-hex" value="#4dff1f" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value))document.getElementById('sn-add-accent').value=this.value" /></div></div>
               <div class="field"><label>Accent 2</label><div class="color-row"><input type="color" id="sn-add-accent2" value="#16e0ff" /><input type="text" id="sn-add-accent2-hex" value="#16e0ff" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value))document.getElementById('sn-add-accent2').value=this.value" /></div></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Directory Order <span class="input-hint">lower appears earlier when offline</span></label><input type="number" id="sn-add-display-order" value="1000" /></div>
+              <div class="field"><label>Live Priority <span class="input-hint">lower appears earlier when live</span></label><input type="number" id="sn-add-live-priority" value="1000" /></div>
             </div>
             <div class="flex-row" style="gap:1.5rem;flex-wrap:wrap;">
               <label class="toggle-row" style="gap:.6rem;"><span class="toggle-label">Approved</span><span class="toggle"><input type="checkbox" id="sn-add-approved" checked /><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
@@ -1118,6 +1122,10 @@ function init() {
   updateDashboard();
   setPreviewSrc('preview');
   reconnectSavedServices();
+  const startupSection = (location.hash || '').replace(/^#/, '').trim();
+  if (startupSection) showSection(startupSection);
+  setTimeout(snResumeTwitchRewardSync, 700);
+  setTimeout(snResumeTwitchLiveSync, 900);
 
   // drag-and-drop on asset zone
   const zone = document.getElementById('asset-drop-zone');
@@ -3489,20 +3497,92 @@ async function sdDenyRequest(rid) {
 //  STREAM NETWORK — manage chazdyn.com/stream/<channel>
 // ══════════════════════════════════════════════
 let SN_CACHE = [];
+let SN_SETTINGS = { liveSortMode:'priority' };
 function snEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function snNum(v, fallback=1000){ const n = Number(v); return Number.isFinite(n) ? n : fallback; }
+function snDisplayNum(v, fallback=1000){ return String(snNum(v, fallback)); }
+function snCreatorSort(a,b){
+  const la = !!a.is_live, lb = !!b.is_live;
+  if (la !== lb) return la ? -1 : 1;
+  if (la && lb) {
+    if ((SN_SETTINGS.liveSortMode || 'priority') === 'viewer_count') {
+      const vc = snNum(b.viewer_count,0) - snNum(a.viewer_count,0); if (vc) return vc;
+    }
+    const lp = snNum(a.live_priority,1000) - snNum(b.live_priority,1000); if (lp) return lp;
+    const od = snNum(a.display_order,1000) - snNum(b.display_order,1000); if (od) return od;
+    const vc2 = snNum(b.viewer_count,0) - snNum(a.viewer_count,0); if (vc2) return vc2;
+  } else {
+    const od = snNum(a.display_order,1000) - snNum(b.display_order,1000); if (od) return od;
+  }
+  return String(a.display_name||a.slug||'').localeCompare(String(b.display_name||b.slug||''));
+}
+
+async function snLoadDirectorySettings() {
+  SN_SETTINGS = { liveSortMode:'priority' };
+  if (!cdSupabase) return;
+  try {
+    const { data, error } = await cdSupabase.from('stream_settings').select('value').eq('key','directory').maybeSingle();
+    if (!error && data && data.value) SN_SETTINGS = { ...SN_SETTINGS, ...data.value };
+  } catch(e) { /* stream_settings is optional until STREAM_SCHEMA.sql is rerun */ }
+}
+
+function snDirectoryControlsHtml() {
+  const mode = SN_SETTINGS.liveSortMode || 'priority';
+  return `
+  <div class="clip-editor-card" style="margin-bottom:1rem;border-left:3px solid var(--cyan);">
+    <div class="flex-row" style="justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:var(--display);font-size:1.25rem;line-height:1;color:var(--cyan)">Directory Ordering</div>
+        <div class="text-muted" style="font-size:.78rem;margin-top:3px;max-width:760px;">/stream/ shows live channels first. Offline channels use <span class="mono">display_order</span>. Live channels can use your <span class="mono">live_priority</span> list or viewer count after you refresh live data from Twitch.</div>
+      </div>
+      <button class="qa-btn ghost" onclick="snRefreshLiveStatus()" id="sn-live-refresh-btn">Refresh Twitch Live Data</button>
+    </div>
+    <div class="field-row" style="margin-top:.8rem;">
+      <div class="field"><label>Live channel sort mode</label><select id="sn-dir-live-sort"><option value="priority" ${mode==='priority'?'selected':''}>Live priority list</option><option value="viewer_count" ${mode==='viewer_count'?'selected':''}>Current viewer count</option></select><div class="input-hint">Viewer-count sorting uses the latest values saved by Control.Dyn's Twitch live refresh.</div></div>
+      <div class="field"><label>Status</label><div id="sn-dir-status" class="mono" style="font-size:.76rem;color:var(--muted);padding:.75rem;border:1px solid var(--border2);background:var(--bg4);border-radius:10px;">${snEsc(snLiveSummary())}</div></div>
+    </div>
+    <div class="flex-row" style="justify-content:flex-end;"><button class="qa-btn primary" onclick="snSaveDirectorySettings()">Save Ordering Settings</button></div>
+  </div>`;
+}
+function snLiveSummary(){
+  const live = SN_CACHE.filter(c=>c.is_live).length;
+  const total = SN_CACHE.length;
+  const checked = SN_CACHE.map(c=>c.live_checked_at).filter(Boolean).sort().pop();
+  return checked ? `${live}/${total} live · last checked ${new Date(checked).toLocaleString()}` : `${live}/${total} marked live · not refreshed yet`;
+}
 
 async function snLoadCreators() {
   if (!cdInitSupabase()) { toast('Connect Supabase first (Connections)', 'error'); return; }
   const list = document.getElementById('sn-creators-list');
   list.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">Loading channels…</div>';
-  const { data, error } = await cdSupabase.from('creators').select('*').order('display_name', { ascending: true });
+  await snLoadDirectorySettings();
+  const { data, error } = await cdSupabase.from('creators').select('*');
   if (error) {
-    list.innerHTML = `<div style="color:var(--red);font-size:0.82rem;">${snEsc(error.message)}<br><span class="text-muted">Run STREAM_SCHEMA.sql in Supabase to create the <span class="mono">creators</span> table.</span></div>`;
+    list.innerHTML = `<div style="color:var(--red);font-size:0.82rem;">${snEsc(error.message)}<br><span class="text-muted">Run STREAM_SCHEMA.sql in Supabase to create/update the <span class="mono">creators</span> table.</span></div>`;
     return;
   }
-  SN_CACHE = data || [];
-  if (!SN_CACHE.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">No channels yet. Click “+ Add Channel”.</div>'; return; }
-  list.innerHTML = SN_CACHE.map(snCreatorCard).join('');
+  SN_CACHE = (data || []).slice().sort(snCreatorSort);
+  if (!SN_CACHE.length) { list.innerHTML = snDirectoryControlsHtml() + '<div style="color:var(--muted);font-size:0.82rem;">No channels yet. Click “+ Add Channel”.</div>'; return; }
+  list.innerHTML = snDirectoryControlsHtml() + SN_CACHE.map(snCreatorCard).join('');
+}
+
+async function snSaveDirectorySettings() {
+  if (!cdInitSupabase()) { toast('Connect Supabase first', 'error'); return; }
+  const mode = snVal('sn-dir-live-sort') || 'priority';
+  const value = { liveSortMode: mode };
+  const status = document.getElementById('sn-dir-status');
+  if (status) { status.style.color='var(--muted)'; status.textContent='Saving ordering settings…'; }
+  try {
+    const { error } = await cdSupabase.from('stream_settings').upsert({ key:'directory', value, updated_at:new Date().toISOString() }, { onConflict:'key' });
+    if (error) throw error;
+    SN_SETTINGS = { ...SN_SETTINGS, ...value };
+    toast('Directory ordering saved', 'success');
+    await snLoadCreators();
+  } catch(e) {
+    const msg = e && e.message ? e.message : 'Could not save stream_settings. Rerun STREAM_SCHEMA.sql.';
+    if (status) { status.style.color='var(--red)'; status.textContent=msg; }
+    toast(msg, 'error');
+  }
 }
 
 function snCreatorCard(c) {
@@ -3517,10 +3597,12 @@ function snCreatorCard(c) {
         <div>
           <div style="font-family:var(--display);font-size:1.25rem;line-height:1;color:var(--cc)">${snEsc(c.display_name||c.slug)}</div>
           <div class="mono" style="font-size:.72rem;color:var(--muted);margin-top:3px">/stream/${snEsc(c.slug)} · twitch.tv/${snEsc(c.twitch_channel||'')}</div>
+          <div class="mono" style="font-size:.68rem;color:var(--muted);margin-top:3px">Order ${snDisplayNum(c.display_order)} · Live priority ${snDisplayNum(c.live_priority)} · ${c.is_live ? `${Number(c.viewer_count||0).toLocaleString()} watching` : 'offline'}</div>
         </div>
       </div>
       <div class="flex-row" style="gap:.4rem;">
         <a class="qa-btn ghost" href="stream/index.html#${snEsc(c.slug)}" target="_blank" rel="noopener" title="Open page">View</a>
+        <button class="qa-btn ghost" onclick="snSyncTwitchRewards('${c.id}')" id="sn-sync-btn-${c.id}">Sync Twitch Rewards</button>
         <button class="qa-btn ghost" onclick="snToggleEdit('${c.id}')" id="sn-edit-btn-${c.id}">Edit</button>
         <button class="qa-btn danger" onclick="snRemoveCreator('${c.id}','${snEsc(c.display_name||c.slug)}')">Delete</button>
       </div>
@@ -3532,6 +3614,7 @@ function snCreatorCard(c) {
       <label class="toggle-row" style="gap:.55rem;"><span class="toggle-sub">Page on</span><span class="toggle"><input type="checkbox" ${on(c.page_on!==false)} onchange="snQuickToggle('${c.id}','page_on',this.checked)"><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
       <label class="toggle-row" style="gap:.55rem;"><span class="toggle-sub">Live now</span><span class="toggle"><input type="checkbox" ${on(c.is_live)} onchange="snQuickToggle('${c.id}','is_live',this.checked)"><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
     </div>
+    <div id="sn-sync-status-${c.id}" class="mono" style="font-size:.72rem;color:var(--muted);margin-top:.35rem;"></div>
 
     <div id="sn-editor-${c.id}" style="display:none;border-top:1px solid var(--border2);margin-top:.4rem;padding-top:.9rem;display:none;flex-direction:column;gap:.8rem;">
       <div class="field-row">
@@ -3541,6 +3624,14 @@ function snCreatorCard(c) {
       <div class="field-row">
         <div class="field"><label>URL Slug</label><input type="text" id="sn-f-slug-${c.id}" value="${snEsc(c.slug||'')}" /></div>
         <div class="field"><label>Owner Discord ID</label><input type="text" id="sn-f-owner-${c.id}" value="${snEsc(c.owner_discord_id||'')}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Directory Order <span class="input-hint">offline/main list</span></label><input type="number" id="sn-f-display-order-${c.id}" value="${snEsc(snDisplayNum(c.display_order))}" /></div>
+        <div class="field"><label>Live Priority <span class="input-hint">lower ranks live first</span></label><input type="number" id="sn-f-live-priority-${c.id}" value="${snEsc(snDisplayNum(c.live_priority))}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Viewer Count <span class="input-hint">usually updated by Twitch refresh</span></label><input type="number" id="sn-f-viewer-count-${c.id}" value="${snEsc(String(Number(c.viewer_count||0)))}" /></div>
+        <div class="field"><label>Last Live Check</label><input type="text" value="${snEsc(c.live_checked_at ? new Date(c.live_checked_at).toLocaleString() : 'Never')}" disabled /></div>
       </div>
       <div class="field"><label>Tagline</label><input type="text" id="sn-f-tagline-${c.id}" value="${snEsc(c.tagline||'')}" /></div>
       <div class="field-3col">
@@ -3560,8 +3651,28 @@ function snCreatorCard(c) {
         <div class="field"><label>Instagram URL</label><input type="text" id="sn-f-instagram-${c.id}" value="${snEsc(s.instagram||'')}" /></div>
         <div class="field"><label>YouTube URL</label><input type="text" id="sn-f-youtube-${c.id}" value="${snEsc(s.youtube||'')}" /></div>
       </div>
-      <div class="field"><label>Streamer.bot WebSocket URL</label><input type="text" id="sn-f-sb-${c.id}" value="${snEsc(c.sb_ws_url||'')}" placeholder="wss://..." /></div>
+      <div class="field"><label>Streamer.bot WebSocket URL</label><input type="text" id="sn-f-sb-${c.id}" value="${snEsc(c.sb_ws_url||'')}" placeholder="wss://..." /><div class="input-hint">Use a Cloudflare Tunnel / relay URL that reaches this creator's local Streamer.bot WebSocket server.</div></div>
+      <div class="clip-editor-card" style="background:var(--bg4);border-left:3px solid var(--yellow);">
+        <div class="flex-row" style="justify-content:space-between;gap:.75rem;align-items:center;flex-wrap:wrap;">
+          <div><strong>Tunnel setup helper</strong><div class="input-hint">A static website cannot safely create Cloudflare tunnels by itself, but this generates creator-specific setup notes.</div></div>
+          <button class="qa-btn ghost" type="button" onclick="snToggleTunnelHelp('${c.id}')">Show Helper</button>
+        </div>
+        <pre id="sn-tunnel-help-${c.id}" class="mono" style="display:none;white-space:pre-wrap;margin-top:.75rem;font-size:.72rem;color:var(--muted);border:1px solid var(--border2);border-radius:10px;padding:.75rem;background:rgba(0,0,0,.24);">${snEsc(snTunnelInstructions(c))}</pre>
+      </div>
+      <div class="clip-editor-card" style="background:var(--bg4);border-left:3px solid var(--cc);">
+        <div style="font-family:var(--display);font-size:1.15rem;color:var(--cc);margin-bottom:.55rem;">Creative Space</div>
+        <div class="input-hint" style="margin-bottom:.75rem;">This appears below the stream/player area. Custom HTML is rendered inside a sandboxed iframe so it cannot touch the top stream showcase.</div>
+        <div class="field-row">
+          <div class="field"><label>Mode</label><select id="sn-f-creative-mode-${c.id}"><option value="off" ${(c.creative_mode||'prefab')==='off'?'selected':''}>Off</option><option value="prefab" ${(!c.creative_mode||c.creative_mode==='prefab')?'selected':''}>Prefab page</option><option value="custom_html" ${c.creative_mode==='custom_html'?'selected':''}>Custom HTML mode</option></select></div>
+          <div class="field"><label>Creative Title</label><input type="text" id="sn-f-creative-title-${c.id}" value="${snEsc(c.creative_title||'')}" placeholder="Welcome to my corner" /></div>
+        </div>
+        <div class="field"><label>Creative Subtitle</label><input type="text" id="sn-f-creative-subtitle-${c.id}" value="${snEsc(c.creative_subtitle||'')}" placeholder="A little more about the creator" /></div>
+        <div class="field"><label>Prefab Body</label><textarea id="sn-f-creative-body-${c.id}" spellcheck="true" style="min-height:86px;">${snEsc(c.creative_body||'')}</textarea></div>
+        <div class="field"><label>Creative Links JSON</label><textarea id="sn-f-creative-links-${c.id}" spellcheck="false" style="font-family:var(--mono);font-size:.74rem;min-height:70px;">${snEsc(JSON.stringify(Array.isArray(c.creative_links)?c.creative_links:[], null, 2))}</textarea><div class="input-hint">Example: [{"label":"Discord","url":"https://discord.gg/..."}]</div></div>
+        <div class="field"><label>Custom HTML</label><textarea id="sn-f-custom-html-${c.id}" spellcheck="false" style="font-family:var(--mono);font-size:.74rem;min-height:110px;">${snEsc(c.custom_html||'')}</textarea></div>
+      </div>
       <div class="field"><label>Redeems (JSON array)</label><textarea id="sn-f-redeems-${c.id}" spellcheck="false" style="font-family:var(--mono);font-size:.76rem;min-height:96px;">${snEsc(JSON.stringify(redeems, null, 2))}</textarea></div>
+      ${snRedeemMapHtml(c.id, redeems)}
       <div class="flex-row" style="justify-content:flex-end;">
         <button class="qa-btn ghost" onclick="snToggleEdit('${c.id}')">Close</button>
         <button class="qa-btn primary" onclick="snSaveCreator('${c.id}')">Save Channel</button>
@@ -3569,6 +3680,28 @@ function snCreatorCard(c) {
     </div>
   </div>`;
 }
+
+function snTunnelInstructions(c){
+  const slug = (c && (c.slug || c.twitch_channel)) || 'creator';
+  const twitch = (c && c.twitch_channel) || slug;
+  const suggested = `wss://streamerbot-${String(slug).toLowerCase().replace(/[^a-z0-9-]/g,'-')}.chazdyn.com/`;
+  return `Creator: ${c && c.display_name ? c.display_name : slug} (twitch.tv/${twitch})
+
+Static-site safety note:
+Control.Dyn cannot securely create Cloudflare named tunnels from the browser because Cloudflare API tokens and tunnel credentials must stay server-side.
+
+Fast creator-friendly setup:
+1. In Streamer.bot, enable WebSocket Server on 127.0.0.1:8080.
+2. Install cloudflared.
+3. Run: cloudflared tunnel --url http://127.0.0.1:8080
+4. Copy the generated https://*.trycloudflare.com URL and change it to wss://*.trycloudflare.com/ in the Streamer.bot WebSocket URL field.
+
+Managed/named tunnel target you can create later with a backend/Worker:
+${suggested}
+
+A fully automated version needs a tiny server/Cloudflare Worker that holds the Cloudflare API token, creates the tunnel + DNS route, and returns only the public WSS URL to Control.Dyn.`;
+}
+function snToggleTunnelHelp(id){ const el=document.getElementById('sn-tunnel-help-'+id); if(el) el.style.display = el.style.display==='none' ? 'block' : 'none'; }
 
 function snToggleEdit(id) {
   const ed = document.getElementById('sn-editor-' + id);
@@ -3591,17 +3724,346 @@ async function snQuickToggle(id, field, value) {
 }
 
 function snVal(id){ const el=document.getElementById(id); return el ? el.value.trim() : ''; }
+function snChecked(id){ const el=document.getElementById(id); return !!(el && el.checked); }
+
+const SN_TWITCH_REDIRECT = 'https://chazdyn.com/stream/';
+const SN_TWITCH_SYNC_SCOPE = 'channel:read:redemptions';
+
+function snRedeemMapHtml(id, redeems) {
+  if (!Array.isArray(redeems) || !redeems.length) {
+    return `<div class="field"><label>Redeem mappings</label><div class="input-hint">No redeems yet. Use <strong>Sync Twitch Rewards</strong> to mirror the broadcaster's current Channel Point rewards, or add manual JSON above.</div></div>`;
+  }
+  return `<div class="field"><label>Redeem mappings <span class="input-hint">Edit Streamer.bot action names after syncing</span></label>
+    <div style="display:flex;flex-direction:column;gap:.45rem;">
+      ${redeems.map((r,i)=>`
+        <div class="backup-row" style="align-items:center;gap:.55rem;flex-wrap:wrap;">
+          <label class="toggle-row" style="gap:.45rem;min-width:82px;"><span class="toggle-sub">Enabled</span><span class="toggle"><input type="checkbox" id="sn-r-enabled-${id}-${i}" ${r && r.enabled===false?'':'checked'} onchange="snApplyRedeemMapToJson('${id}')"><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+          <div style="min-width:170px;flex:1;">
+            <div style="font-weight:700;color:var(--text);">${snEsc((r&&r.icon)||'⭐')} ${snEsc((r&&r.label)||'Untitled')}</div>
+            <div class="mono" style="font-size:.68rem;color:var(--muted);">${snEsc((r&&r.source)||'manual')} · ${(Number((r&&r.cost)||0)).toLocaleString()} pts${r&&r.twitchRewardId?' · '+snEsc(r.twitchRewardId):''}</div>
+          </div>
+          <div class="field" style="min-width:260px;flex:1;margin:0;"><label style="font-size:.68rem;">Streamer.bot actionName</label><input type="text" id="sn-r-action-${id}-${i}" value="${snEsc((r&&r.actionName)||((r&&r.label)||''))}" oninput="snApplyRedeemMapToJson('${id}')" /></div>
+        </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function snApplyRedeemMapToJson(id) {
+  const ta = document.getElementById(`sn-f-redeems-${id}`);
+  if (!ta) return;
+  let redeems;
+  try { redeems = JSON.parse(ta.value || '[]'); }
+  catch(e) { return; }
+  if (!Array.isArray(redeems)) return;
+  redeems = redeems.map((r,i) => ({
+    ...(r || {}),
+    actionName: snVal(`sn-r-action-${id}-${i}`) || (r && r.label) || '',
+    enabled: snChecked(`sn-r-enabled-${id}-${i}`)
+  }));
+  ta.value = JSON.stringify(redeems, null, 2);
+}
+
+function snSetSyncStatus(id, msg, kind='') {
+  const el = document.getElementById('sn-sync-status-' + id);
+  if (!el) return;
+  const color = kind === 'error' ? 'var(--red)' : kind === 'success' ? 'var(--green)' : kind === 'warn' ? 'var(--yellow)' : 'var(--muted)';
+  el.style.color = color;
+  el.textContent = msg || '';
+}
+
+function snClearTwitchRewardToken() {
+  localStorage.removeItem('stream_twitch_token');
+  localStorage.removeItem('stream_twitch_scopes');
+  localStorage.removeItem('stream_twitch_user');
+}
+
+async function snValidateTwitchToken(requiredScope) {
+  const token = localStorage.getItem('stream_twitch_token');
+  if (!token) return { ok:false, code:'NO_TOKEN', message:'Not signed into Twitch.' };
+  try {
+    const r = await fetch('https://id.twitch.tv/oauth2/validate', { headers:{ Authorization:'OAuth ' + token } });
+    if (r.status === 401) {
+      snClearTwitchRewardToken();
+      return { ok:false, code:'EXPIRED', message:'Twitch token expired. Please sign in again.' };
+    }
+    if (!r.ok) return { ok:false, code:'VALIDATE_FAILED', message:'Could not validate Twitch sign-in.' };
+    const d = await r.json();
+    const scopes = Array.isArray(d.scopes) ? d.scopes : [];
+    localStorage.setItem('stream_twitch_scopes', scopes.join(' '));
+    if (requiredScope && !scopes.includes(requiredScope)) {
+      return { ok:false, code:'MISSING_SCOPE', message:`Missing ${requiredScope} scope.` };
+    }
+    return { ok:true, token, scopes, validation:d };
+  } catch(e) {
+    return { ok:false, code:'VALIDATE_ERROR', message:'Could not reach Twitch to validate the token.' };
+  }
+}
+
+async function snValidateTwitchRewardToken() {
+  return snValidateTwitchToken(SN_TWITCH_SYNC_SCOPE);
+}
+function snStartTwitchRewardAuth(creatorId, reason) {
+  const clientId = STATE.twitchClientId || 'zd09p34hzxm6jbhvhlcujem2ypid0m';
+  if (!clientId || clientId === 'YOUR_TWITCH_CLIENT_ID') {
+    toast('Add a Twitch Client ID in Connections first.', 'error');
+    snSetSyncStatus(creatorId, 'Missing Twitch Client ID.', 'error');
+    return;
+  }
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('sn_twitch_oauth_nonce', nonce);
+  localStorage.setItem('sn_sync_after_auth', JSON.stringify({ creatorId, createdAt: Date.now() }));
+  const state = `control-reward-sync:${creatorId}:${nonce}`;
+  const url = 'https://id.twitch.tv/oauth2/authorize' +
+    `?client_id=${encodeURIComponent(clientId)}` +
+    `&redirect_uri=${encodeURIComponent(SN_TWITCH_REDIRECT)}` +
+    '&response_type=token' +
+    `&scope=${encodeURIComponent(SN_TWITCH_SYNC_SCOPE)}` +
+    '&force_verify=true' +
+    `&state=${encodeURIComponent(state)}`;
+  toast(reason || 'Opening Twitch authorization…', 'info');
+  location.href = url;
+}
+
+function snStartTwitchLiveAuth(reason) {
+  const clientId = STATE.twitchClientId || 'zd09p34hzxm6jbhvhlcujem2ypid0m';
+  if (!clientId || clientId === 'YOUR_TWITCH_CLIENT_ID') {
+    toast('Add a Twitch Client ID in Connections first.', 'error');
+    return;
+  }
+  const nonce = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  localStorage.setItem('sn_twitch_oauth_nonce', nonce);
+  localStorage.setItem('sn_live_after_auth', JSON.stringify({ createdAt: Date.now() }));
+  const state = `control-live-sync:${nonce}`;
+  const url = 'https://id.twitch.tv/oauth2/authorize' +
+    `?client_id=${encodeURIComponent(clientId)}` +
+    `&redirect_uri=${encodeURIComponent(SN_TWITCH_REDIRECT)}` +
+    '&response_type=token' +
+    '&force_verify=false' +
+    `&state=${encodeURIComponent(state)}`;
+  toast(reason || 'Opening Twitch authorization…', 'info');
+  location.href = url;
+}
+
+async function snResumeTwitchLiveSync() {
+  const raw = localStorage.getItem('sn_live_after_auth');
+  if (!raw) return;
+  let pending = null;
+  try { pending = JSON.parse(raw); } catch(e) { localStorage.removeItem('sn_live_after_auth'); return; }
+  if (!pending || Date.now() - (pending.createdAt || 0) > 15 * 60 * 1000) {
+    localStorage.removeItem('sn_live_after_auth');
+    return;
+  }
+  showSection('stream-net');
+  if (!SN_CACHE.length) await snLoadCreators();
+  toast('Twitch authorization received. Refreshing live statuses…', 'info');
+  await snRefreshLiveStatus({ fromResume:true });
+}
+
+function snChunk(arr, size){ const out=[]; for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size)); return out; }
+async function snRefreshLiveStatus(opts={}) {
+  if (!cdInitSupabase()) { toast('Connect Supabase first', 'error'); return; }
+  if (!SN_CACHE.length) await snLoadCreators();
+  const btn = document.getElementById('sn-live-refresh-btn');
+  const status = document.getElementById('sn-dir-status');
+  if (btn) { btn.disabled = true; btn.textContent = 'Refreshing…'; }
+  if (status) { status.style.color='var(--muted)'; status.textContent='Checking Twitch authorization…'; }
+  try {
+    const auth = await snValidateTwitchToken();
+    if (!auth.ok) {
+      if (!opts.fromResume) {
+        snStartTwitchLiveAuth('Twitch sign-in is needed to call Helix /streams from this static browser app.');
+        return;
+      }
+      throw new Error(auth.message);
+    }
+    const channels = [...new Set(SN_CACHE.map(c=>String(c.twitch_channel||c.slug||'').trim().toLowerCase()).filter(Boolean))];
+    if (!channels.length) throw new Error('No Twitch channels found to refresh.');
+    const headers = { 'Authorization':'Bearer ' + auth.token, 'Client-Id': STATE.twitchClientId || 'zd09p34hzxm6jbhvhlcujem2ypid0m' };
+    const liveMap = new Map();
+    for (const chunk of snChunk(channels, 100)) {
+      const url = 'https://api.twitch.tv/helix/streams?' + chunk.map(login => 'user_login=' + encodeURIComponent(login)).join('&');
+      const res = await fetch(url, { headers });
+      let body = null; try { body = await res.json(); } catch(e) {}
+      if (!res.ok) throw new Error(snTwitchFetchError('Could not fetch Twitch live data', res, body));
+      (body.data || []).forEach(stream => liveMap.set(String(stream.user_login||'').toLowerCase(), stream));
+    }
+    const checkedAt = new Date().toISOString();
+    let liveCount = 0;
+    for (const c of SN_CACHE) {
+      const login = String(c.twitch_channel||c.slug||'').trim().toLowerCase();
+      const stream = liveMap.get(login);
+      if (stream) liveCount++;
+      const patch = {
+        is_live: !!stream,
+        viewer_count: stream ? Number(stream.viewer_count || 0) : 0,
+        live_started_at: stream && stream.started_at ? stream.started_at : null,
+        live_checked_at: checkedAt
+      };
+      const { error } = await cdSupabase.from('creators').update(patch).eq('id', c.id);
+      if (error) throw new Error('Supabase save failed: ' + error.message);
+    }
+    localStorage.removeItem('sn_live_after_auth');
+    if (status) { status.style.color='var(--green)'; status.textContent=`${liveCount}/${SN_CACHE.length} channels live · refreshed ${new Date(checkedAt).toLocaleString()}`; }
+    toast(`Live data refreshed: ${liveCount}/${SN_CACHE.length} live`, 'success');
+    logChange('edit', `Stream live data refreshed (${liveCount}/${SN_CACHE.length} live)`);
+    await snLoadCreators();
+  } catch(e) {
+    const msg = e && e.message ? e.message : 'Live data refresh failed.';
+    if (status) { status.style.color='var(--red)'; status.textContent=msg; }
+    toast(msg, 'error');
+    if (/401|expired|invalid/i.test(msg)) snClearTwitchRewardToken();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Refresh Twitch Live Data'; }
+  }
+}
+
+function snRewardKey(label) { return String(label || '').trim().toLowerCase(); }
+function snMergeTwitchRewards(existing, rewards) {
+  const existingList = Array.isArray(existing) ? existing.filter(Boolean) : [];
+  const manual = existingList.filter(r => !r.source || r.source === 'manual');
+  const byId = new Map();
+  const byTwitchLabel = new Map();
+  const byAnyLabel = new Map();
+  existingList.forEach(r => {
+    if (r.twitchRewardId) byId.set(String(r.twitchRewardId), r);
+    const key = snRewardKey(r.label || r.title);
+    if (key) {
+      if (r.source === 'twitch' && !byTwitchLabel.has(key)) byTwitchLabel.set(key, r);
+      if (!byAnyLabel.has(key)) byAnyLabel.set(key, r);
+    }
+  });
+  const synced = (rewards || []).map(reward => {
+    const title = reward.title || reward.label || 'Untitled Reward';
+    const key = snRewardKey(title);
+    const prev = byId.get(String(reward.id || '')) || byTwitchLabel.get(key) || byAnyLabel.get(key) || {};
+    return {
+      label: title,
+      cost: Number(reward.cost) || 0,
+      icon: prev.icon || '⭐',
+      twitchRewardId: String(reward.id || ''),
+      actionName: prev.actionName || title,
+      enabled: (typeof prev.enabled === 'boolean') ? prev.enabled : reward.is_enabled !== false,
+      source: 'twitch'
+    };
+  });
+  return manual.concat(synced);
+}
+
+function snTwitchFetchError(prefix, res, body) {
+  const detail = body && (body.message || body.error) ? ` (${body.message || body.error})` : '';
+  if (res.status === 401) return `${prefix}: Twitch 401 — token expired or invalid. Sign in again.`;
+  if (res.status === 403) return `${prefix}: Twitch 403 — missing channel:read:redemptions scope or the signed-in user cannot read this broadcaster's rewards.`;
+  return `${prefix}: Twitch ${res.status}${detail}`;
+}
+
+async function snSyncTwitchRewards(id, opts={}) {
+  if (!cdInitSupabase()) { toast('Connect Supabase first', 'error'); return; }
+  const c = SN_CACHE.find(x => x.id === id);
+  if (!c) { toast('Creator row not loaded yet. Refresh and try again.', 'error'); return; }
+  const btn = document.getElementById('sn-sync-btn-' + id);
+  if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
+  snSetSyncStatus(id, 'Checking Twitch authorization…');
+  try {
+    const auth = await snValidateTwitchRewardToken();
+    if (!auth.ok) {
+      snSetSyncStatus(id, auth.message, auth.code === 'MISSING_SCOPE' ? 'warn' : 'error');
+      if (!opts.fromResume || auth.code !== 'NO_TOKEN') {
+        const reason = auth.code === 'MISSING_SCOPE'
+          ? 'Twitch is connected, but reward sync needs channel:read:redemptions. Re-authorizing…'
+          : 'Not signed into Twitch for reward sync. Opening Twitch authorization…';
+        snStartTwitchRewardAuth(id, reason);
+      } else {
+        localStorage.removeItem('sn_sync_after_auth');
+        toast(auth.message, 'error');
+      }
+      return;
+    }
+
+    const headers = { 'Authorization':'Bearer ' + auth.token, 'Client-Id': STATE.twitchClientId || 'zd09p34hzxm6jbhvhlcujem2ypid0m' };
+    snSetSyncStatus(id, 'Identifying signed-in broadcaster…');
+    const userRes = await fetch('https://api.twitch.tv/helix/users', { headers });
+    let userBody = null;
+    try { userBody = await userRes.json(); } catch(e) {}
+    if (!userRes.ok) throw new Error(snTwitchFetchError('Could not identify Twitch broadcaster', userRes, userBody));
+    const user = userBody && userBody.data && userBody.data[0];
+    if (!user || !user.id) throw new Error('Twitch sign-in did not return a broadcaster user.');
+
+    const expected = String(c.twitch_channel || c.slug || '').toLowerCase();
+    const actual = String(user.login || '').toLowerCase();
+    if (expected && actual && expected !== actual) {
+      snClearTwitchRewardToken();
+      throw new Error(`Signed into Twitch as ${user.display_name || user.login}, but this creator row is twitch.tv/${c.twitch_channel || c.slug}. Token cleared — click Sync again and log into the matching broadcaster.`);
+    }
+
+    snSetSyncStatus(id, `Fetching Channel Point rewards for ${user.display_name || user.login}…`);
+    const rewardsUrl = `https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id=${encodeURIComponent(user.id)}`;
+    const rewardsRes = await fetch(rewardsUrl, { headers });
+    let rewardsBody = null;
+    try { rewardsBody = await rewardsRes.json(); } catch(e) {}
+    if (!rewardsRes.ok) throw new Error(snTwitchFetchError('Could not fetch Twitch rewards', rewardsRes, rewardsBody));
+    const rewards = (rewardsBody && rewardsBody.data) || [];
+    if (!rewards.length) {
+      snSetSyncStatus(id, 'No Twitch Channel Point custom rewards found. Existing redeems were left unchanged.', 'warn');
+      localStorage.removeItem('sn_sync_after_auth');
+      toast('No rewards found for this broadcaster.', 'info');
+      return;
+    }
+
+    const merged = snMergeTwitchRewards(c.redeems, rewards);
+    const { error } = await cdSupabase.from('creators').update({ redeems: merged }).eq('id', id);
+    if (error) throw new Error('Supabase save failed: ' + error.message);
+    localStorage.removeItem('sn_sync_after_auth');
+    snSetSyncStatus(id, `Synced ${rewards.length} Twitch reward${rewards.length===1?'':'s'} into redeems JSON.`, 'success');
+    toast(`Synced ${rewards.length} Twitch reward${rewards.length===1?'':'s'}`, 'success');
+    logChange('edit', `Synced Twitch rewards for ${c.display_name || c.slug}`);
+    await snLoadCreators();
+  } catch(e) {
+    const msg = e && e.message ? e.message : 'Reward sync failed.';
+    snSetSyncStatus(id, msg, 'error');
+    toast(msg, 'error');
+    if (/401|expired|invalid/i.test(msg)) snClearTwitchRewardToken();
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Sync Twitch Rewards'; }
+  }
+}
+
+async function snResumeTwitchRewardSync() {
+  const raw = localStorage.getItem('sn_sync_after_auth');
+  if (!raw) return;
+  let pending = null;
+  try { pending = JSON.parse(raw); } catch(e) { localStorage.removeItem('sn_sync_after_auth'); return; }
+  if (!pending || !pending.creatorId || Date.now() - (pending.createdAt || 0) > 15 * 60 * 1000) {
+    localStorage.removeItem('sn_sync_after_auth');
+    return;
+  }
+  showSection('stream-net');
+  if (!SN_CACHE.length) await snLoadCreators();
+  if (!SN_CACHE.find(x => x.id === pending.creatorId)) {
+    toast('Could not resume Twitch reward sync: creator row was not found.', 'error');
+    localStorage.removeItem('sn_sync_after_auth');
+    return;
+  }
+  toast('Twitch authorization received. Finishing reward sync…', 'info');
+  await snSyncTwitchRewards(pending.creatorId, { fromResume:true });
+}
 
 async function snSaveCreator(id) {
   if (!cdSupabase) return;
+  snApplyRedeemMapToJson(id);
   let redeems = [];
   try { redeems = JSON.parse(snVal(`sn-f-redeems-${id}`) || '[]'); if (!Array.isArray(redeems)) throw 0; }
   catch(e) { toast('Redeems must be a valid JSON array', 'error'); return; }
+  let creativeLinks = [];
+  try { creativeLinks = JSON.parse(snVal(`sn-f-creative-links-${id}`) || '[]'); if (!Array.isArray(creativeLinks)) throw 0; }
+  catch(e) { toast('Creative Links must be a valid JSON array', 'error'); return; }
   const patch = {
     display_name: snVal(`sn-f-name-${id}`),
     twitch_channel: snVal(`sn-f-twitch-${id}`),
     slug: snVal(`sn-f-slug-${id}`).toLowerCase(),
     owner_discord_id: snVal(`sn-f-owner-${id}`) || null,
+    display_order: snNum(snVal(`sn-f-display-order-${id}`), 1000),
+    live_priority: snNum(snVal(`sn-f-live-priority-${id}`), 1000),
+    viewer_count: snNum(snVal(`sn-f-viewer-count-${id}`), 0),
     tagline: snVal(`sn-f-tagline-${id}`),
     avatar_url: snVal(`sn-f-avatar-${id}`),
     banner_url: snVal(`sn-f-banner-${id}`),
@@ -3610,6 +4072,12 @@ async function snSaveCreator(id) {
     accent2: snVal(`sn-f-accent2-${id}`),
     sb_ws_url: snVal(`sn-f-sb-${id}`),
     socials: { discord: snVal(`sn-f-discord-${id}`), tiktok: snVal(`sn-f-tiktok-${id}`), instagram: snVal(`sn-f-instagram-${id}`), youtube: snVal(`sn-f-youtube-${id}`) },
+    creative_mode: snVal(`sn-f-creative-mode-${id}`) || 'prefab',
+    creative_title: snVal(`sn-f-creative-title-${id}`),
+    creative_subtitle: snVal(`sn-f-creative-subtitle-${id}`),
+    creative_body: snVal(`sn-f-creative-body-${id}`),
+    creative_links: creativeLinks,
+    custom_html: snVal(`sn-f-custom-html-${id}`),
     redeems
   };
   const { error } = await cdSupabase.from('creators').update(patch).eq('id', id);
@@ -3645,6 +4113,11 @@ async function snAddCreator() {
     avatar_url: snVal('sn-add-avatar'), banner_url: snVal('sn-add-banner'), poster_url: snVal('sn-add-poster') || snVal('sn-add-banner'),
     accent: snVal('sn-add-accent-hex') || '#4dff1f', accent2: snVal('sn-add-accent2-hex') || '#16e0ff',
     socials: {}, redeems: [],
+    sb_ws_url: slug === 'chazdyn' ? 'wss://streamerbot.chazdyn.com/' : '',
+    display_order: snNum(snVal('sn-add-display-order'), 1000),
+    live_priority: snNum(snVal('sn-add-live-priority'), 1000),
+    viewer_count: 0,
+    creative_mode: 'prefab', creative_title: '', creative_subtitle: '', creative_body: '', creative_links: [], custom_html: '',
     approved: document.getElementById('sn-add-approved').checked,
     listed: document.getElementById('sn-add-listed').checked,
     page_on: document.getElementById('sn-add-pageon').checked,
@@ -3686,7 +4159,10 @@ async function snApproveRequest(rid, discordId, discordName, slug, twitch) {
   const { error: ce } = await cdSupabase.from('creators').insert({
     slug, display_name: discordName || slug, twitch_channel: twitch || slug,
     owner_discord_id: discordId, approved: true, listed: true, page_on: true, is_live: false,
-    accent:'#4dff1f', accent2:'#16e0ff', socials:{}, redeems:[]
+    accent:'#4dff1f', accent2:'#16e0ff', socials:{}, redeems:[],
+    sb_ws_url: slug === 'chazdyn' ? 'wss://streamerbot.chazdyn.com/' : '',
+    display_order: 1000, live_priority: 1000, viewer_count: 0,
+    creative_mode: 'prefab', creative_title: '', creative_subtitle: '', creative_body: '', creative_links: [], custom_html: ''
   });
   if (ce) { toast('Error: ' + ce.message, 'error'); return; }
   await cdSupabase.from('creator_requests').update({ status:'approved' }).eq('id', rid);

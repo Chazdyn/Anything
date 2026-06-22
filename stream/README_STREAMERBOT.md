@@ -53,3 +53,19 @@ redeems dock so you always know the bridge state.
 > 3. Paste the `wss://…` URL into your Control panel → Redeems → "Streamer.bot URL".
 > 4. Add a redeem button for each Action (the label + the exact Action name).
 > Keep the tunnel running while you stream; the badge turns green when connected.
+
+---
+
+## Cloudflare Tunnel helper in Control.Dyn
+
+Each creator editor now includes a **Tunnel setup helper** next to `sb_ws_url`.
+
+The website cannot safely create named Cloudflare Tunnels directly because this is a static site and Cloudflare API tokens must stay server-side. The helper gives creators a quick no-secret path using Cloudflare Quick Tunnels:
+
+```bash
+cloudflared tunnel --url http://127.0.0.1:8080
+```
+
+Then paste the generated URL into `sb_ws_url` as `wss://...trycloudflare.com/`.
+
+A future one-click version should be handled by a backend or Cloudflare Worker that stores Cloudflare credentials privately.

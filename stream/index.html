@@ -21,6 +21,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);overflow:hid
 a{color:inherit;text-decoration:none}
 button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
 .app{height:100vh;width:100vw;position:relative;overflow:hidden}
+.watch-shell{position:relative;z-index:2;height:100vh;overflow-y:auto;background:var(--bg);scroll-snap-type:y proximity}
+.watch-shell .stage{position:relative;inset:auto;height:100vh;min-height:720px;display:block;scroll-snap-align:start}
+.watch-shell .stage.on{display:block}
+.creative-space{position:relative;z-index:3;min-height:42vh;padding:4.5rem 2rem 5rem;background:linear-gradient(180deg,#000 0%,var(--bg2) 25%,var(--bg) 100%);border-top:1px solid var(--border)}
+.creative-inner{max-width:1040px;margin:0 auto;border:1px solid var(--border);border-radius:24px;background:rgba(11,16,23,.86);box-shadow:0 24px 80px -45px #000;overflow:hidden}
+.creative-prefab{padding:2rem}.creative-kicker{font-family:var(--mono);font-size:.68rem;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);margin-bottom:.8rem}.creative-title{font-family:var(--display);font-size:clamp(2.4rem,6vw,4.4rem);line-height:.9;color:var(--text)}.creative-sub{margin-top:1rem;color:var(--dim);font-size:1.05rem;line-height:1.6;max-width:760px}.creative-body{margin-top:1.4rem;color:var(--text);line-height:1.75;max-width:820px}.creative-body p+p{margin-top:.85rem}.creative-links{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:1.5rem}.creative-links a{display:inline-flex;align-items:center;gap:8px;border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);background:color-mix(in srgb,var(--accent) 10%,transparent);color:var(--accent);border-radius:999px;padding:.72rem 1rem;font-weight:800;font-size:.82rem}.creative-frame{width:100%;min-height:520px;border:0;display:block;background:#fff}
 
 /* ════ ambient ════ */
 .ambient{position:fixed;inset:0;z-index:0;pointer-events:none;
@@ -55,6 +61,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
   background:#e91515;color:#fff;box-shadow:0 0 18px rgba(233,21,21,.6)}
 .cc-live.off{background:rgba(10,14,20,.8);color:var(--muted);box-shadow:none;border:1px solid var(--border)}
 .cc-live .d{width:7px;height:7px;border-radius:50%;background:currentColor;animation:bp 1.3s infinite}
+.cc-viewers{position:absolute;top:12px;right:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-family:var(--mono);font-size:.66rem;background:rgba(5,7,11,.72);border:1px solid var(--border);color:var(--text);backdrop-filter:blur(10px)}
 @keyframes bp{0%,100%{opacity:1}50%{opacity:.3}}
 .cc-body{position:relative;padding:0 1.2rem 1.3rem;margin-top:-40px;z-index:2}
 .cc-avatar{width:72px;height:72px;border-radius:16px;object-fit:cover;border:3px solid var(--bg2);
@@ -251,13 +258,13 @@ const DEMO = [
     poster:'../assets/chazdyn-latenight-set.png', tagline:'Lifelong musician building a late night worth staying up for. Games, live sets, and a proper talk show.',
     isLive:true, pageOn:true,
     socials:{ discord:'https://discord.gg/', tiktok:'https://tiktok.com/@chazdyn', instagram:'', youtube:'https://youtube.com/' },
-    sbWsUrl:'', // wss relay to Streamer.bot
+    sbWsUrl:'wss://streamerbot.chazdyn.com/', // wss relay to Streamer.bot
     redeems:[
-      {icon:'🎵',label:'Song Request',cost:500,actionName:'Song Request'},
-      {icon:'💡',label:'Lights: Portal',cost:1000,actionName:'Portal Lights'},
-      {icon:'📺',label:'Hydrate!',cost:200,actionName:'Hydrate'},
-      {icon:'🔊',label:'Air Horn',cost:300,actionName:'Air Horn'},
-      {icon:'🎸',label:'Play a Riff',cost:1500,actionName:'Play Riff'},
+      {icon:'🎵',label:'Song Request',cost:500,actionName:'Song Request',enabled:true,source:'manual'},
+      {icon:'💡',label:'Lights: Portal',cost:1000,actionName:'Portal Lights',enabled:true,source:'manual'},
+      {icon:'📺',label:'Hydrate!',cost:200,actionName:'Hydrate',enabled:true,source:'manual'},
+      {icon:'🔊',label:'Air Horn',cost:300,actionName:'Air Horn',enabled:true,source:'manual'},
+      {icon:'🎸',label:'Play a Riff',cost:1500,actionName:'Play Riff',enabled:true,source:'manual'},
     ]},
   { slug:'shyshack', displayName:'ShyShack', twitchChannel:'shyshack', accent:'#b06bff', accent2:'#ff5fb0',
     avatar:'../assets/ShyShack-Avatar-cropped-square-20260503174952.jpg', banner:'../assets/blood-moon-cropped-wide-20260506155850.jpg',
@@ -304,6 +311,7 @@ const DEMO = [
 
 // ─── state ───
 let CREATORS = DEMO.slice();
+let DIRECTORY_SETTINGS = { liveSortMode:'priority' };
 let SB = null;        // supabase client
 let SBOT = null;      // streamer.bot websocket
 let SBOT_STATE = 'idle';
@@ -339,6 +347,36 @@ function streamUrl(slug){
 function authRedirectUrl(){
   return CONFIG.authRedirect;
 }
+function controlDynUrl(){
+  return 'https://chazdyn.com/Control.Dyn.html#stream-net';
+}
+function storeTwitchOAuth(token, scopes, user){
+  localStorage.setItem('stream_twitch_token', token);
+  localStorage.setItem('stream_twitch_scopes', Array.isArray(scopes) ? scopes.join(' ') : String(scopes || ''));
+  if(user){
+    localStorage.setItem('stream_twitch_user', JSON.stringify({
+      id:user.id, login:user.login, name:user.display_name || user.login, pic:user.profile_image_url
+    }));
+  }
+}
+function num(v, fallback=1000){ const n=Number(v); return Number.isFinite(n) ? n : fallback; }
+function sortCreatorsForDirectory(list){
+  return (list || []).slice().sort((a,b)=>{
+    const la=!!a.isLive, lb=!!b.isLive;
+    if(la!==lb) return la ? -1 : 1;
+    if(la && lb){
+      if((DIRECTORY_SETTINGS.liveSortMode || 'priority') === 'viewer_count'){
+        const vc=num(b.viewerCount,0)-num(a.viewerCount,0); if(vc) return vc;
+      }
+      const lp=num(a.livePriority,1000)-num(b.livePriority,1000); if(lp) return lp;
+      const od=num(a.displayOrder,1000)-num(b.displayOrder,1000); if(od) return od;
+      const vc2=num(b.viewerCount,0)-num(a.viewerCount,0); if(vc2) return vc2;
+    } else {
+      const od=num(a.displayOrder,1000)-num(b.displayOrder,1000); if(od) return od;
+    }
+    return String(a.displayName||a.slug||'').localeCompare(String(b.displayName||b.slug||''));
+  });
+}
 function findCreator(slug){
   return CREATORS.find(c => c.slug.toLowerCase()===slug || (c.twitchChannel||'').toLowerCase()===slug);
 }
@@ -358,23 +396,30 @@ function go(slug){
 
 // ─── Supabase (optional) ───
 async function loadCreators(){
+  DIRECTORY_SETTINGS = { liveSortMode:'priority' };
   if(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey && window.supabase){
     try{
       SB = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+      try{
+        const { data: settings } = await SB.from('stream_settings').select('value').eq('key','directory').maybeSingle();
+        if(settings && settings.value) DIRECTORY_SETTINGS = { ...DIRECTORY_SETTINGS, ...settings.value };
+      }catch(e){ console.warn('stream_settings unavailable, using default directory ordering:', e); }
       const { data, error } = await SB.from('creators').select('*').eq('page_on', true).eq('approved', true);
       if(!error && data && data.length){
-        CREATORS = data.map(mapRow);
+        CREATORS = sortCreatorsForDirectory(data.map(mapRow));
         return;
       }
     }catch(e){ console.warn('Supabase load failed, using demo:', e); }
   }
-  CREATORS = DEMO.slice();
+  CREATORS = sortCreatorsForDirectory(DEMO.slice());
 }
 function mapRow(r){
   return { slug:r.slug, displayName:r.display_name, twitchChannel:r.twitch_channel,
     accent:r.accent||'#4dff1f', accent2:r.accent2||'#16e0ff', avatar:r.avatar_url, banner:r.banner_url,
     poster:r.poster_url||r.banner_url, tagline:r.tagline||'', isLive:!!r.is_live, pageOn:r.page_on!==false,
-    socials:r.socials||{}, sbWsUrl:r.sb_ws_url||'', redeems:Array.isArray(r.redeems)?r.redeems:[], listed:r.listed!==false };
+    displayOrder:num(r.display_order,1000), livePriority:num(r.live_priority,1000), viewerCount:num(r.viewer_count,0), liveStartedAt:r.live_started_at, liveCheckedAt:r.live_checked_at,
+    socials:r.socials||{}, sbWsUrl:r.sb_ws_url||'', redeems:Array.isArray(r.redeems)?r.redeems.filter(x=>x && x.enabled!==false):[], listed:r.listed!==false,
+    creativeMode:r.creative_mode||'prefab', creativeTitle:r.creative_title||'', creativeSubtitle:r.creative_subtitle||'', creativeBody:r.creative_body||'', creativeLinks:Array.isArray(r.creative_links)?r.creative_links:[], customHtml:r.custom_html||'' };
 }
 
 /* ════════ DIRECTORY ════════ */
@@ -385,6 +430,7 @@ function renderDirectory(){
     <button class="creator-card" style="--cc:${esc(c.accent)}" onclick="go('${esc(c.slug)}')">
       <div class="cc-banner-wrap">
         <span class="cc-live ${c.isLive?'':'off'}"><span class="d"></span>${c.isLive?'Live':'Offline'}</span>
+        ${c.isLive && Number(c.viewerCount||0) ? `<span class="cc-viewers">${Number(c.viewerCount||0).toLocaleString()} watching</span>` : ''}
         <img class="cc-banner" src="${esc(c.banner)}" alt="" loading="lazy"
              onerror="this.style.background='var(--bg3)';this.removeAttribute('src')"/>
       </div>
@@ -492,11 +538,28 @@ async function submitCreatorApply(){
   toast('Application sent. Chazdyn can approve it in Control.Dyn.','ok');
 }
 
+function renderCreativeSpace(c){
+  const mode = c.creativeMode || 'prefab';
+  if(mode === 'off') return '';
+  if(mode === 'custom_html' && String(c.customHtml||'').trim()){
+    const doc = `<!doctype html><html><head><base target="_blank"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;background:#080b10;color:#eaf2f7;font-family:system-ui,-apple-system,Segoe UI,sans-serif;line-height:1.6;padding:28px}a{color:${c.accent||'#4dff1f'}}img,video,iframe{max-width:100%}*{box-sizing:border-box}</style></head><body>${c.customHtml}</body></html>`;
+    return `<section class="creative-space"><div class="creative-inner"><iframe class="creative-frame" sandbox="allow-popups allow-popups-to-escape-sandbox" srcdoc="${esc(doc)}" title="${esc(c.displayName)} creative space"></iframe></div></section>`;
+  }
+  const hasPrefab = String(c.creativeTitle||c.creativeSubtitle||c.creativeBody||'').trim() || (Array.isArray(c.creativeLinks) && c.creativeLinks.length);
+  if(!hasPrefab) return '';
+  const paragraphs = String(c.creativeBody||'').split(/\n{2,}/).map(x=>x.trim()).filter(Boolean).map(x=>`<p>${esc(x).replace(/\n/g,'<br>')}</p>`).join('');
+  const links = (Array.isArray(c.creativeLinks)?c.creativeLinks:[]).filter(l=>l && l.url).map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||l.url)} →</a>`).join('');
+  return `<section class="creative-space"><div class="creative-inner"><div class="creative-prefab"><div class="creative-kicker">${esc(c.displayName)} Creative Space</div>${c.creativeTitle?`<h2 class="creative-title">${esc(c.creativeTitle)}</h2>`:''}${c.creativeSubtitle?`<div class="creative-sub">${esc(c.creativeSubtitle)}</div>`:''}${paragraphs?`<div class="creative-body">${paragraphs}</div>`:''}${links?`<div class="creative-links">${links}</div>`:''}</div></div></section>`;
+}
+
 /* ════════ WATCH STAGE ════════ */
 let CURRENT = null;
 function renderWatch(c){
-  CURRENT = c; setTheme(c);
-  document.title = c.displayName+' · Live · '+CONFIG.networkName;
+  const enabledRedeems = Array.isArray(c.redeems) ? c.redeems.filter(r=>r && r.enabled!==false) : [];
+  CURRENT = { ...c, redeems: enabledRedeems };
+  c = CURRENT;
+  setTheme(c);
+  document.title = c.displayName+' · '+CONFIG.networkName;
   const onRealDomain = location.hostname.indexOf(CONFIG.parent.split('.')[0])>-1 || location.hostname===CONFIG.parent;
   const s=c.socials||{};
   const socialBtn=(href,label,svg)=> href?`<a href="${esc(href)}" target="_blank" rel="noopener" title="${label}">${svg}</a>`:'';
@@ -508,6 +571,7 @@ function renderWatch(c){
   };
 
   APP.innerHTML = `
+   <div class="watch-shell">
    <div class="stage on" id="stage">
      <div class="player-layer" id="player">
        <div class="poster">
@@ -540,7 +604,7 @@ function renderWatch(c){
            <div class="who-name">${esc(c.displayName)}</div>
            <div class="who-meta">
              <span class="badge-live ${c.isLive?'':'off'}"><span class="d"></span>${c.isLive?'Live':'Offline'}</span>
-             <span class="viewers" id="viewers">${c.isLive?'<b>—</b> watching':'twitch.tv/'+esc(c.twitchChannel)}</span>
+             <span class="viewers" id="viewers">${c.isLive?`<b>${Number(c.viewerCount||0) ? Number(c.viewerCount||0).toLocaleString() : '—'}</b> watching`:'twitch.tv/'+esc(c.twitchChannel)}</span>
            </div>
          </div>
        </div>
@@ -587,6 +651,8 @@ function renderWatch(c){
      </div>
 
      <div class="ov-bottom-hint" id="bhint">${c.isLive?'move mouse for controls · redeems below':'offline'}</div>
+   </div>
+   ${renderCreativeSpace(c)}
    </div>`;
 
   refreshTwitchLoginUi();
@@ -644,16 +710,50 @@ function twitchLogin(){
   location.href = url;
 }
 async function handleTwitchRedirect(){
-  if(location.hash.indexOf('access_token=')<0) return false;
+  if(location.hash.indexOf('access_token=')<0 && location.hash.indexOf('error=')<0) return false;
   const p=new URLSearchParams(location.hash.replace(/^#/,''));
+  const state=p.get('state') || '';
+  const isControlSync = state.indexOf('control-reward-sync:') === 0;
+  const isControlLiveSync = state.indexOf('control-live-sync:') === 0;
+  if(p.get('error')){
+    if(isControlSync || isControlLiveSync) location.href = controlDynUrl();
+    else history.replaceState(null,'',streamUrl(localStorage.getItem('stream_return') || ''));
+    toast('Twitch sign-in was cancelled or failed.','err');
+    return true;
+  }
   const token=p.get('access_token'); if(!token) return false;
-  localStorage.setItem('stream_twitch_token',token);
+  const scopes = (p.get('scope') || '').split(/[ +]/).filter(Boolean);
+  let twitchUser = null;
   try{
     const r=await fetch('https://api.twitch.tv/helix/users',{headers:{'Authorization':'Bearer '+token,'Client-Id':CONFIG.twitchClientId}});
-    const d=await r.json(); if(d.data&&d.data[0]) localStorage.setItem('stream_twitch_user',JSON.stringify({name:d.data[0].display_name,pic:d.data[0].profile_image_url}));
+    const d=await r.json();
+    if(d.data&&d.data[0]) twitchUser = d.data[0];
   }catch(e){}
+  storeTwitchOAuth(token, scopes, twitchUser);
+
+  if(isControlSync){
+    const parts = state.split(':');
+    const creatorId = parts[1] || '';
+    const nonce = parts[2] || '';
+    const expectedNonce = localStorage.getItem('sn_twitch_oauth_nonce') || '';
+    if(creatorId){
+      localStorage.setItem('sn_sync_after_auth', JSON.stringify({ creatorId, createdAt: Date.now(), nonceOk: !expectedNonce || expectedNonce === nonce }));
+    }
+    localStorage.removeItem('sn_twitch_oauth_nonce');
+    history.replaceState(null,'',authRedirectUrl());
+    location.href = controlDynUrl();
+    return true;
+  }
+  if(isControlLiveSync){
+    localStorage.setItem('sn_live_after_auth', JSON.stringify({ createdAt: Date.now() }));
+    localStorage.removeItem('sn_twitch_oauth_nonce');
+    history.replaceState(null,'',authRedirectUrl());
+    location.href = controlDynUrl();
+    return true;
+  }
+
   // restore previous route (we stash it before redirect)
-  const back=localStorage.getItem('stream_return')||p.get('state')||''; localStorage.removeItem('stream_return');
+  const back=localStorage.getItem('stream_return')||state||''; localStorage.removeItem('stream_return');
   history.replaceState(null,'',streamUrl(back));
   return true;
 }
@@ -664,7 +764,7 @@ async function hydrateTwitchUser(){
     const r=await fetch('https://api.twitch.tv/helix/users',{headers:{'Authorization':'Bearer '+token,'Client-Id':CONFIG.twitchClientId}});
     const d=await r.json();
     if(d.data&&d.data[0]){
-      localStorage.setItem('stream_twitch_user',JSON.stringify({name:d.data[0].display_name,pic:d.data[0].profile_image_url}));
+      storeTwitchOAuth(token, localStorage.getItem('stream_twitch_scopes') || '', d.data[0]);
       refreshTwitchLoginUi();
     } else if(r.status===401) {
       localStorage.removeItem('stream_twitch_token');
@@ -709,10 +809,13 @@ function connectStreamerbot(wsUrl){
   }catch(e){ setSbStatus('err','offline'); }
 }
 function doRedeem(i){
-  const r=(CURRENT.redeems||[])[i]; if(!r) return;
+  const r=(CURRENT.redeems||[])[i]; if(!r || r.enabled===false) return;
+  const cost = Number(r.cost) || 0;
+  let user = 'web';
+  try { user = (JSON.parse(localStorage.getItem('stream_twitch_user')||'{}').name) || 'web'; } catch(e) {}
   if(SBOT && SBOT.readyState===1){
     SBOT.send(JSON.stringify({ request:'DoAction',
-      action:{ name:r.actionName||r.label }, args:{ user:(JSON.parse(localStorage.getItem('stream_twitch_user')||'{}').name)||'web', source:'web-redeem', cost:r.cost },
+      action:{ name:r.actionName||r.label }, args:{ user, source:'web-redeem', cost },
       id:'web-'+Date.now() }));
     toast(`Sent "${r.label}" to Streamer.bot`,'ok');
   }else{
