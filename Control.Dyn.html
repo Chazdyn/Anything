@@ -170,6 +170,20 @@
       <div class="sidebar-divider"></div>
 
       <div class="sidebar-section">
+        <div class="sidebar-label">Stream Network</div>
+        <a class="nav-item" onclick="showSection('stream-net')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          Channels
+        </a>
+        <a class="nav-item" onclick="showSection('stream-requests')" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Applications <span id="sn-req-badge" style="display:none;background:#c0392b;color:#fff;font-size:0.6rem;padding:1px 6px;border-radius:10px;margin-left:4px;">0</span>
+        </a>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="sidebar-section">
         <div class="sidebar-label">Assets & Deploy</div>
         <a class="nav-item" onclick="showSection('assets')" href="#">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
@@ -890,6 +904,104 @@
         </div>
       </section>
 
+      <!-- ════ STREAM NETWORK — CHANNELS ════ -->
+      <section class="section" id="section-stream-net">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              Stream Network — Channels
+            </div>
+            <div class="flex-row">
+              <a class="qa-btn ghost" href="stream/index.html" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Open /stream/
+              </a>
+              <button class="qa-btn ghost" onclick="snLoadCreators()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+                Refresh
+              </button>
+              <button class="qa-btn primary" onclick="snShowAddForm()">+ Add Channel</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:0.8rem">Add, edit, approve and remove channels on <span class="mono text-cyan">chazdyn.com/stream/</span>. Toggle <strong class="text-green">Listed</strong> to show/hide a channel in the public directory (its page stays reachable by direct link). Each channel reads live from Supabase.</p>
+            <div class="sep"></div>
+            <div id="sn-creators-list"><div style="color:var(--muted);font-size:0.82rem;">Connect Supabase, then Refresh to load channels.</div></div>
+          </div>
+        </div>
+
+        <!-- Add Channel Form -->
+        <div class="panel" id="sn-add-panel" style="display:none;">
+          <div class="panel-header">
+            <div class="panel-title">Add a Channel</div>
+            <button class="qa-btn ghost" onclick="snHideAddForm()">Cancel</button>
+          </div>
+          <div class="panel-body">
+            <div class="field-row">
+              <div class="field">
+                <label>Display Name *</label>
+                <input type="text" id="sn-add-name" placeholder="ShyShack" maxlength="80" />
+              </div>
+              <div class="field">
+                <label>Twitch Channel *</label>
+                <input type="text" id="sn-add-twitch" placeholder="shyshack" maxlength="60" oninput="if(!document.getElementById('sn-add-slug').dataset.touched)document.getElementById('sn-add-slug').value=this.value.toLowerCase().replace(/[^a-z0-9_-]/g,'')" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>URL Slug *  <span class="input-hint">chazdyn.com/stream/<span id="sn-add-slug-preview">slug</span></span></label>
+                <input type="text" id="sn-add-slug" placeholder="shyshack" maxlength="60" oninput="this.dataset.touched=1;document.getElementById('sn-add-slug-preview').textContent=this.value||'slug'" />
+              </div>
+              <div class="field">
+                <label>Owner Discord ID  <span class="input-hint">lets them edit their own panel</span></label>
+                <input type="text" id="sn-add-owner" placeholder="5623527294..." maxlength="40" />
+              </div>
+            </div>
+            <div class="field">
+              <label>Tagline</label>
+              <input type="text" id="sn-add-tagline" placeholder="Cozy horror nights and chill vibes." maxlength="160" />
+            </div>
+            <div class="field-3col">
+              <div class="field"><label>Avatar URL</label><input type="text" id="sn-add-avatar" placeholder="/assets/..." /></div>
+              <div class="field"><label>Banner URL</label><input type="text" id="sn-add-banner" placeholder="/assets/..." /></div>
+              <div class="field"><label>Poster URL</label><input type="text" id="sn-add-poster" placeholder="/assets/..." /></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Accent</label><div class="color-row"><input type="color" id="sn-add-accent" value="#4dff1f" /><input type="text" id="sn-add-accent-hex" value="#4dff1f" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value))document.getElementById('sn-add-accent').value=this.value" /></div></div>
+              <div class="field"><label>Accent 2</label><div class="color-row"><input type="color" id="sn-add-accent2" value="#16e0ff" /><input type="text" id="sn-add-accent2-hex" value="#16e0ff" style="flex:1" oninput="if(/^#[0-9a-f]{6}$/i.test(this.value))document.getElementById('sn-add-accent2').value=this.value" /></div></div>
+            </div>
+            <div class="flex-row" style="gap:1.5rem;flex-wrap:wrap;">
+              <label class="toggle-row" style="gap:.6rem;"><span class="toggle-label">Approved</span><span class="toggle"><input type="checkbox" id="sn-add-approved" checked /><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+              <label class="toggle-row" style="gap:.6rem;"><span class="toggle-label">Listed in directory</span><span class="toggle"><input type="checkbox" id="sn-add-listed" checked /><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+              <label class="toggle-row" style="gap:.6rem;"><span class="toggle-label">Page on</span><span class="toggle"><input type="checkbox" id="sn-add-pageon" checked /><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+            </div>
+            <button class="qa-btn primary" onclick="snAddCreator()" style="margin-top:0.75rem;">Create Channel</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ════ STREAM NETWORK — APPLICATIONS ════ -->
+      <section class="section" id="section-stream-requests">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+              Channel Applications
+            </div>
+            <button class="qa-btn ghost" onclick="snLoadRequests()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Refresh
+            </button>
+          </div>
+          <div class="panel-body">
+            <p class="text-muted" style="font-size:0.8rem">Creators who applied via Discord. Approve to instantly create their channel page (you can edit details after).</p>
+            <div class="sep"></div>
+            <div id="sn-requests-list"><div style="color:var(--muted);font-size:0.82rem;">Connect Supabase, then Refresh.</div></div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 </div>
@@ -1144,6 +1256,8 @@ function showSection(id) {
   if (id === 'assets') refreshAssets();
   if (id === 'thicc') renderTHICC();
   if (id === 'index-editor') loadIndexEditor(false);
+  if (id === 'stream-net') snLoadCreators();
+  if (id === 'stream-requests') snLoadRequests();
 }
 
 // ══════════════════════════════════════════════
@@ -3049,6 +3163,23 @@ function setDot(id, state) {
   el.className = 'conn-dot-item' + (state ? ' ' + state : '');
 }
 
+async function cdTestSupabaseTables() {
+  if (!cdSupabase) cdInitSupabase();
+  if (!cdSupabase) return { ok:false, space:false, stream:false, error:'Supabase client unavailable' };
+
+  const [space, stream] = await Promise.all([
+    cdSupabase.from('community_members').select('id').limit(1),
+    cdSupabase.from('creators').select('id').limit(1)
+  ]);
+
+  return {
+    ok: !space.error || !stream.error,
+    space: !space.error,
+    stream: !stream.error,
+    error: (stream.error || space.error || {}).message || ''
+  };
+}
+
 async function testAllConnections() {
   ['cdot-gh','cdot-twitch','cdot-supabase'].forEach(id => setDot(id, 'checking'));
 
@@ -3096,14 +3227,14 @@ async function testAllConnections() {
 
   // Supabase — test and reconnect if needed
   try {
-    if (!cdSupabase) cdInitSupabase();
-    const { error } = await cdSupabase.from('community_members').select('id').limit(1);
-    if (!error) {
+    const status = await cdTestSupabaseTables();
+    if (status.ok) {
       setDot('cdot-supabase', 'ok');
       document.getElementById('sb-reauth').style.display = 'none';
       const el = document.getElementById('sd-conn-status');
       if (el) { el.className = 'conn-badge connected'; el.innerHTML = '<span class="conn-dot"></span>Connected'; }
-      if (!document.getElementById('sd-members-list').children.length) { sdLoadMembers(); sdLoadRequests(); }
+      if (status.space && !document.getElementById('sd-members-list').children.length) { sdLoadMembers(); sdLoadRequests(); }
+      if (status.stream) { snLoadCreators(); snLoadRequests(); }
     } else {
       setDot('cdot-supabase', 'err');
       document.getElementById('sb-reauth').style.display = 'block';
@@ -3211,21 +3342,22 @@ async function sdTestConnection() {
     cdSupabase = window.supabase.createClient(CD_SUPABASE_URL, keyInput.value.trim());
   }
   if (!cdSupabase) cdInitSupabase();
-  const { error } = await cdSupabase.from('community_members').select('id').limit(1);
+  const status = await cdTestSupabaseTables();
   const el = document.getElementById('sd-conn-status');
   const reauth = document.getElementById('sb-reauth');
-  if (error) {
+  if (!status.ok) {
     if (el) { el.className = 'conn-badge disconnected'; el.innerHTML = '<span class="conn-dot"></span>Failed'; }
     if (reauth) reauth.style.display = 'block';
     setDot('cdot-supabase', 'err');
-    toast('Supabase connection failed', 'error');
+    toast('Supabase connection failed' + (status.error ? ': ' + status.error : ''), 'error');
   } else {
     if (el) { el.className = 'conn-badge connected'; el.innerHTML = '<span class="conn-dot"></span>Connected'; }
     if (reauth) reauth.style.display = 'none';
     if (keyInput) keyInput.value = '';
     setDot('cdot-supabase', 'ok');
     toast('Supabase connected!', 'success');
-    sdLoadMembers(); sdLoadRequests();
+    if (status.space) { sdLoadMembers(); sdLoadRequests(); }
+    if (status.stream) { snLoadCreators(); snLoadRequests(); }
   }
 }
 // ══════════════════════════════════════════════
@@ -3351,6 +3483,223 @@ async function sdDenyRequest(rid) {
   await cdSupabase.from('join_requests').update({ status: 'denied' }).eq('id', rid);
   toast('Request denied.', 'success');
   sdLoadRequests();
+}
+
+// ══════════════════════════════════════════════
+//  STREAM NETWORK — manage chazdyn.com/stream/<channel>
+// ══════════════════════════════════════════════
+let SN_CACHE = [];
+function snEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function snLoadCreators() {
+  if (!cdInitSupabase()) { toast('Connect Supabase first (Connections)', 'error'); return; }
+  const list = document.getElementById('sn-creators-list');
+  list.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">Loading channels…</div>';
+  const { data, error } = await cdSupabase.from('creators').select('*').order('display_name', { ascending: true });
+  if (error) {
+    list.innerHTML = `<div style="color:var(--red);font-size:0.82rem;">${snEsc(error.message)}<br><span class="text-muted">Run STREAM_SCHEMA.sql in Supabase to create the <span class="mono">creators</span> table.</span></div>`;
+    return;
+  }
+  SN_CACHE = data || [];
+  if (!SN_CACHE.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">No channels yet. Click “+ Add Channel”.</div>'; return; }
+  list.innerHTML = SN_CACHE.map(snCreatorCard).join('');
+}
+
+function snCreatorCard(c) {
+  const s = c.socials || {};
+  const redeems = Array.isArray(c.redeems) ? c.redeems : [];
+  const on = (v) => v ? 'checked' : '';
+  return `
+  <div class="clip-editor-card" style="--cc:${snEsc(c.accent||'#4dff1f')};border-left:3px solid var(--cc);margin-bottom:1rem;" id="sn-card-${c.id}">
+    <div class="flex-row" style="justify-content:space-between;gap:1rem;align-items:flex-start;">
+      <div class="flex-row" style="gap:.7rem;align-items:center;">
+        <img src="${snEsc(c.avatar_url||'')}" alt="" style="width:46px;height:46px;border-radius:10px;object-fit:cover;background:var(--bg4);border:1px solid var(--border2)" onerror="this.style.visibility='hidden'"/>
+        <div>
+          <div style="font-family:var(--display);font-size:1.25rem;line-height:1;color:var(--cc)">${snEsc(c.display_name||c.slug)}</div>
+          <div class="mono" style="font-size:.72rem;color:var(--muted);margin-top:3px">/stream/${snEsc(c.slug)} · twitch.tv/${snEsc(c.twitch_channel||'')}</div>
+        </div>
+      </div>
+      <div class="flex-row" style="gap:.4rem;">
+        <a class="qa-btn ghost" href="stream/index.html#${snEsc(c.slug)}" target="_blank" rel="noopener" title="Open page">View</a>
+        <button class="qa-btn ghost" onclick="snToggleEdit('${c.id}')" id="sn-edit-btn-${c.id}">Edit</button>
+        <button class="qa-btn danger" onclick="snRemoveCreator('${c.id}','${snEsc(c.display_name||c.slug)}')">Delete</button>
+      </div>
+    </div>
+
+    <div class="flex-row" style="gap:1.25rem;flex-wrap:wrap;margin-top:.4rem;">
+      <label class="toggle-row" style="gap:.55rem;"><span class="toggle-sub">Approved</span><span class="toggle"><input type="checkbox" ${on(c.approved)} onchange="snQuickToggle('${c.id}','approved',this.checked)"><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+      <label class="toggle-row" style="gap:.55rem;"><span class="toggle-sub">Listed</span><span class="toggle"><input type="checkbox" ${on(c.listed!==false)} onchange="snQuickToggle('${c.id}','listed',this.checked)"><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+      <label class="toggle-row" style="gap:.55rem;"><span class="toggle-sub">Page on</span><span class="toggle"><input type="checkbox" ${on(c.page_on!==false)} onchange="snQuickToggle('${c.id}','page_on',this.checked)"><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+      <label class="toggle-row" style="gap:.55rem;"><span class="toggle-sub">Live now</span><span class="toggle"><input type="checkbox" ${on(c.is_live)} onchange="snQuickToggle('${c.id}','is_live',this.checked)"><span class="toggle-track"></span><span class="toggle-thumb"></span></span></label>
+    </div>
+
+    <div id="sn-editor-${c.id}" style="display:none;border-top:1px solid var(--border2);margin-top:.4rem;padding-top:.9rem;display:none;flex-direction:column;gap:.8rem;">
+      <div class="field-row">
+        <div class="field"><label>Display Name</label><input type="text" id="sn-f-name-${c.id}" value="${snEsc(c.display_name||'')}" /></div>
+        <div class="field"><label>Twitch Channel</label><input type="text" id="sn-f-twitch-${c.id}" value="${snEsc(c.twitch_channel||'')}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>URL Slug</label><input type="text" id="sn-f-slug-${c.id}" value="${snEsc(c.slug||'')}" /></div>
+        <div class="field"><label>Owner Discord ID</label><input type="text" id="sn-f-owner-${c.id}" value="${snEsc(c.owner_discord_id||'')}" /></div>
+      </div>
+      <div class="field"><label>Tagline</label><input type="text" id="sn-f-tagline-${c.id}" value="${snEsc(c.tagline||'')}" /></div>
+      <div class="field-3col">
+        <div class="field"><label>Avatar URL</label><input type="text" id="sn-f-avatar-${c.id}" value="${snEsc(c.avatar_url||'')}" /></div>
+        <div class="field"><label>Banner URL</label><input type="text" id="sn-f-banner-${c.id}" value="${snEsc(c.banner_url||'')}" /></div>
+        <div class="field"><label>Poster URL</label><input type="text" id="sn-f-poster-${c.id}" value="${snEsc(c.poster_url||'')}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Accent</label><input type="text" id="sn-f-accent-${c.id}" value="${snEsc(c.accent||'#4dff1f')}" /></div>
+        <div class="field"><label>Accent 2</label><input type="text" id="sn-f-accent2-${c.id}" value="${snEsc(c.accent2||'#16e0ff')}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Discord URL</label><input type="text" id="sn-f-discord-${c.id}" value="${snEsc(s.discord||'')}" /></div>
+        <div class="field"><label>TikTok URL</label><input type="text" id="sn-f-tiktok-${c.id}" value="${snEsc(s.tiktok||'')}" /></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Instagram URL</label><input type="text" id="sn-f-instagram-${c.id}" value="${snEsc(s.instagram||'')}" /></div>
+        <div class="field"><label>YouTube URL</label><input type="text" id="sn-f-youtube-${c.id}" value="${snEsc(s.youtube||'')}" /></div>
+      </div>
+      <div class="field"><label>Streamer.bot WebSocket URL</label><input type="text" id="sn-f-sb-${c.id}" value="${snEsc(c.sb_ws_url||'')}" placeholder="wss://..." /></div>
+      <div class="field"><label>Redeems (JSON array)</label><textarea id="sn-f-redeems-${c.id}" spellcheck="false" style="font-family:var(--mono);font-size:.76rem;min-height:96px;">${snEsc(JSON.stringify(redeems, null, 2))}</textarea></div>
+      <div class="flex-row" style="justify-content:flex-end;">
+        <button class="qa-btn ghost" onclick="snToggleEdit('${c.id}')">Close</button>
+        <button class="qa-btn primary" onclick="snSaveCreator('${c.id}')">Save Channel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function snToggleEdit(id) {
+  const ed = document.getElementById('sn-editor-' + id);
+  const btn = document.getElementById('sn-edit-btn-' + id);
+  if (!ed) return;
+  const open = ed.style.display !== 'flex';
+  ed.style.display = open ? 'flex' : 'none';
+  if (btn) btn.textContent = open ? 'Editing…' : 'Edit';
+}
+
+async function snQuickToggle(id, field, value) {
+  if (!cdSupabase) return;
+  const patch = {}; patch[field] = value;
+  const { error } = await cdSupabase.from('creators').update(patch).eq('id', id);
+  if (error) { toast('Error: ' + error.message, 'error'); snLoadCreators(); return; }
+  const c = SN_CACHE.find(x => x.id === id); if (c) c[field] = value;
+  const labels = { listed:'directory listing', page_on:'page', is_live:'live status', approved:'approval' };
+  toast(`Updated ${labels[field]||field}`, 'success');
+  logChange('edit', `Stream channel ${field} → ${value}`);
+}
+
+function snVal(id){ const el=document.getElementById(id); return el ? el.value.trim() : ''; }
+
+async function snSaveCreator(id) {
+  if (!cdSupabase) return;
+  let redeems = [];
+  try { redeems = JSON.parse(snVal(`sn-f-redeems-${id}`) || '[]'); if (!Array.isArray(redeems)) throw 0; }
+  catch(e) { toast('Redeems must be a valid JSON array', 'error'); return; }
+  const patch = {
+    display_name: snVal(`sn-f-name-${id}`),
+    twitch_channel: snVal(`sn-f-twitch-${id}`),
+    slug: snVal(`sn-f-slug-${id}`).toLowerCase(),
+    owner_discord_id: snVal(`sn-f-owner-${id}`) || null,
+    tagline: snVal(`sn-f-tagline-${id}`),
+    avatar_url: snVal(`sn-f-avatar-${id}`),
+    banner_url: snVal(`sn-f-banner-${id}`),
+    poster_url: snVal(`sn-f-poster-${id}`),
+    accent: snVal(`sn-f-accent-${id}`),
+    accent2: snVal(`sn-f-accent2-${id}`),
+    sb_ws_url: snVal(`sn-f-sb-${id}`),
+    socials: { discord: snVal(`sn-f-discord-${id}`), tiktok: snVal(`sn-f-tiktok-${id}`), instagram: snVal(`sn-f-instagram-${id}`), youtube: snVal(`sn-f-youtube-${id}`) },
+    redeems
+  };
+  const { error } = await cdSupabase.from('creators').update(patch).eq('id', id);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast('Channel saved', 'success');
+  logChange('edit', `Stream channel saved: ${patch.display_name}`);
+  snLoadCreators();
+}
+
+async function snRemoveCreator(id, name) {
+  if (!confirm(`Remove “${name}” from the stream network? This deletes their channel page.`)) return;
+  if (!cdSupabase) return;
+  const { error } = await cdSupabase.from('creators').delete().eq('id', id);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast(`${name} removed`, 'success');
+  logChange('edit', `Stream channel removed: ${name}`);
+  snLoadCreators();
+}
+
+function snShowAddForm(){ document.getElementById('sn-add-panel').style.display='block'; document.getElementById('sn-add-name').focus(); }
+function snHideAddForm(){ document.getElementById('sn-add-panel').style.display='none'; }
+
+async function snAddCreator() {
+  if (!cdInitSupabase()) { toast('Connect Supabase first', 'error'); return; }
+  const name = snVal('sn-add-name'), twitch = snVal('sn-add-twitch');
+  let slug = snVal('sn-add-slug').toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  if (!name || !twitch) { toast('Display name and Twitch channel are required', 'error'); return; }
+  if (!slug) slug = twitch.toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  const row = {
+    slug, display_name: name, twitch_channel: twitch,
+    owner_discord_id: snVal('sn-add-owner') || null,
+    tagline: snVal('sn-add-tagline'),
+    avatar_url: snVal('sn-add-avatar'), banner_url: snVal('sn-add-banner'), poster_url: snVal('sn-add-poster') || snVal('sn-add-banner'),
+    accent: snVal('sn-add-accent-hex') || '#4dff1f', accent2: snVal('sn-add-accent2-hex') || '#16e0ff',
+    socials: {}, redeems: [],
+    approved: document.getElementById('sn-add-approved').checked,
+    listed: document.getElementById('sn-add-listed').checked,
+    page_on: document.getElementById('sn-add-pageon').checked,
+    is_live: false
+  };
+  const { error } = await cdSupabase.from('creators').insert(row);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast(`${name} added to the network`, 'success');
+  logChange('edit', `Stream channel created: ${name} (/stream/${slug})`);
+  ['sn-add-name','sn-add-twitch','sn-add-slug','sn-add-owner','sn-add-tagline','sn-add-avatar','sn-add-banner','sn-add-poster'].forEach(i=>{const el=document.getElementById(i);if(el){el.value='';el.dataset.touched='';}});
+  snHideAddForm();
+  snLoadCreators();
+}
+
+// ── Applications (self-register via Discord) ──
+async function snLoadRequests() {
+  if (!cdInitSupabase()) { toast('Connect Supabase first', 'error'); return; }
+  const list = document.getElementById('sn-requests-list');
+  const badge = document.getElementById('sn-req-badge');
+  list.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">Loading…</div>';
+  const { data, error } = await cdSupabase.from('creator_requests').select('*').eq('status','pending').order('created_at',{ascending:false});
+  if (error) { list.innerHTML = `<div style="color:var(--muted);font-size:0.82rem;">${snEsc(error.message)}</div>`; return; }
+  if (badge) { if (data && data.length) { badge.style.display='inline-block'; badge.textContent=data.length; } else badge.style.display='none'; }
+  if (!data || !data.length) { list.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;">No pending applications.</div>'; return; }
+  list.innerHTML = data.map(r => `
+    <div class="backup-row">
+      <div style="flex:1">
+        <div style="font-weight:600;color:var(--text)">${snEsc(r.discord_name||'Unknown')} <span class="mono text-muted" style="font-size:.72rem">· ${snEsc(r.discord_id)}</span></div>
+        <div class="mono" style="font-size:.74rem;color:var(--cyan)">wants /stream/${snEsc(r.requested_slug||r.twitch_channel||'')} · twitch.tv/${snEsc(r.twitch_channel||'')}</div>
+      </div>
+      <button class="qa-btn primary" onclick="snApproveRequest('${r.id}','${snEsc(r.discord_id)}','${snEsc(r.discord_name||'')}','${snEsc(r.requested_slug||r.twitch_channel||'')}','${snEsc(r.twitch_channel||'')}')">Approve</button>
+      <button class="qa-btn danger" onclick="snDenyRequest('${r.id}')">Deny</button>
+    </div>`).join('');
+}
+
+async function snApproveRequest(rid, discordId, discordName, slug, twitch) {
+  if (!cdSupabase) return;
+  slug = (slug||twitch||'').toLowerCase().replace(/[^a-z0-9_-]/g,'');
+  const { error: ce } = await cdSupabase.from('creators').insert({
+    slug, display_name: discordName || slug, twitch_channel: twitch || slug,
+    owner_discord_id: discordId, approved: true, listed: true, page_on: true, is_live: false,
+    accent:'#4dff1f', accent2:'#16e0ff', socials:{}, redeems:[]
+  });
+  if (ce) { toast('Error: ' + ce.message, 'error'); return; }
+  await cdSupabase.from('creator_requests').update({ status:'approved' }).eq('id', rid);
+  toast(`${discordName||slug} approved → /stream/${slug}`, 'success');
+  logChange('edit', `Approved stream application: ${discordName||slug}`);
+  snLoadRequests();
+}
+
+async function snDenyRequest(rid) {
+  if (!cdSupabase) return;
+  await cdSupabase.from('creator_requests').update({ status:'denied' }).eq('id', rid);
+  toast('Application denied', 'success');
+  snLoadRequests();
 }
 
 renderTHICC();

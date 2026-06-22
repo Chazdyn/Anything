@@ -13,6 +13,11 @@
       var lower = path.toLowerCase();
       if (lower === '/control.dyn.html' || lower === '/control.dyn') {
         location.replace('/Control.Dyn.html' + location.search + location.hash);
+        return;
+      }
+      if (lower.indexOf('/stream/') === 0) {
+        sessionStorage.setItem('stream_spa_path', location.pathname + location.search + location.hash);
+        location.replace('/stream/');
       }
     })();
   </script>

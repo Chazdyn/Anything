@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stream · Chazdyn Network</title>
+<link rel="icon" href="../favicon.ico" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --accent:#4dff1f; --accent2:#16e0ff;
+  --bg:#05070b; --bg2:#0b1017; --bg3:#121a26;
+  --text:#eaf2f7; --dim:#aab8c4; --muted:#67788a;
+  --border:rgba(150,180,210,.12); --border2:rgba(150,180,210,.06);
+  --display:'Bebas Neue',sans-serif; --body:'DM Sans',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--body);overflow:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+.app{height:100vh;width:100vw;position:relative;overflow:hidden}
+
+/* ════ ambient ════ */
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(1100px 700px at 82% -10%, color-mix(in srgb,var(--accent) 16%,transparent), transparent 60%),
+    radial-gradient(900px 600px at 6% 110%, color-mix(in srgb,var(--accent2) 12%,transparent), transparent 60%);
+  transition:background .6s}
+
+/* ════════════ DIRECTORY ════════════ */
+.dir{position:relative;z-index:2;height:100vh;overflow-y:auto;padding:0 0 5rem}
+.dir-hero{position:relative;padding:5.5rem 2rem 3rem;text-align:center;overflow:hidden}
+.dir-hero::before{content:"";position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(180deg, color-mix(in srgb,var(--accent) 10%,transparent), transparent 70%)}
+.netmark{display:inline-flex;align-items:center;gap:12px;margin-bottom:1.4rem}
+.netmark img{height:54px;filter:drop-shadow(0 0 22px color-mix(in srgb,var(--accent) 60%,transparent))}
+.dir-kicker{font-family:var(--mono);font-size:.72rem;letter-spacing:.4em;text-transform:uppercase;color:var(--accent);margin-bottom:1rem}
+.dir-title{font-family:var(--display);font-size:clamp(3.2rem,9vw,7rem);line-height:.9;letter-spacing:.02em;
+  text-shadow:0 0 50px color-mix(in srgb,var(--accent) 35%,transparent)}
+.dir-title em{font-style:normal;color:var(--accent)}
+.dir-sub{max-width:560px;margin:1.2rem auto 0;color:var(--dim);font-size:1.05rem;line-height:1.6}
+.dir-grid{max-width:1180px;margin:1.5rem auto 0;padding:0 2rem;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1.4rem}
+.creator-card{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--border);
+  background:var(--bg2);cursor:pointer;transition:transform .25s,box-shadow .25s,border-color .25s;text-align:left}
+.creator-card:hover{transform:translateY(-6px);border-color:color-mix(in srgb,var(--cc,var(--accent)) 55%,transparent);
+  box-shadow:0 26px 60px -28px #000, 0 0 40px -16px var(--cc,var(--accent))}
+.cc-banner{aspect-ratio:16/7;width:100%;object-fit:cover;display:block;background:var(--bg3)}
+.cc-banner-wrap{position:relative}
+.cc-banner-wrap::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,var(--bg2))}
+.cc-live{position:absolute;top:12px;left:12px;z-index:2;display:inline-flex;align-items:center;gap:6px;
+  padding:5px 11px;border-radius:999px;font-size:.64rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  background:#e91515;color:#fff;box-shadow:0 0 18px rgba(233,21,21,.6)}
+.cc-live.off{background:rgba(10,14,20,.8);color:var(--muted);box-shadow:none;border:1px solid var(--border)}
+.cc-live .d{width:7px;height:7px;border-radius:50%;background:currentColor;animation:bp 1.3s infinite}
+@keyframes bp{0%,100%{opacity:1}50%{opacity:.3}}
+.cc-body{position:relative;padding:0 1.2rem 1.3rem;margin-top:-40px;z-index:2}
+.cc-avatar{width:72px;height:72px;border-radius:16px;object-fit:cover;border:3px solid var(--bg2);
+  box-shadow:0 0 0 1px var(--border);background:var(--bg3);display:block}
+.cc-name{font-family:var(--display);font-size:1.7rem;letter-spacing:.03em;margin-top:.7rem;line-height:1}
+.cc-handle{font-family:var(--mono);font-size:.74rem;color:var(--cc,var(--accent));margin-top:4px}
+.cc-tag{color:var(--dim);font-size:.86rem;margin-top:.7rem;line-height:1.5;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cc-watch{margin-top:1rem;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:.82rem;
+  color:var(--cc,var(--accent))}
+.dir-foot{text-align:center;color:var(--muted);font-size:.8rem;margin-top:3rem;padding:0 2rem}
+.dir-foot a{color:var(--accent)}
+.dir-foot button{color:var(--accent);font-weight:700}
+.apply-panel{max-width:560px;margin:1.5rem auto 0;padding:1.2rem;border:1px solid var(--border);
+  background:rgba(11,16,23,.92);border-radius:16px;text-align:left;display:none}
+.apply-panel.on{display:block}
+.apply-title{font-family:var(--display);font-size:1.5rem;letter-spacing:.05em;color:var(--accent)}
+.apply-sub{font-size:.82rem;color:var(--dim);line-height:1.5;margin:.35rem 0 1rem}
+.apply-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.apply-field label{display:block;font-size:.7rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.35rem}
+.apply-field input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:.75rem;font:inherit}
+.apply-actions{display:flex;justify-content:flex-end;gap:.6rem;margin-top:1rem}
+.apply-actions button{padding:.72rem 1rem;border-radius:10px;border:1px solid var(--border);background:var(--bg3);font-weight:800}
+.apply-actions .primary{background:var(--accent);color:#041006;border-color:transparent}
+
+/* ════════════ WATCH STAGE ════════════ */
+.stage{position:absolute;inset:0;z-index:2;display:none;background:#000}
+.stage.on{display:block}
+.player-layer{position:absolute;inset:0;background:#000}
+.player-layer iframe{width:100%;height:100%;border:0;display:block}
+/* cinematic poster */
+.poster{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.poster-bg{position:absolute;inset:0;background-size:cover;background-position:center;filter:saturate(1.05)}
+.poster-bg::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at center, transparent 20%, rgba(0,0,0,.55) 70%, rgba(0,0,0,.92))}
+.poster-inner{position:relative;z-index:2;text-align:center;padding:2rem}
+.poster-avatar{width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid color-mix(in srgb,var(--accent) 60%,transparent);
+  box-shadow:0 0 50px -8px var(--accent);margin:0 auto}
+.poster-name{font-family:var(--display);font-size:clamp(3rem,7vw,5.5rem);line-height:.9;margin-top:1.2rem;letter-spacing:.02em;
+  text-shadow:0 0 40px rgba(0,0,0,.8)}
+.poster-state{font-family:var(--mono);letter-spacing:.3em;text-transform:uppercase;font-size:.82rem;margin-top:1rem;
+  color:var(--accent)}
+.poster-state.off{color:var(--muted)}
+.play-btn{margin-top:1.8rem;display:inline-flex;align-items:center;gap:11px;padding:14px 30px;border-radius:999px;
+  font-family:var(--display);font-size:1.3rem;letter-spacing:.08em;background:var(--accent);color:#04210a;
+  box-shadow:0 0 36px -6px var(--accent);transition:transform .15s,box-shadow .2s}
+.play-btn:hover{transform:scale(1.04);box-shadow:0 0 50px -4px var(--accent)}
+.play-btn svg{width:22px;height:22px}
+.poster-note{color:var(--dim);font-size:.8rem;margin-top:1.3rem;max-width:420px;margin-inline:auto;line-height:1.5}
+
+/* top overlay bar */
+.ov{position:absolute;left:0;right:0;z-index:20;transition:opacity .4s,transform .4s}
+.ov-top{top:0;padding:1rem 1.3rem;display:flex;align-items:center;gap:1rem;
+  background:linear-gradient(180deg,rgba(0,0,0,.78),transparent)}
+.idle .ov-top{opacity:0;transform:translateY(-14px);pointer-events:none}
+.back-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 13px;border-radius:10px;
+  background:rgba(12,16,22,.7);border:1px solid var(--border);font-size:.78rem;font-weight:600;color:var(--dim);
+  backdrop-filter:blur(10px);transition:.18s;white-space:nowrap}
+.back-btn:hover{color:var(--text);border-color:color-mix(in srgb,var(--accent) 45%,transparent)}
+.back-btn svg{width:14px;height:14px}
+.who{display:flex;align-items:center;gap:11px;min-width:0}
+.who img{width:42px;height:42px;border-radius:11px;object-fit:cover;border:1px solid var(--border)}
+.who-name{font-family:var(--display);font-size:1.35rem;letter-spacing:.03em;line-height:1}
+.who-meta{display:flex;align-items:center;gap:9px;margin-top:3px}
+.badge-live{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:.6rem;
+  font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:#e91515;color:#fff}
+.badge-live.off{background:rgba(255,255,255,.08);color:var(--muted)}
+.badge-live .d{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge-live:not(.off) .d{animation:bp 1.3s infinite}
+.viewers{font-family:var(--mono);font-size:.72rem;color:var(--dim)}
+.viewers b{color:var(--text)}
+.ov-spacer{flex:1}
+.ov-actions{display:flex;align-items:center;gap:.6rem}
+.tw-login{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;border-radius:10px;font-size:.78rem;font-weight:700;
+  background:#9147ff;color:#fff;transition:.18s;white-space:nowrap}
+.tw-login:hover{background:#a366ff;box-shadow:0 0 22px -6px #9147ff}
+.tw-login svg{width:15px;height:15px}
+.tw-login.in{background:rgba(12,16,22,.7);border:1px solid var(--border);backdrop-filter:blur(10px);color:var(--text)}
+.tw-login.in img{width:22px;height:22px;border-radius:50%}
+
+/* side rail (chat + redeem toggles) */
+.rail{position:absolute;top:50%;right:18px;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:12px;
+  transition:opacity .4s}
+.idle .rail{opacity:0;pointer-events:none}
+.rail-btn{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;position:relative;
+  background:rgba(12,16,22,.72);border:1px solid var(--border);backdrop-filter:blur(12px);color:var(--dim);transition:.18s}
+.rail-btn:hover{color:var(--text);border-color:color-mix(in srgb,var(--accent) 50%,transparent);transform:scale(1.05)}
+.rail-btn.active{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 60%,transparent);
+  box-shadow:0 0 22px -6px var(--accent);background:color-mix(in srgb,var(--accent) 12%,rgba(12,16,22,.72))}
+.rail-btn svg{width:21px;height:21px}
+.rail-btn .lab{position:absolute;right:60px;top:50%;transform:translateY(-50%);white-space:nowrap;
+  background:rgba(8,11,16,.92);border:1px solid var(--border);padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:600;
+  opacity:0;pointer-events:none;transition:.18s}
+.rail-btn:hover .lab{opacity:1;right:64px}
+
+/* chat panel */
+.chat{position:absolute;top:0;right:0;bottom:0;width:340px;max-width:86vw;z-index:25;
+  background:#0e0e10;border-left:1px solid var(--border);transform:translateX(100%);transition:transform .3s ease;
+  display:flex;flex-direction:column}
+.chat.on{transform:translateX(0)}
+.chat-head{display:flex;align-items:center;justify-content:space-between;padding:.8rem 1rem;border-bottom:1px solid var(--border);
+  font-family:var(--display);letter-spacing:.06em;font-size:1.1rem}
+.chat-head button{color:var(--muted);font-size:1.4rem;line-height:1}
+.chat-head button:hover{color:var(--text)}
+.chat iframe{flex:1;width:100%;border:0}
+.chat-stub{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);
+  font-size:.85rem;padding:2rem;line-height:1.6}
+
+/* redeems dock */
+.redeems{position:absolute;left:0;right:0;bottom:0;z-index:22;padding:1.2rem 1.3rem 1.4rem;
+  background:linear-gradient(0deg,rgba(0,0,0,.82),transparent);transform:translateY(101%);transition:transform .32s ease}
+.redeems.on{transform:translateY(0)}
+.idle .redeems.on{transform:translateY(0)}
+.redeems-head{display:flex;align-items:center;gap:12px;margin-bottom:.9rem}
+.redeems-title{font-family:var(--display);letter-spacing:.06em;font-size:1.25rem}
+.sb-status{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.68rem;color:var(--muted);
+  padding:3px 9px;border-radius:999px;border:1px solid var(--border)}
+.sb-status .d{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.sb-status.ok{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+.sb-status.ok .d{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.sb-status.err{color:#ff6b6b;border-color:rgba(255,107,107,.35)}
+.sb-status.err .d{background:#ff6b6b}
+.redeems-row{display:flex;gap:.7rem;overflow-x:auto;padding-bottom:6px}
+.redeem{flex:0 0 auto;min-width:140px;border-radius:14px;padding:.85rem .95rem;text-align:left;
+  background:rgba(16,22,32,.85);border:1px solid var(--border);transition:.18s;backdrop-filter:blur(8px)}
+.redeem:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--accent) 55%,transparent);
+  box-shadow:0 0 26px -10px var(--accent)}
+.redeem:active{transform:translateY(0) scale(.98)}
+.redeem-ic{font-size:1.4rem;line-height:1}
+.redeem-label{font-weight:700;font-size:.86rem;margin-top:.5rem}
+.redeem-cost{font-family:var(--mono);font-size:.7rem;color:var(--accent);margin-top:3px;display:flex;align-items:center;gap:5px}
+.redeem-cost svg{width:11px;height:11px}
+.ov-bottom-hint{position:absolute;left:0;right:0;bottom:0;z-index:18;text-align:center;padding:.7rem;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);
+  background:linear-gradient(0deg,rgba(0,0,0,.6),transparent);transition:opacity .3s}
+.idle .ov-bottom-hint{opacity:0}
+
+/* socials chip on offline poster */
+.poster-socials{display:flex;justify-content:center;gap:.6rem;margin-top:1.6rem}
+.poster-socials a{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;
+  background:rgba(16,22,32,.8);border:1px solid var(--border);color:var(--dim);transition:.18s}
+.poster-socials a:hover{color:var(--text);border-color:color-mix(in srgb,var(--accent) 50%,transparent);transform:translateY(-3px)}
+.poster-socials svg{width:18px;height:18px}
+
+/* toast */
+#toast{position:fixed;bottom:1.4rem;left:50%;transform:translateX(-50%) translateY(20px);z-index:9999;opacity:0;
+  background:rgba(12,16,22,.94);backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:12px;
+  padding:.8rem 1.2rem;font-size:.85rem;max-width:90vw;text-align:center;transition:.3s;pointer-events:none;
+  box-shadow:0 20px 50px -20px #000}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:color-mix(in srgb,var(--accent) 50%,transparent)}
+#toast.err{border-color:rgba(255,107,107,.5)}
+
+.notfound{position:relative;z-index:2;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;text-align:center;padding:2rem}
+.notfound h1{font-family:var(--display);font-size:4rem;letter-spacing:.04em}
+@media(max-width:640px){
+  .chat{width:100%}
+  .who-name{font-size:1.1rem}.who img{width:36px;height:36px}
+  .apply-grid{grid-template-columns:1fr}
+  .apply-actions{justify-content:stretch}.apply-actions button{flex:1}
+}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(150,180,210,.16);border-radius:99px}
+</style>
+</head>
+<body>
+<div class="ambient" id="ambient"></div>
+<div class="app" id="root"></div>
+<div id="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════
+   CHAZDYN STREAM NETWORK — multi-creator watch app
+   Routes:  /stream/            → directory
+            /stream/<twitch>    → cinematic watch page
+   Reads creators from Supabase when configured, else demo data.
+   ════════════════════════════════════════════════ */
+
+// ─── CONFIG (fill these for production) ───
+const CONFIG = {
+  parent: 'chazdyn.com',                 // Twitch embed parent domain
+  twitchClientId: 'zd09p34hzxm6jbhvhlcujem2ypid0m', // for "Sign in with Twitch" (see README_TWITCH.md)
+  supabaseUrl: 'https://lqayctcgprumnvlaktms.supabase.co',
+  supabaseAnonKey: 'sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG',
+  networkName: 'CHAZDYN',
+};
+
+// ─── DEMO CREATORS (shown until Supabase is wired; mirrors the `creators` table) ───
+const DEMO = [
+  { slug:'chazdyn', displayName:'Chazdyn', twitchChannel:'chazdyn', accent:'#4dff1f', accent2:'#16e0ff',
+    avatar:'../assets/chazdyn-default-avatar.png', banner:'../assets/Chazdyn-Banner-cropped-original-20260506193644.jpg',
+    poster:'../assets/chazdyn-latenight-set.png', tagline:'Lifelong musician building a late night worth staying up for. Games, live sets, and a proper talk show.',
+    isLive:true, pageOn:true,
+    socials:{ discord:'https://discord.gg/', tiktok:'https://tiktok.com/@chazdyn', instagram:'', youtube:'https://youtube.com/' },
+    sbWsUrl:'', // wss relay to Streamer.bot
+    redeems:[
+      {icon:'🎵',label:'Song Request',cost:500,actionName:'Song Request'},
+      {icon:'💡',label:'Lights: Portal',cost:1000,actionName:'Portal Lights'},
+      {icon:'📺',label:'Hydrate!',cost:200,actionName:'Hydrate'},
+      {icon:'🔊',label:'Air Horn',cost:300,actionName:'Air Horn'},
+      {icon:'🎸',label:'Play a Riff',cost:1500,actionName:'Play Riff'},
+    ]},
+  { slug:'shyshack', displayName:'ShyShack', twitchChannel:'shyshack', accent:'#b06bff', accent2:'#ff5fb0',
+    avatar:'../assets/ShyShack-Avatar-cropped-square-20260503174952.jpg', banner:'../assets/blood-moon-cropped-wide-20260506155850.jpg',
+    poster:'../assets/blood-moon-cropped-wide-20260506155850.jpg', tagline:'Cozy horror nights and chill vibes under the blood moon.',
+    isLive:false, pageOn:true,
+    socials:{ discord:'https://discord.gg/', tiktok:'', instagram:'https://instagram.com/', youtube:'' },
+    sbWsUrl:'',
+    redeems:[
+      {icon:'🕯️',label:'Dim the Lights',cost:400,actionName:'Dim Lights'},
+      {icon:'😱',label:'Jump Scare',cost:2000,actionName:'Jump Scare'},
+      {icon:'🌙',label:'Blood Moon FX',cost:1200,actionName:'Blood Moon'},
+    ]},
+  { slug:'mastercardi', displayName:'Mastercardi', twitchChannel:'mastercardi', accent:'#27a7ff', accent2:'#7be0ff',
+    avatar:'../assets/cardi-avatar-cropped-square-20260503175015.jpg', banner:'../assets/cardi-banner-cropped-original-20260506193038.jpg',
+    poster:'../assets/cardi-banner-cropped-original-20260506193038.jpg', tagline:'Open road, open lobby. Racing, cruising, and good company.',
+    isLive:true, pageOn:true,
+    socials:{ discord:'https://discord.gg/', tiktok:'https://tiktok.com/', instagram:'', youtube:'' },
+    sbWsUrl:'',
+    redeems:[
+      {icon:'🏁',label:'Pick My Car',cost:800,actionName:'Pick Car'},
+      {icon:'🚦',label:'Next Race',cost:600,actionName:'Next Race'},
+    ]},
+  { slug:'princessbayleaf', displayName:'Princess Bayleaf', twitchChannel:'princessbayleaf', accent:'#c061ff', accent2:'#ff7ae0',
+    avatar:'../assets/bayleaf-banner-cropped-original-20260506192859.jpg', banner:'../assets/bayleaf-banner-cropped-original-20260506192859.jpg',
+    poster:'../assets/bayleaf-banner-cropped-original-20260506192859.jpg', tagline:'Cats, crowns and cozy gaming. Your purple-pilled princess.',
+    isLive:false, pageOn:true,
+    socials:{ discord:'https://discord.gg/', tiktok:'', instagram:'https://instagram.com/', youtube:'' },
+    sbWsUrl:'',
+    redeems:[
+      {icon:'👑',label:'Crown Me',cost:1000,actionName:'Crown'},
+      {icon:'🐱',label:'Cat Cam',cost:500,actionName:'Cat Cam'},
+    ]},
+  { slug:'senoritotaquito', displayName:'Señorito Taquito', twitchChannel:'senoritotaquito', accent:'#3fb6ff', accent2:'#ffd35f',
+    avatar:'../assets/taquito-cropped-square-20260505140339.jpg', banner:'../assets/taquito-banner-cropped-original-20260506193411.jpg',
+    poster:'../assets/taquito-banner-cropped-original-20260506193411.jpg', tagline:'Floating downstream, snack in paw. Comfy variety streams.',
+    isLive:false, pageOn:true,
+    socials:{ discord:'https://discord.gg/', tiktok:'', instagram:'', youtube:'https://youtube.com/' },
+    sbWsUrl:'',
+    redeems:[
+      {icon:'🌮',label:'Taco Time',cost:400,actionName:'Taco Time'},
+      {icon:'🦦',label:'Otter Roll',cost:700,actionName:'Otter Roll'},
+    ]},
+];
+
+// ─── state ───
+let CREATORS = DEMO.slice();
+let SB = null;        // supabase client
+let SBOT = null;      // streamer.bot websocket
+let SBOT_STATE = 'idle';
+let IDLE_TIMER = null;
+let APPLY_SESSION = null;
+const APP = document.getElementById('root');
+const AMB = document.getElementById('ambient');
+
+// ─── helpers ───
+function toast(msg, kind){ const t=document.getElementById('toast'); t.textContent=msg; t.className=(kind||'')+' show';
+  clearTimeout(t._t); t._t=setTimeout(()=>t.className=t.className.replace('show','').trim(),2600); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function routeSlug(){
+  // supports /stream/<slug>, ?c=<slug>, and #<slug> (for preview)
+  const stored = sessionStorage.getItem('stream_spa_path');
+  if(stored){
+    sessionStorage.removeItem('stream_spa_path');
+    history.replaceState(null,'',stored);
+  }
+  const h=location.hash.replace(/^#/,'').trim(); if(h) return decodeURIComponent(h).toLowerCase();
+  const q=new URLSearchParams(location.search).get('c'); if(q) return q.toLowerCase();
+  const m=location.pathname.match(/\/stream\/([^\/?#]+)/i); if(m && !/^index\.html?$/i.test(m[1])) return decodeURIComponent(m[1]).toLowerCase();
+  return '';
+}
+function streamBasePath(){
+  const m = location.pathname.match(/^(.*\/stream)(?:\/.*)?$/i);
+  return m ? m[1] + '/' : './';
+}
+function streamUrl(slug){
+  const base = streamBasePath();
+  return slug ? base + encodeURIComponent(slug) : base;
+}
+function findCreator(slug){
+  return CREATORS.find(c => c.slug.toLowerCase()===slug || (c.twitchChannel||'').toLowerCase()===slug);
+}
+function setTheme(c){
+  const a=(c&&c.accent)||'#4dff1f', a2=(c&&c.accent2)||'#16e0ff';
+  document.documentElement.style.setProperty('--accent',a);
+  document.documentElement.style.setProperty('--accent2',a2);
+}
+function go(slug){
+  if(location.protocol === 'file:' || /index\.html?$/i.test(location.pathname)){
+    location.hash = slug ? '#'+slug : '';
+    return;
+  }
+  history.pushState(null,'',streamUrl(slug));
+  render();
+}
+
+// ─── Supabase (optional) ───
+async function loadCreators(){
+  if(CONFIG.supabaseUrl && CONFIG.supabaseAnonKey && window.supabase){
+    try{
+      SB = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+      const { data, error } = await SB.from('creators').select('*').eq('page_on', true).eq('approved', true);
+      if(!error && data && data.length){
+        CREATORS = data.map(mapRow);
+        return;
+      }
+    }catch(e){ console.warn('Supabase load failed, using demo:', e); }
+  }
+  CREATORS = DEMO.slice();
+}
+function mapRow(r){
+  return { slug:r.slug, displayName:r.display_name, twitchChannel:r.twitch_channel,
+    accent:r.accent||'#4dff1f', accent2:r.accent2||'#16e0ff', avatar:r.avatar_url, banner:r.banner_url,
+    poster:r.poster_url||r.banner_url, tagline:r.tagline||'', isLive:!!r.is_live, pageOn:r.page_on!==false,
+    socials:r.socials||{}, sbWsUrl:r.sb_ws_url||'', redeems:Array.isArray(r.redeems)?r.redeems:[], listed:r.listed!==false };
+}
+
+/* ════════ DIRECTORY ════════ */
+function renderDirectory(){
+  setTheme(null);
+  document.title = CONFIG.networkName+' · Stream Network';
+  const cards = CREATORS.filter(c=>c.listed!==false).map(c=>`
+    <button class="creator-card" style="--cc:${esc(c.accent)}" onclick="go('${esc(c.slug)}')">
+      <div class="cc-banner-wrap">
+        <span class="cc-live ${c.isLive?'':'off'}"><span class="d"></span>${c.isLive?'Live':'Offline'}</span>
+        <img class="cc-banner" src="${esc(c.banner)}" alt="" loading="lazy"
+             onerror="this.style.background='var(--bg3)';this.removeAttribute('src')"/>
+      </div>
+      <div class="cc-body">
+        <img class="cc-avatar" src="${esc(c.avatar)}" alt="" onerror="this.style.visibility='hidden'"/>
+        <div class="cc-name">${esc(c.displayName)}</div>
+        <div class="cc-handle">/stream/${esc(c.twitchChannel)}</div>
+        <div class="cc-tag">${esc(c.tagline)}</div>
+        <span class="cc-watch">Watch ${c.isLive?'now':'channel'}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </span>
+      </div>
+    </button>`).join('');
+  APP.innerHTML = `
+   <div class="stage"></div>
+   <div class="dir">
+     <div class="dir-hero">
+       <div class="netmark">
+         <img src="../assets/Chazdyn_Lime_Icon_Transparent_1920x1080.png" alt="" onerror="this.style.display='none'"/>
+       </div>
+       <div class="dir-kicker">${esc(CONFIG.networkName)} Stream Network</div>
+       <h1 class="dir-title">WATCH <em>LIVE</em></h1>
+       <p class="dir-sub">One home for the whole crew. Jump into a live channel — player, chat and redeems, all in one place. Every embed here counts toward the streamer's live viewers.</p>
+     </div>
+     <div class="dir-grid">${cards}</div>
+     <div class="dir-foot">Are you a creator? <button onclick="openCreatorApply();return false">Request your own page →</button>
+       <div class="apply-panel" id="applyPanel">
+         <div class="apply-title">Creator Application</div>
+         <div class="apply-sub" id="applyIdentity">Connect with Discord, then tell Chazdyn which Twitch channel to add.</div>
+         <div class="apply-grid">
+           <div class="apply-field"><label>Twitch channel</label><input id="applyTwitch" type="text" placeholder="shyshackle" maxlength="60" oninput="syncApplySlug()" /></div>
+           <div class="apply-field"><label>URL slug</label><input id="applySlug" type="text" placeholder="shyshackle" maxlength="60" oninput="this.dataset.touched=1;this.value=slugify(this.value)" /></div>
+         </div>
+         <div class="apply-actions">
+           <button onclick="closeCreatorApply()">Cancel</button>
+           <button class="primary" onclick="submitCreatorApply()">Submit</button>
+         </div>
+       </div><br/><br/>
+       <a href="../index.html">← Back to chazdyn.com</a></div>
+   </div>`;
+}
+
+function slugify(s){
+  return String(s||'').toLowerCase().replace(/[^a-z0-9_-]/g,'');
+}
+function syncApplySlug(){
+  const tw=document.getElementById('applyTwitch');
+  const sl=document.getElementById('applySlug');
+  if(tw && sl && !sl.dataset.touched) sl.value = slugify(tw.value);
+}
+function closeCreatorApply(){
+  const panel=document.getElementById('applyPanel');
+  if(panel) panel.classList.remove('on');
+  localStorage.removeItem('stream_apply');
+}
+async function openCreatorApply(){
+  if(!SB){
+    toast('Supabase is not connected yet. Try again after the page finishes loading.','err');
+    return;
+  }
+  const { data } = await SB.auth.getSession();
+  if(!data.session){
+    localStorage.setItem('stream_apply','1');
+    await SB.auth.signInWithOAuth({
+      provider:'discord',
+      options:{ redirectTo: location.origin + streamBasePath() }
+    });
+    return;
+  }
+  APPLY_SESSION = data.session;
+  const panel=document.getElementById('applyPanel');
+  const identity=document.getElementById('applyIdentity');
+  if(identity){
+    const meta = data.session.user.user_metadata || {};
+    identity.textContent = `Applying as ${meta.full_name || meta.name || meta.preferred_username || 'your Discord account'}.`;
+  }
+  if(panel) panel.classList.add('on');
+}
+async function maybeResumeCreatorApply(){
+  if(localStorage.getItem('stream_apply') !== '1' || routeSlug()) return;
+  await openCreatorApply();
+}
+async function submitCreatorApply(){
+  if(!SB) return;
+  if(!APPLY_SESSION){
+    const { data } = await SB.auth.getSession();
+    APPLY_SESSION = data.session;
+  }
+  if(!APPLY_SESSION){ await openCreatorApply(); return; }
+  const twitch = slugify(document.getElementById('applyTwitch')?.value);
+  const slug = slugify(document.getElementById('applySlug')?.value || twitch);
+  if(!twitch || !slug){ toast('Add your Twitch channel and URL slug first.','err'); return; }
+  const meta = APPLY_SESSION.user.user_metadata || {};
+  const row = {
+    discord_id: meta.provider_id || APPLY_SESSION.user.id,
+    discord_name: meta.full_name || meta.name || meta.preferred_username || meta.user_name || '',
+    requested_slug: slug,
+    twitch_channel: twitch,
+    status: 'pending'
+  };
+  const { error } = await SB.from('creator_requests').insert(row);
+  if(error){ toast('Application failed: ' + error.message, 'err'); return; }
+  localStorage.removeItem('stream_apply');
+  closeCreatorApply();
+  toast('Application sent. Chazdyn can approve it in Control.Dyn.','ok');
+}
+
+/* ════════ WATCH STAGE ════════ */
+let CURRENT = null;
+function renderWatch(c){
+  CURRENT = c; setTheme(c);
+  document.title = c.displayName+' · Live · '+CONFIG.networkName;
+  const onRealDomain = location.hostname.indexOf(CONFIG.parent.split('.')[0])>-1 || location.hostname===CONFIG.parent;
+  const s=c.socials||{};
+  const socialBtn=(href,label,svg)=> href?`<a href="${esc(href)}" target="_blank" rel="noopener" title="${label}">${svg}</a>`:'';
+  const SVG={
+    discord:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 2.9a13.7 13.7 0 0 0-.6 1.3 18.3 18.3 0 0 0-5.5 0A13.7 13.7 0 0 0 8.6 2.9 19.7 19.7 0 0 0 3.7 4.4C.5 9.1-.3 13.7.1 18.1A19.9 19.9 0 0 0 6.1 21a14.4 14.4 0 0 0 1.2-2 12.9 12.9 0 0 1-1.9-.9l.5-.4a14.2 14.2 0 0 0 12.1 0l.5.4a12.7 12.7 0 0 1-1.9.9 14.3 14.3 0 0 0 1.2 2 19.8 19.8 0 0 0 6-2.9c.5-5.2-.8-9.7-3.5-13.7zM8.1 15.4c-1.2 0-2.1-1.1-2.1-2.4S6.9 10.6 8.1 10.6s2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4zm7.8 0c-1.2 0-2.1-1.1-2.1-2.4s.9-2.4 2.1-2.4 2.1 1.1 2.1 2.4-.9 2.4-2.1 2.4z"/></svg>',
+    tiktok:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.6 5.8a4.8 4.8 0 0 1-1-.1 4.8 4.8 0 0 1-2-1.3 4.8 4.8 0 0 1-1.2-2.6h-3v13.1a2.6 2.6 0 1 1-2-2.5v-3a5.6 5.6 0 1 0 5 5.5V8.6a7.6 7.6 0 0 0 4.2 1.3v-3a4.6 4.6 0 0 1-.9-.1z"/></svg>',
+    instagram:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="3.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+    youtube:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.7-.5-5.4a2.8 2.8 0 0 0-2-2C18.8 4 12 4 12 4s-6.8 0-8.5.5a2.8 2.8 0 0 0-2 2C1 8.3 1 12 1 12s0 3.7.5 5.4a2.8 2.8 0 0 0 2 2C5.2 20 12 20 12 20s6.8 0 8.5-.5a2.8 2.8 0 0 0 2-2C23 15.7 23 12 23 12zM9.8 15.3V8.7l5.7 3.3z"/></svg>',
+  };
+
+  APP.innerHTML = `
+   <div class="stage on" id="stage">
+     <div class="player-layer" id="player">
+       <div class="poster">
+         <div class="poster-bg" style="background-image:url('${esc(c.poster||c.banner)}')"></div>
+         <div class="poster-inner">
+           <img class="poster-avatar" src="${esc(c.avatar)}" alt="" onerror="this.style.display='none'"/>
+           <div class="poster-name">${esc(c.displayName)}</div>
+           <div class="poster-state ${c.isLive?'':'off'}">${c.isLive?'● Live now':'Offline'}</div>
+           ${c.isLive?`
+             <button class="play-btn" onclick="loadPlayer()">
+               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7z"/></svg> Watch Live
+             </button>
+             <div class="poster-note">Watching here counts toward ${esc(c.displayName)}'s live viewer count. Sign in with Twitch to chat as yourself.</div>`
+           :`<div class="poster-note">${esc(c.displayName)} isn't live right now. Follow on socials to catch the next stream.</div>
+             <div class="poster-socials">
+               ${socialBtn(s.discord,'Discord',SVG.discord)}${socialBtn(s.tiktok,'TikTok',SVG.tiktok)}
+               ${socialBtn(s.instagram,'Instagram',SVG.instagram)}${socialBtn(s.youtube,'YouTube',SVG.youtube)}
+             </div>`}
+         </div>
+       </div>
+     </div>
+
+     <div class="ov ov-top">
+       <button class="back-btn" onclick="go('')">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M11 6l-6 6 6 6"/></svg> Network
+       </button>
+       <div class="who">
+         <img src="${esc(c.avatar)}" alt="" onerror="this.style.visibility='hidden'"/>
+         <div>
+           <div class="who-name">${esc(c.displayName)}</div>
+           <div class="who-meta">
+             <span class="badge-live ${c.isLive?'':'off'}"><span class="d"></span>${c.isLive?'Live':'Offline'}</span>
+             <span class="viewers" id="viewers">${c.isLive?'<b>—</b> watching':'twitch.tv/'+esc(c.twitchChannel)}</span>
+           </div>
+         </div>
+       </div>
+       <div class="ov-spacer"></div>
+       <div class="ov-actions">
+         <button class="tw-login" id="twLogin" onclick="twitchLogin()">
+           <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2L2 6v14h5v3l3-3h4l7-7V2H4zm16 9l-3 3h-4l-3 3v-3H5V4h15v7zm-5-5h-2v5h2V6zm-5 0H8v5h2V6z"/></svg>
+           Sign in with Twitch
+         </button>
+       </div>
+     </div>
+
+     <div class="rail">
+       <button class="rail-btn active" onclick="toggleRedeems()" id="redeemBtn">
+         <span class="lab">Redeems</span>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9 17 14 19 21 12 17 5 21 7 14 2 9 9 9 12 2"/></svg>
+       </button>
+       <button class="rail-btn" onclick="toggleChat()" id="chatBtn">
+         <span class="lab">Chat</span>
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+       </button>
+     </div>
+
+     <div class="redeems ${c.isLive?'on':''}" id="redeems">
+       <div class="redeems-head">
+         <div class="redeems-title">Channel Redeems</div>
+         <span class="sb-status" id="sbStatus"><span class="d"></span>Streamer.bot: offline</span>
+       </div>
+       <div class="redeems-row">
+         ${(c.redeems||[]).map((r,i)=>`
+           <button class="redeem" onclick="doRedeem(${i})">
+             <div class="redeem-ic">${esc(r.icon||'⭐')}</div>
+             <div class="redeem-label">${esc(r.label)}</div>
+             <div class="redeem-cost">
+               <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>${(r.cost||0).toLocaleString()}
+             </div>
+           </button>`).join('') || '<div style="color:var(--muted);font-size:.85rem">No redeems configured yet.</div>'}
+       </div>
+     </div>
+
+     <div class="chat" id="chat">
+       <div class="chat-head">Chat <button onclick="toggleChat()">×</button></div>
+       <div class="chat-stub" id="chatStub">Chat loads when you open it on the live site.<br>Embeds require the page to run on <b>${esc(CONFIG.parent)}</b>.</div>
+     </div>
+
+     <div class="ov-bottom-hint" id="bhint">${c.isLive?'move mouse for controls · redeems below':'offline'}</div>
+   </div>`;
+
+  refreshTwitchLoginUi();
+  armIdle();
+  if(c.isLive && onRealDomain) loadPlayer();         // auto-load real player on chazdyn.com
+  if(c.sbWsUrl) connectStreamerbot(c.sbWsUrl);
+}
+
+/* ─── Twitch player / chat embeds ─── */
+function loadPlayer(){
+  const c=CURRENT; if(!c) return;
+  const p=document.getElementById('player'); if(!p) return;
+  p.innerHTML = `<iframe src="https://player.twitch.tv/?channel=${encodeURIComponent(c.twitchChannel)}&parent=${encodeURIComponent(CONFIG.parent)}&muted=false&autoplay=true"
+    allowfullscreen allow="autoplay; fullscreen"></iframe>`;
+  toast('Loading '+c.displayName+"'s live player…",'ok');
+}
+let chatOpen=false, redeemsOpen=true;
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('chat').classList.toggle('on',chatOpen);
+  document.getElementById('chatBtn').classList.toggle('active',chatOpen);
+  if(chatOpen){
+    const onReal = location.hostname.indexOf(CONFIG.parent.split('.')[0])>-1;
+    const stub=document.getElementById('chatStub');
+    if(onReal && !document.querySelector('#chat iframe')){
+      const f=document.createElement('iframe');
+      f.src=`https://www.twitch.tv/embed/${encodeURIComponent(CURRENT.twitchChannel)}/chat?parent=${encodeURIComponent(CONFIG.parent)}&darkpopout`;
+      stub.replaceWith(f);
+    }
+  }
+}
+function toggleRedeems(){
+  redeemsOpen=!redeemsOpen;
+  document.getElementById('redeems').classList.toggle('on',redeemsOpen);
+  document.getElementById('redeemBtn').classList.toggle('active',redeemsOpen);
+}
+
+/* ─── Twitch login (counts the viewer legitimately / chat identity) ─── */
+function twitchLogin(){
+  const tok=localStorage.getItem('stream_twitch_token');
+  if(tok){ // already signed in → sign out
+    localStorage.removeItem('stream_twitch_token'); localStorage.removeItem('stream_twitch_user');
+    refreshTwitchLoginUi(); toast('Signed out of Twitch','ok'); return;
+  }
+  if(!CONFIG.twitchClientId || CONFIG.twitchClientId==='YOUR_TWITCH_CLIENT_ID'){
+    toast('Twitch sign-in needs a Client ID — see README_TWITCH.md','err'); return;
+  }
+  localStorage.setItem('stream_return', routeSlug());
+  const redirect = location.origin + streamBasePath();
+  const url = `https://id.twitch.tv/oauth2/authorize?client_id=${CONFIG.twitchClientId}`+
+              `&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=user:read:email&force_verify=false`;
+  location.href = url;
+}
+async function handleTwitchRedirect(){
+  if(location.hash.indexOf('access_token=')<0) return false;
+  const p=new URLSearchParams(location.hash.replace(/^#/,''));
+  const token=p.get('access_token'); if(!token) return false;
+  localStorage.setItem('stream_twitch_token',token);
+  try{
+    const r=await fetch('https://api.twitch.tv/helix/users',{headers:{'Authorization':'Bearer '+token,'Client-Id':CONFIG.twitchClientId}});
+    const d=await r.json(); if(d.data&&d.data[0]) localStorage.setItem('stream_twitch_user',JSON.stringify({name:d.data[0].display_name,pic:d.data[0].profile_image_url}));
+  }catch(e){}
+  // restore previous route (we stash it before redirect)
+  const back=localStorage.getItem('stream_return')||''; localStorage.removeItem('stream_return');
+  history.replaceState(null,'',streamUrl(back));
+  return true;
+}
+function refreshTwitchLoginUi(){
+  const btn=document.getElementById('twLogin'); if(!btn) return;
+  const u=localStorage.getItem('stream_twitch_user');
+  if(localStorage.getItem('stream_twitch_token') && u){
+    const user=JSON.parse(u);
+    btn.className='tw-login in';
+    btn.innerHTML=`<img src="${esc(user.pic)}" alt=""/> ${esc(user.name)}`;
+  }else{
+    btn.className='tw-login';
+    btn.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 2L2 6v14h5v3l3-3h4l7-7V2H4zm16 9l-3 3h-4l-3 3v-3H5V4h15v7zm-5-5h-2v5h2V6zm-5 0H8v5h2V6z"/></svg> Sign in with Twitch`;
+  }
+}
+
+/* ─── Streamer.bot WebSocket bridge ─── */
+function setSbStatus(state,label){
+  SBOT_STATE=state; const el=document.getElementById('sbStatus'); if(!el) return;
+  el.className='sb-status '+(state==='ok'?'ok':state==='err'?'err':'');
+  el.innerHTML=`<span class="d"></span>Streamer.bot: ${label}`;
+}
+function connectStreamerbot(wsUrl){
+  try{
+    setSbStatus('','connecting…');
+    SBOT=new WebSocket(wsUrl);
+    SBOT.onopen=()=>setSbStatus('ok','connected');
+    SBOT.onclose=()=>setSbStatus('err','offline');
+    SBOT.onerror=()=>setSbStatus('err','error');
+  }catch(e){ setSbStatus('err','offline'); }
+}
+function doRedeem(i){
+  const r=(CURRENT.redeems||[])[i]; if(!r) return;
+  if(SBOT && SBOT.readyState===1){
+    SBOT.send(JSON.stringify({ request:'DoAction',
+      action:{ name:r.actionName||r.label }, args:{ user:(JSON.parse(localStorage.getItem('stream_twitch_user')||'{}').name)||'web', source:'web-redeem', cost:r.cost },
+      id:'web-'+Date.now() }));
+    toast(`Sent "${r.label}" to Streamer.bot`,'ok');
+  }else{
+    toast(`"${r.label}" would trigger Streamer.bot (not connected in this preview)`,'');
+  }
+}
+
+/* ─── idle / cinematic auto-hide ─── */
+function armIdle(){
+  const stage=document.getElementById('stage'); if(!stage) return;
+  const wake=()=>{ stage.classList.remove('idle'); clearTimeout(IDLE_TIMER);
+    IDLE_TIMER=setTimeout(()=>{ if(document.querySelector('#player iframe') && !chatOpen) stage.classList.add('idle'); },3500); };
+  ['mousemove','click','keydown','touchstart'].forEach(ev=>stage.addEventListener(ev,wake));
+  wake();
+}
+
+/* ─── router ─── */
+async function render(){
+  const slug=routeSlug();
+  if(!slug){ renderDirectory(); return; }
+  const c=findCreator(slug);
+  if(!c){ APP.innerHTML=`<div class="notfound"><h1>404</h1><p style="color:var(--dim)">No channel “${esc(slug)}” on the network.</p><button class="back-btn" onclick="go('')" style="margin-top:1rem">← Back to network</button></div>`; return; }
+  if(c.pageOn===false){ APP.innerHTML=`<div class="notfound"><h1>${esc(c.displayName)}</h1><p style="color:var(--dim)">This page is currently turned off.</p><button class="back-btn" onclick="go('')" style="margin-top:1rem">← Back to network</button></div>`; return; }
+  renderWatch(c);
+}
+window.addEventListener('hashchange',()=>{ if(SBOT){try{SBOT.close()}catch(e){}} render(); });
+window.addEventListener('popstate',()=>{ if(SBOT){try{SBOT.close()}catch(e){}} render(); });
+
+(async function init(){
+  if(location.hash.indexOf('access_token=')>-1){ await handleTwitchRedirect(); }
+  await loadCreators();
+  render();
+  maybeResumeCreatorApply();
+})();
+</script>
+</body>
+</html>
