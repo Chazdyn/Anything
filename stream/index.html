@@ -236,6 +236,7 @@ button{font-family:var(--body);cursor:pointer;border:none;background:none;color:
 // ─── CONFIG (fill these for production) ───
 const CONFIG = {
   parent: 'chazdyn.com',                 // Twitch embed parent domain
+  authRedirect: 'https://chazdyn.com/stream/', // OAuth callback; avoids localhost redirects during preview
   twitchClientId: 'zd09p34hzxm6jbhvhlcujem2ypid0m', // for "Sign in with Twitch" (see README_TWITCH.md)
   supabaseUrl: 'https://lqayctcgprumnvlaktms.supabase.co',
   supabaseAnonKey: 'sb_publishable_tcWWDYpGBbVY1XKVNUaiZw_miMfMiFG',
@@ -333,6 +334,9 @@ function streamBasePath(){
 function streamUrl(slug){
   const base = streamBasePath();
   return slug ? base + encodeURIComponent(slug) : base;
+}
+function authRedirectUrl(){
+  return CONFIG.authRedirect;
 }
 function findCreator(slug){
   return CREATORS.find(c => c.slug.toLowerCase()===slug || (c.twitchChannel||'').toLowerCase()===slug);
@@ -445,7 +449,7 @@ async function openCreatorApply(){
     localStorage.setItem('stream_apply','1');
     await SB.auth.signInWithOAuth({
       provider:'discord',
-      options:{ redirectTo: location.origin + streamBasePath() }
+      options:{ redirectTo: authRedirectUrl() }
     });
     return;
   }
@@ -629,10 +633,11 @@ function twitchLogin(){
   if(!CONFIG.twitchClientId || CONFIG.twitchClientId==='YOUR_TWITCH_CLIENT_ID'){
     toast('Twitch sign-in needs a Client ID — see README_TWITCH.md','err'); return;
   }
-  localStorage.setItem('stream_return', routeSlug());
-  const redirect = location.origin + streamBasePath();
+  const returnSlug = routeSlug();
+  localStorage.setItem('stream_return', returnSlug);
+  const redirect = authRedirectUrl();
   const url = `https://id.twitch.tv/oauth2/authorize?client_id=${CONFIG.twitchClientId}`+
-              `&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=user:read:email&force_verify=false`;
+              `&redirect_uri=${encodeURIComponent(redirect)}&response_type=token&scope=user:read:email&force_verify=false&state=${encodeURIComponent(returnSlug)}`;
   location.href = url;
 }
 async function handleTwitchRedirect(){
@@ -645,7 +650,7 @@ async function handleTwitchRedirect(){
     const d=await r.json(); if(d.data&&d.data[0]) localStorage.setItem('stream_twitch_user',JSON.stringify({name:d.data[0].display_name,pic:d.data[0].profile_image_url}));
   }catch(e){}
   // restore previous route (we stash it before redirect)
-  const back=localStorage.getItem('stream_return')||''; localStorage.removeItem('stream_return');
+  const back=localStorage.getItem('stream_return')||p.get('state')||''; localStorage.removeItem('stream_return');
   history.replaceState(null,'',streamUrl(back));
   return true;
 }
