@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chazdyn — The Morning After Dark</title>
+  <meta name="description" content="Chazdyn — lifelong musician and host out of Washington State. The Morning After Dark, Dagoth Burro Book Club, live music, stream projects, and creator network experiments." />
+  <meta name="theme-color" content="#0b0907" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:    #0b0907;
+      --bg2:   #100c08;
+      --panel: #15100b;
+      --panel2:#1c150d;
+      --gold:  #c9a25c;
+      --gold2: #ecd49a;
+      --gold-deep:#7e6536;
+      --cream: #f3ebdb;
+      --text:  #e7dcca;
+      --muted: #a3947b;
+      --faint: #6b6049;
+      --live:  #6ad36a;
+      --ink:   #0a0704;
+      --line:  rgba(201,162,92,0.16);
+      --line2: rgba(201,162,92,0.32);
+      --twitch:#a472ff; --discord:#7c87f7; --tiktok:#ff5c82; --insta:#ec6a99;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --body:  'DM Sans', system-ui, sans-serif;
+      --mono:  'Space Mono', monospace;
+      --wrap:  1300px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--body);
+      font-size: 16px; line-height: 1.75;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* warm grain + vignette */
+    body::before {
+      content:''; position: fixed; inset:0; z-index:1; pointer-events:none; opacity:.55;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.028'/%3E%3C/svg%3E");
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { display:block; max-width:100%; }
+    .wrap { max-width: var(--wrap); margin: 0 auto; padding: 0 2.6rem; }
+    .mono { font-family: var(--mono); }
+
+    .label { font-family: var(--mono); font-size:.62rem; letter-spacing:.34em; text-transform:uppercase; color: var(--gold); }
+    .label-muted { font-family: var(--mono); font-size:.6rem; letter-spacing:.28em; text-transform:uppercase; color: var(--faint); }
+    .rule { height:1px; background: linear-gradient(90deg, var(--line2), transparent); }
+
+    .display { font-family: var(--serif); font-weight: 600; line-height: 1; color: var(--cream); }
+    .display em { font-style: italic; color: var(--gold2); }
+    .section-title { font-family: var(--serif); font-weight:600; font-size: clamp(2.4rem, 5vw, 4rem); line-height: 1.02; color: var(--cream); }
+    .section-title em { font-style: italic; color: var(--gold2); }
+
+    .btn { display:inline-flex; align-items:center; gap:10px; font-family: var(--mono); font-weight:700; font-size:.68rem; letter-spacing:.16em; text-transform:uppercase; padding: 1rem 1.8rem; border-radius: 1px; cursor:pointer; border:1px solid transparent; transition: all .24s; }
+    .btn svg { width:15px; height:15px; }
+    .btn-primary { background: linear-gradient(100deg, var(--gold2), var(--gold)); color: var(--ink); box-shadow: 0 10px 36px rgba(201,162,92,.22); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(201,162,92,.36); }
+    .btn-ghost { background: transparent; color: var(--cream); border-color: var(--line2); }
+    .btn-ghost:hover { border-color: var(--gold); color: var(--gold2); background: rgba(201,162,92,.05); }
+
+    /* ───────── MASTHEAD ───────── */
+    .masthead {
+      position: fixed; top:0; left:0; right:0; z-index: 200;
+      display:flex; align-items:center; justify-content:space-between; gap:2rem;
+      padding: 1.05rem 2.6rem;
+      background: linear-gradient(180deg, rgba(11,9,7,0.96), rgba(11,9,7,0.62));
+      backdrop-filter: blur(14px) saturate(1.1); -webkit-backdrop-filter: blur(14px) saturate(1.1);
+      border-bottom: 1px solid var(--line);
+    }
+    .mh-brand { display:flex; align-items:center; gap:13px; }
+    .mh-mark { width:36px; height:36px; object-fit:contain; flex-shrink:0; filter: drop-shadow(0 0 7px rgba(198,240,0,.4)); }
+    .mh-brand-txt { display:flex; flex-direction:column; line-height:1; }
+    .mh-name { font-family: var(--serif); font-weight:600; font-size: 1.5rem; letter-spacing:.16em; text-transform:uppercase; color: var(--cream); }
+    .mh-sub { font-family: var(--mono); font-size:.5rem; letter-spacing:.42em; text-transform:uppercase; color: var(--gold); margin-top:5px; }
+    .mh-nav { display:flex; gap:2rem; align-items:center; }
+    .mh-nav a { font-family: var(--mono); font-size:.64rem; letter-spacing:.16em; text-transform:uppercase; color: var(--muted); transition: color .2s; position:relative; }
+    .mh-nav a::after { content:''; position:absolute; left:0; bottom:-6px; height:1px; width:0; background: var(--gold); transition: width .25s; }
+    .mh-nav a:hover { color: var(--cream); }
+    .mh-nav a:hover::after { width:100%; }
+    .mh-nav a.is-thicc { color: var(--gold2); }
+    .mh-right { display:flex; align-items:center; gap:1.4rem; }
+    .nav-live { display:none; align-items:center; gap:7px; font-family: var(--mono); font-size:.58rem; letter-spacing:.2em; text-transform:uppercase; color: var(--live); }
+    .nav-live.is-live { display:inline-flex; }
+    .live-dot { width:7px; height:7px; border-radius:50%; background: var(--live); box-shadow:0 0 8px var(--live); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.3; transform:scale(.55);} }
+    .mh-watch { display:inline-flex; align-items:center; gap:9px; font-family: var(--mono); font-weight:700; font-size:.62rem; letter-spacing:.16em; text-transform:uppercase; color: var(--ink); background: linear-gradient(100deg, var(--gold2), var(--gold)); padding: 9px 18px; border-radius:1px; transition: all .22s; }
+    .mh-watch svg { width:13px; height:13px; }
+    .mh-watch:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(201,162,92,.3); }
+    @media (max-width: 1040px){ .mh-nav { display:none; } }
+    @media (max-width: 560px){ .mh-sub { display:none; } }
+
+    /* ───────── HERO — cinematic title card ───────── */
+    .hero { position: relative; min-height: 100vh; display:flex; align-items:flex-end; overflow:hidden; padding-top: 5.5rem; }
+    .hero-bg { position:absolute; inset:0; z-index:0; background-image:url('assets/chazdyn-office.png'); background-size:cover; background-position: 70% center; }
+    .hero-scrim { position:absolute; inset:0; z-index:1;
+      background:
+        linear-gradient(100deg, rgba(11,9,7,0.96) 0%, rgba(11,9,7,0.86) 28%, rgba(11,9,7,0.42) 56%, rgba(11,9,7,0.12) 80%, rgba(11,9,7,0.32) 100%),
+        linear-gradient(0deg, rgba(11,9,7,0.82) 0%, rgba(11,9,7,0) 42%); }
+    .hero-grain { position:absolute; inset:0; z-index:2; pointer-events:none; box-shadow: inset 0 0 220px rgba(0,0,0,.7); }
+    .hero-inner { position: relative; z-index:3; width:100%; max-width: var(--wrap); margin:0 auto; padding: 0 2.6rem 5rem; }
+    .hero-side { position:absolute; z-index:3; right: 2.4rem; top:50%; transform: translateY(-50%) rotate(90deg); transform-origin: right center;
+      font-family: var(--mono); font-size:.56rem; letter-spacing:.4em; text-transform:uppercase; color: var(--gold-deep); }
+
+    .hero-eyebrow { display:flex; align-items:center; gap:14px; margin-bottom: 1.7rem; }
+    .hero-eyebrow .ln { height:1px; width:46px; background: linear-gradient(90deg, var(--gold), transparent); }
+    .eyebrow { font-family: var(--mono); font-size:.64rem; letter-spacing:.3em; text-transform:uppercase; color: var(--gold); }
+
+    .live-badge { display:none; align-items:center; gap:9px; width:fit-content; margin-bottom: 1.5rem;
+      font-family: var(--mono); font-size:.6rem; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color: var(--live);
+      border:1px solid rgba(106,211,106,.34); background: rgba(106,211,106,.07); padding: 6px 14px; border-radius:1px; }
+    .live-badge.is-live { display:inline-flex; }
+
+    .hero-title { font-family: var(--serif); font-weight:600; font-size: clamp(2.7rem, 5.6vw, 5.3rem); line-height: 1.0; letter-spacing: .002em; color: var(--cream); margin-bottom: 1.7rem; max-width: 15ch; }
+    .hero-title em { font-style: italic; color: var(--gold2); }
+    .hero-subtitle { font-family: var(--serif); font-style: italic; font-size: clamp(1.2rem, 2.1vw, 1.55rem); color: #d8cbb2; max-width: 50ch; margin-bottom: 2.4rem; line-height:1.5; }
+    .hero-cta { display:flex; gap:.9rem; flex-wrap:wrap; align-items:center; }
+    .hero-meta { display:flex; gap:2.4rem; flex-wrap:wrap; margin-top: 2.2rem; padding-top: 1.4rem; border-top:1px solid var(--line); max-width: 640px; }
+    .hero-meta .m { }
+    .hero-meta .m .v { font-family: var(--serif); font-size: 1.5rem; color: var(--cream); line-height:1; }
+    .hero-meta .m .k { font-family: var(--mono); font-size:.56rem; letter-spacing:.18em; text-transform:uppercase; color: var(--faint); margin-top:6px; }
+    @media (max-width: 600px){ .hero-side { display:none; } .hero-inner{ padding-bottom: 3.5rem; } }
+
+    /* ───────── billing marquee ───────── */
+    .billing { border-bottom:1px solid var(--line); background: var(--bg2); overflow:hidden; }
+    .billing-track { display:inline-flex; white-space:nowrap; animation: marquee 42s linear infinite; padding: .85rem 0; }
+    .billing-track span { font-family: var(--mono); font-size:.62rem; letter-spacing:.24em; text-transform:uppercase; color: var(--gold-deep); padding: 0 1.6rem; }
+    .billing-track span b { color: var(--gold2); font-weight:400; }
+    .billing-track span::after { content:'✦'; margin-left:1.6rem; color: var(--gold-deep); opacity:.5; font-size:.5rem; }
+    @keyframes marquee { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+    /* ───────── THE HOST — editorial feature ───────── */
+    section { position: relative; z-index: 2; }
+    .host { padding: 8rem 0; }
+    .host-grid { display:grid; grid-template-columns: 1.04fr 0.96fr; gap: 4.5rem; align-items:center; }
+    .host-head { display:flex; align-items:baseline; gap: 1.2rem; margin-bottom: 1.8rem; }
+    .host-head .no { font-family: var(--serif); font-style:italic; font-size: 3rem; color: var(--gold-deep); line-height:.8; }
+    .host-body .section-title { margin-bottom: 1.8rem; }
+    .host-body p { color: #c2b49a; font-size: 1.08rem; line-height: 1.95; margin-bottom: 1.3rem; }
+    .host-body p.lead { color: #d7caaf; }
+    .host-body p.lead::first-letter { font-family: var(--serif); font-weight:600; float:left; font-size: 4.4rem; line-height:.72; padding: 8px 14px 0 0; color: var(--gold2); }
+    .host-body p strong { color: var(--cream); font-weight:600; }
+    .byline { display:flex; align-items:center; gap: 13px; margin: 2rem 0 .4rem; }
+    .byline img { width:46px; height:46px; border-radius:50%; object-fit:cover; border:1px solid var(--line2); }
+    .byline .bn { font-family: var(--mono); font-size:.66rem; letter-spacing:.12em; color: var(--gold); }
+    .byline .bl { font-family: var(--mono); font-size:.58rem; letter-spacing:.1em; color: var(--faint); text-transform:uppercase; margin-top:2px; }
+    .tag-row { display:flex; flex-wrap:wrap; gap:8px; margin-top:1.6rem; }
+    .tag-row span { font-family: var(--mono); font-size:.58rem; letter-spacing:.08em; text-transform:uppercase; color: var(--muted); border:1px solid var(--line); padding: 6px 12px; border-radius:1px; }
+
+    .host-figure { position:relative; }
+    .host-figure .photo { position:relative; overflow:hidden; border:1px solid var(--line2);
+      box-shadow: 0 40px 90px rgba(0,0,0,.55), inset 0 0 0 5px rgba(11,9,7,.9), inset 0 0 0 6px rgba(201,162,92,.2); aspect-ratio: 16/10; }
+    .host-figure .photo img { width:100%; height:100%; object-fit:cover; }
+    .host-figure .photo::after { content:''; position:absolute; inset:0; background: linear-gradient(0deg, rgba(11,9,7,.4), transparent 40%); }
+    .host-figure figcaption { display:flex; align-items:center; justify-content:space-between; margin-top: .9rem; }
+    .host-figure figcaption span { font-family: var(--mono); font-size:.58rem; letter-spacing:.12em; text-transform:uppercase; color: var(--faint); }
+    @media (max-width: 880px){ .host-grid { grid-template-columns:1fr; gap:3rem; } .host-figure{ order:-1; } }
+
+    /* ───────── PROGRAMMING — the bill ───────── */
+    .programming { padding: 8rem 0; background: linear-gradient(180deg, transparent, var(--bg2), transparent); }
+    .prog-head { text-align:center; margin-bottom: 3.4rem; }
+    .prog-head .label { display:block; margin-bottom: 1rem; }
+    .prog-grid { display:grid; grid-template-columns: 1fr 0.84fr; gap: 4rem; align-items:center; }
+    .prog-list { border-top:1px solid var(--line); }
+    .prog-item { display:grid; grid-template-columns: auto 1fr auto; gap: 1.6rem; align-items:center; padding: 1.9rem .2rem; border-bottom:1px solid var(--line); transition: all .24s; }
+    .prog-item:hover { padding-left:.9rem; background: linear-gradient(90deg, rgba(201,162,92,.05), transparent); }
+    .prog-no { font-family: var(--mono); font-size:.66rem; color: var(--gold-deep); }
+    .prog-main .t { font-family: var(--serif); font-weight:600; font-size: 1.9rem; color: var(--cream); line-height:1.05; }
+    .prog-main .s { font-size:.92rem; color: var(--muted); margin-top:6px; line-height:1.65; }
+    .prog-time { display:inline-flex; margin-top:.65rem; font-family: var(--mono); font-size:.55rem; letter-spacing:.1em; text-transform:uppercase; color: var(--gold); border:1px solid var(--line); padding:4px 9px; }
+    .prog-link { color: var(--gold2); border-bottom:1px solid rgba(236,212,154,.35); }
+    .prog-status { font-family: var(--mono); font-size:.54rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; padding:5px 10px; border-radius:1px; white-space:nowrap; }
+    .prog-status.now { color: var(--live); border:1px solid rgba(106,211,106,.4); }
+    .prog-status.soon { color: var(--gold2); border:1px solid var(--line2); }
+    .prog-figure { position:relative; overflow:hidden; border:1px solid var(--line2);
+      box-shadow: 0 30px 70px rgba(0,0,0,.5), inset 0 0 0 5px rgba(11,9,7,.9), inset 0 0 0 6px rgba(201,162,92,.18); aspect-ratio: 596/390; }
+    .prog-figure img { width:100%; height:100%; object-fit:cover; }
+    .prog-figure .cap { position:absolute; left:0; right:0; bottom:0; padding: 1.4rem 1.3rem .9rem; background: linear-gradient(0deg, rgba(11,9,7,.92), transparent);
+      font-family: var(--serif); font-style:italic; font-size:1.15rem; color: var(--cream); }
+    @media (max-width: 880px){ .prog-grid { grid-template-columns:1fr; gap:2.6rem; } .prog-figure{ order:-1; } .prog-main .t{ font-size:1.6rem; } }
+
+    /* ───────── MUSIC ───────── */
+    .music { padding: 8rem 0; }
+    .music-top { display:grid; grid-template-columns: 1fr 1fr; gap: 3rem; align-items:end; margin-bottom: 3rem; }
+    .music-intro p { color: var(--muted); font-size:1.05rem; max-width: 44ch; margin-top: 1.2rem; }
+    .music-photo { position:relative; overflow:hidden; border:1px solid var(--line2); aspect-ratio: 608/290;
+      box-shadow: 0 30px 70px rgba(0,0,0,.5), inset 0 0 0 5px rgba(11,9,7,.9), inset 0 0 0 6px rgba(201,162,92,.18); }
+    .music-photo img { width:100%; height:100%; object-fit:cover; }
+    .music-grid { display:grid; grid-template-columns: 1.5fr .85fr; gap: 2.6rem; align-items:stretch; }
+    .music-video-wrap { position:relative; aspect-ratio:16/9; overflow:hidden; border:1px solid var(--line2); background:#06040a;
+      box-shadow: 0 30px 70px rgba(0,0,0,.5); }
+    .music-video-wrap iframe, .music-video-wrap video { position:absolute; inset:0; width:100%; height:100%; border:none; }
+    .music-placeholder { width:100%; height:100%; display:flex; flex-direction:column; gap:.7rem; align-items:center; justify-content:center; text-align:center; padding:1.5rem;
+      background: repeating-linear-gradient(135deg, var(--panel) 0, var(--panel) 12px, var(--panel2) 12px, var(--panel2) 24px);
+      color: var(--faint); font-family: var(--mono); font-size:.66rem; line-height:1.9; }
+    .music-placeholder svg { width:30px; height:30px; opacity:.5; }
+    .music-links { display:flex; flex-direction:column; }
+    .music-links .ml-head { font-family: var(--mono); font-size:.58rem; letter-spacing:.22em; text-transform:uppercase; color: var(--faint); padding-bottom:1rem; border-bottom:1px solid var(--line); }
+    .music-link-card { display:flex; align-items:center; gap:1rem; padding:1.15rem .2rem; border-bottom:1px solid var(--line); transition: all .2s; }
+    .music-link-card:hover { padding-left:.7rem; background: linear-gradient(90deg, rgba(201,162,92,.05), transparent); }
+    .music-link-icon { width:34px; height:34px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .music-link-icon svg { width:21px; height:21px; }
+    .music-link-text { flex:1; min-width:0; }
+    .music-link-name { font-family: var(--serif); font-weight:600; font-size:1.3rem; color: var(--cream); line-height:1.05; }
+    .music-link-sub { font-family: var(--mono); font-size:.62rem; color: var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:3px; }
+    .music-link-arrow { color: var(--faint); transition: all .2s; }
+    .music-link-card:hover .music-link-arrow { color: var(--gold2); transform: translate(3px,-3px); }
+    @media (max-width: 880px){ .music-top { grid-template-columns:1fr; gap:2rem; } .music-grid{ grid-template-columns:1fr; gap:2rem; } }
+
+    /* ───────── CLIPS ───────── */
+    .clips { padding: 8rem 0; background: linear-gradient(180deg, transparent, var(--bg2), transparent); }
+    .sec-head { display:flex; align-items:flex-end; justify-content:space-between; gap:1.6rem; flex-wrap:wrap; margin-bottom: 2.8rem; }
+    .clips-grid { display:grid; grid-template-columns: 1.5fr 1fr; gap: 1.4rem; }
+    .clip-stack { display:flex; flex-direction:column; gap: 1.4rem; }
+    .clip-card { position:relative; overflow:hidden; border:1px solid var(--line); background: var(--panel); transition: all .24s; }
+    .clip-card:hover { border-color: var(--line2); transform: translateY(-4px); box-shadow: 0 22px 50px rgba(0,0,0,.5); }
+    .clip-video-wrap { position:relative; width:100%; aspect-ratio:16/9; background:#06040a; overflow:hidden; }
+    .clip-card.feature .clip-video-wrap { aspect-ratio:16/10; }
+    .clip-video-wrap video, .clip-video-wrap iframe { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; border:none; }
+    .clip-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; text-align:center; padding:1rem;
+      background: repeating-linear-gradient(135deg, var(--panel) 0, var(--panel) 12px, var(--panel2) 12px, var(--panel2) 24px);
+      color: var(--faint); font-family: var(--mono); font-size:.64rem; letter-spacing:.04em; line-height:1.9; }
+    .clip-num { position:absolute; top:13px; left:14px; z-index:2; font-family: var(--serif); font-weight:600; font-size:1.6rem; color: var(--gold2); text-shadow:0 2px 12px rgba(0,0,0,.7); }
+    .clip-meta { display:flex; align-items:center; gap:12px; padding:1rem 1.2rem; border-top:1px solid var(--line); }
+    .clip-source { font-family: var(--mono); font-size:.54rem; letter-spacing:.14em; text-transform:uppercase; color: var(--gold); border:1px solid var(--line); padding:3px 8px; border-radius:1px; flex-shrink:0; }
+    .clip-title { font-family: var(--serif); font-size:1.18rem; color: var(--cream); line-height:1.2; }
+    .clip-card.feature .clip-title { font-size:1.5rem; }
+    @media (max-width: 820px){ .clips-grid { grid-template-columns:1fr; } }
+
+    /* ───────── BROADCAST LOG (schedule) ───────── */
+    .schedule { padding: 7rem 0; }
+    .sched-head { display:flex; align-items:flex-end; justify-content:space-between; gap:1.2rem; flex-wrap:wrap; margin-bottom: 1.8rem; }
+    .schedule-grid { display:grid; grid-template-columns: repeat(7,1fr); border:1px solid var(--line); }
+    .day-card { padding: 1.1rem .5rem 1.2rem; text-align:center; border-right:1px solid var(--line); position:relative; transition: background .25s; }
+    .day-card:last-child { border-right:none; }
+    .day-card.active { background: linear-gradient(180deg, rgba(201,162,92,.08), transparent); }
+    .day-card.active::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; background: linear-gradient(90deg, var(--gold-deep), var(--gold2), var(--gold-deep)); }
+    .day-name { font-family: var(--mono); font-size:.56rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color: var(--muted); margin-bottom:.7rem; }
+    .day-card.active .day-name { color: var(--gold2); }
+    .day-live { font-family: var(--serif); font-style:italic; font-size:1.1rem; color: var(--cream); }
+    .day-time { font-family: var(--mono); font-size:.58rem; color: var(--gold); margin-top:4px; }
+    .day-off { font-family: var(--serif); font-style:italic; font-size:1rem; color: var(--faint); }
+    @media (max-width: 720px){ .schedule-grid { grid-template-columns: repeat(2,1fr); } .day-card{ border-bottom:1px solid var(--line);} }
+
+    /* ───────── CONNECT ───────── */
+    .connect { padding: 8rem 0; background: linear-gradient(180deg, transparent, var(--bg2), transparent); }
+    .connect-grid { display:grid; grid-template-columns: 1.25fr .75fr; gap: 3.6rem; align-items:start; margin-top: 2.6rem; }
+    .soc-list { border-top:1px solid var(--line); }
+    .soc-row { display:flex; align-items:center; gap:1.3rem; padding:1.5rem .3rem; border-bottom:1px solid var(--line); transition: all .22s; }
+    .soc-row:hover { padding-left:1rem; background: linear-gradient(90deg, rgba(201,162,92,.05), transparent); }
+    .soc-ic { width:42px; height:42px; border-radius:50%; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; flex-shrink:0; transition: all .22s; }
+    .soc-ic svg { width:19px; height:19px; }
+    .soc-row:hover .soc-ic { border-color: var(--gold); }
+    .soc-name { font-family: var(--serif); font-size:1.7rem; color: var(--cream); line-height:1; }
+    .soc-handle { font-family: var(--mono); font-size:.64rem; color: var(--muted); margin-top:4px; }
+    .soc-grow { flex:1; }
+    .soc-arrow { font-family: var(--mono); color: var(--faint); transition: all .2s; }
+    .soc-row:hover .soc-arrow { color: var(--gold2); transform: translateX(4px); }
+    .crew { border:1px solid var(--line); padding: 2rem 1.8rem; background: linear-gradient(180deg, rgba(201,162,92,.05), transparent); }
+    .crew h3 { font-family: var(--serif); font-weight:600; font-size:1.7rem; color: var(--cream); margin-bottom:.6rem; }
+    .crew p { color: var(--muted); font-size:.95rem; line-height:1.7; margin-bottom:1.4rem; }
+    .crew-chips { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:1.6rem; }
+    .crew-chip { font-family: var(--mono); font-size:.58rem; color: var(--muted); border:1px solid var(--line2); padding:6px 11px; border-radius:1px; }
+    .crew-cta { display:inline-flex; align-items:center; gap:8px; font-family: var(--mono); font-weight:700; font-size:.62rem; letter-spacing:.14em; text-transform:uppercase; color: var(--gold2); }
+    .crew-cta:hover { gap:12px; }
+    @media (max-width: 820px){ .connect-grid { grid-template-columns:1fr; gap:2.6rem; } }
+
+    /* ───────── CTA ───────── */
+    .cta-band { position:relative; overflow:hidden; border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .cta-bg { position:absolute; inset:0; z-index:0; background-image:url('assets/chazdyn-office.png'); background-size:cover; background-position: 60% 30%; opacity:.5; }
+    .cta-band::after { content:''; position:absolute; inset:0; z-index:1; background: linear-gradient(96deg, var(--bg) 6%, rgba(11,9,7,.86) 44%, rgba(11,9,7,.5) 100%); }
+    .cta-inner { position:relative; z-index:2; padding: 7rem 0; }
+    .cta-title { font-family: var(--serif); font-weight:600; font-size: clamp(2.6rem, 5.4vw, 4.4rem); line-height:1.04; color: var(--cream); max-width: 18ch; margin-bottom:1.2rem; }
+    .cta-title em { font-style:italic; color: var(--gold2); }
+    .cta-text { color: #cabd a3; color: #cabda3; max-width: 46ch; margin-bottom:2.1rem; font-size:1.05rem; }
+    .cta-row { display:flex; gap:.9rem; flex-wrap:wrap; }
+
+    /* ───────── FOOTER ───────── */
+    footer { position:relative; z-index:2; padding: 4rem 0 4.5rem; }
+    .foot-top { display:flex; flex-direction:column; align-items:center; gap:1.1rem; text-align:center; padding-bottom: 2.6rem; }
+    .foot-crest { display:flex; align-items:center; gap:16px; }
+    .foot-crest .ln { height:1px; width:60px; background: linear-gradient(90deg, transparent, var(--line2)); }
+    .foot-crest .ln.r { background: linear-gradient(90deg, var(--line2), transparent); }
+    .foot-mark-img { width:44px; height:44px; object-fit:contain; filter: drop-shadow(0 0 8px rgba(198,240,0,.35)); }
+    .foot-signoff { font-family: var(--serif); font-style:italic; font-size:1.8rem; color: var(--cream); }
+    .foot-bottom { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; flex-wrap:wrap; padding-top:2.2rem; border-top:1px solid var(--line); }
+    .foot-name { font-family: var(--serif); font-weight:600; letter-spacing:.16em; text-transform:uppercase; color: var(--muted); }
+    .foot-copy { font-family: var(--mono); font-size:.6rem; color: var(--faint); letter-spacing:.04em; }
+
+    /* motion (reveal is enhancement; content visible by default) */
+    .fade-up { transition: opacity .8s ease, transform .8s ease; }
+    html.reveal-on .fade-up:not(.visible) { opacity:0; transform: translateY(26px); }
+
+    @media (max-width: 820px){
+      .wrap, .hero-inner { padding-left:1.5rem; padding-right:1.5rem; }
+      .masthead { padding:.8rem 1.4rem; }
+      .host, .programming, .music, .clips, .schedule, .connect { padding: 5rem 0; }
+      .cta-inner { padding: 5rem 0; }
+      .soc-name { font-size:1.35rem; }
+    }
+    @media (prefers-reduced-motion: reduce){
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+
+<script data-controldyn>(function(){try{var live=JSON.parse("{\"heroEyebrow\":\"Est. Washington State — Musician & Host\",\"heroTitle\":\"A lifelong musician, building The Morning After Dark.\",\"heroTagline\":\"Late-show energy at breakfast-hour weirdness: games, music, lore spirals, creator tools, and conversations that somehow still feel after dark.\",\"avatarUrl\":\"assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg\",\"aboutBio\":\"Music has been the constant my whole life — long before any of it was on camera. The stream started as a place to share the games I love, then slowly turned into a studio, workshop, book club, comedy detour, and whatever else the room can survive.\",\"aboutLong\":\"Now I'm building toward the things I actually want to make: live sets straight from the room, a morning show with late-night DNA, creator tools that make streams feel custom-built, and recurring bits that are strange enough to earn their own lore.\",\"aboutTags\":[\"Guitar\",\"Songwriting\",\"Morrowind Lore\",\"Creator Tools\",\"Good Company\"],\"twitchUrl\":\"https://twitch.tv/chazdyn\",\"discordUrl\":\"https://discord.gg/BWV92m2T2D\",\"tiktokUrl\":\"https://tiktok.com/@thiccchazdyn\",\"instaUrl\":\"https://instagram.com/chazdynplays\",\"thiccUrl\":\"/thicc\",\"accentColor\":\"#c9a25c\",\"accent2Color\":\"#ecd49a\",\"bgColor\":\"#0b0907\",\"displayFont\":\"Cormorant Garamond\",\"bodyFont\":\"DM Sans\",\"isLive\":false,\"_source\":\"derived-from-current-index-html\",\"_sourceUpdated\":\"2026-06-23T00:01:04.617Z\",\"thiccMembers\":[{\"id\":1,\"name\":\"Chazdyn\",\"gamertag\":\"Chazdyn\",\"rank\":\"Dyn\",\"isLeader\":true,\"about\":\"PNW dad, musician, and the guy who pauses games to read chat. Come hang.\",\"bio\":\"\",\"photoUrl\":\"../assets/Chazdyn-Avatar-cropped-square-20260502223832.jpg\",\"videoUrl\":\"https://youtu.be/-b_m0kA4ry4\",\"bannerUrl\":\"../assets/Chazdyn-Banner-cropped-original-20260506193644.jpg\",\"accentColor\":\"#f5a623\",\"socials\":[{\"platform\":\"Twitch\",\"url\":\"https://twitch.tv/chazdyn\",\"handle\":\"Chazdyn\"},{\"platform\":\"TikTok\",\"url\":\"https://tiktok.com/@thiccchazdyn\",\"handle\":\"@THICCChazdyn\"},{\"platform\":\"Instagram\",\"url\":\"https://instagram.com/chazdynplays\",\"handle\":\"@ChazdynPlays\"},{\"platform\":\"YouTube\",\"url\":\"https://youtube.com/chazdyn\",\"handle\":\"@Chazdyn\"}]},{\"id\":2,\"name\":\"ShyShack\",\"gamertag\":\"ShyShackle\",\"rank\":\"Wifey\",\"isLeader\":false,\"about\":\"Horror games, jump scares, shooters and horror movies. Dark aesthetic, smart mouth, soft spot for new friends 🖤\",\"bio\":\"\",\"photoUrl\":\"../assets/ShyShack-Avatar-cropped-square-20260502223809.jpg\",\"videoUrl\":\"https://youtu.be/qfVqeQwABFE\",\"bannerUrl\":\"../assets/blood-moon-cropped-wide-20260506155850.jpg\",\"accentColor\":\"#c0392b\",\"socials\":[{\"platform\":\"Twitch\",\"url\":\"https://twitch.tv/shyshackle\",\"handle\":\"ShyShackle\"},{\"platform\":\"TikTok\",\"url\":\"https://tiktok.com/@shyshackle\",\"handle\":\"@shyshackle\"},{\"platform\":\"Instagram\",\"url\":\"https://instagram.com/shyshackle\",\"handle\":\"@shyshackle\"}]},{\"id\":3,\"name\":\"Mastercardi\",\"gamertag\":\"Mastercardi\",\"rank\":\"Everyone's Mod\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/cardi-avatar-cropped-square-20260503175015.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/cardi-banner-cropped-original-20260506193038.jpg\",\"accentColor\":\"#2b90ee\",\"socials\":[]},{\"id\":4,\"name\":\"SenoritoTaquito\",\"gamertag\":\"SenoritoTaquito\",\"rank\":\"The Mouth\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/taquito-cropped-square-20260505140339.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/taquito-banner-cropped-original-20260506193411.jpg\",\"accentColor\":\"#ff8800\",\"socials\":[]},{\"id\":5,\"name\":\"PrincessBayleaf\",\"gamertag\":\"PrincessBayleaf\",\"rank\":\"Rave Pincess\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/image_2026-05-06_085642085-cropped-square-20260506155644.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/bayleaf-banner-cropped-original-20260506192859.jpg\",\"accentColor\":\"#f472b6\",\"socials\":[]},{\"id\":6,\"name\":\"NeighborGuyBri\",\"gamertag\":\"NeighborGuyBri\",\"rank\":\"Neighbor\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/image_2026-05-06_194922873-cropped-square-20260507024924.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/image_2026-05-06_195011728-cropped-original-20260507025014.jpg\",\"accentColor\":\"#2dd4bf\",\"socials\":[]},{\"id\":7,\"name\":\"Thomas\",\"gamertag\":\"Thomas\",\"rank\":\"Community Dad\",\"isLeader\":false,\"about\":\"\",\"bio\":\"An AC&R Technician with the Navy, Thomas's age is somehow both 26 and 56. Formerly being the youngest member of OGB(Old Grumpy Bastards), Thomas's demeanor, mechanical skills, and ability to somehow always be in the process of cooking bacon keeps him old at heart. He may be the youngest of the THICCums, but he wears the mustache well.\\nKey Highlights:\\n-Chazdyn once called Thomas for help fixing a lawnmower.\\n-Chazdyn called Thomas once again when the outdoor heater wasn't working.\\n-Thomas once gave a discord seminar on the states of water regarding pressure versus temperature.\\n-Thomas has remotely assisted in fixing Cardi and Taquito's garbage disposal.\",\"photoUrl\":\"../assets/image_2026-05-06_194604254-cropped-square-20260507024606.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/image_2026-05-06_194624407-cropped-original-20260507024627.jpg\",\"accentColor\":\"#a78bfa\",\"socials\":[]},{\"id\":8,\"name\":\"Krunch\",\"gamertag\":\"Krunch23\",\"rank\":\"Your Cousin\",\"isLeader\":false,\"about\":\"How does he look like your cousin? How does he look like my cousin??\",\"bio\":\"\",\"photoUrl\":\"../assets/krunchy pic.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"\",\"accentColor\":\"#f5a623\",\"socials\":[]}],\"thiccDesc\":\"We're not a tryhard clan. We're a group of friends who happen to be pretty decent at COD — and extremely good at talking over each other on comms.\",\"thiccGame\":\"BO6\",\"thiccFounded\":\"2025\",\"thiccTag\":\"THICC\",\"thiccFullname\":\"\",\"_lastDeploy\":\"2026-06-23T00:05:10.904Z\"}");var raw=localStorage.getItem("chazdyn_config");var cur=raw?JSON.parse(raw):null;var liveTime=Date.parse(live._lastDeploy||0)||0;var draftTime=cur?(Date.parse(cur._draftUpdated||0)||0):0;if(!cur||draftTime<=liveTime){localStorage.setItem("chazdyn_config",JSON.stringify(live));}}catch(e){localStorage.setItem("chazdyn_config","{\"heroEyebrow\":\"Est. Washington State — Musician & Host\",\"heroTitle\":\"A lifelong musician, building The Morning After Dark.\",\"heroTagline\":\"Late-show energy at breakfast-hour weirdness: games, music, lore spirals, creator tools, and conversations that somehow still feel after dark.\",\"avatarUrl\":\"assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg\",\"aboutBio\":\"Music has been the constant my whole life — long before any of it was on camera. The stream started as a place to share the games I love, then slowly turned into a studio, workshop, book club, comedy detour, and whatever else the room can survive.\",\"aboutLong\":\"Now I'm building toward the things I actually want to make: live sets straight from the room, a morning show with late-night DNA, creator tools that make streams feel custom-built, and recurring bits that are strange enough to earn their own lore.\",\"aboutTags\":[\"Guitar\",\"Songwriting\",\"Morrowind Lore\",\"Creator Tools\",\"Good Company\"],\"twitchUrl\":\"https://twitch.tv/chazdyn\",\"discordUrl\":\"https://discord.gg/BWV92m2T2D\",\"tiktokUrl\":\"https://tiktok.com/@thiccchazdyn\",\"instaUrl\":\"https://instagram.com/chazdynplays\",\"thiccUrl\":\"/thicc\",\"accentColor\":\"#c9a25c\",\"accent2Color\":\"#ecd49a\",\"bgColor\":\"#0b0907\",\"displayFont\":\"Cormorant Garamond\",\"bodyFont\":\"DM Sans\",\"isLive\":false,\"_source\":\"derived-from-current-index-html\",\"_sourceUpdated\":\"2026-06-23T00:01:04.617Z\",\"thiccMembers\":[{\"id\":1,\"name\":\"Chazdyn\",\"gamertag\":\"Chazdyn\",\"rank\":\"Dyn\",\"isLeader\":true,\"about\":\"PNW dad, musician, and the guy who pauses games to read chat. Come hang.\",\"bio\":\"\",\"photoUrl\":\"../assets/Chazdyn-Avatar-cropped-square-20260502223832.jpg\",\"videoUrl\":\"https://youtu.be/-b_m0kA4ry4\",\"bannerUrl\":\"../assets/Chazdyn-Banner-cropped-original-20260506193644.jpg\",\"accentColor\":\"#f5a623\",\"socials\":[{\"platform\":\"Twitch\",\"url\":\"https://twitch.tv/chazdyn\",\"handle\":\"Chazdyn\"},{\"platform\":\"TikTok\",\"url\":\"https://tiktok.com/@thiccchazdyn\",\"handle\":\"@THICCChazdyn\"},{\"platform\":\"Instagram\",\"url\":\"https://instagram.com/chazdynplays\",\"handle\":\"@ChazdynPlays\"},{\"platform\":\"YouTube\",\"url\":\"https://youtube.com/chazdyn\",\"handle\":\"@Chazdyn\"}]},{\"id\":2,\"name\":\"ShyShack\",\"gamertag\":\"ShyShackle\",\"rank\":\"Wifey\",\"isLeader\":false,\"about\":\"Horror games, jump scares, shooters and horror movies. Dark aesthetic, smart mouth, soft spot for new friends 🖤\",\"bio\":\"\",\"photoUrl\":\"../assets/ShyShack-Avatar-cropped-square-20260502223809.jpg\",\"videoUrl\":\"https://youtu.be/qfVqeQwABFE\",\"bannerUrl\":\"../assets/blood-moon-cropped-wide-20260506155850.jpg\",\"accentColor\":\"#c0392b\",\"socials\":[{\"platform\":\"Twitch\",\"url\":\"https://twitch.tv/shyshackle\",\"handle\":\"ShyShackle\"},{\"platform\":\"TikTok\",\"url\":\"https://tiktok.com/@shyshackle\",\"handle\":\"@shyshackle\"},{\"platform\":\"Instagram\",\"url\":\"https://instagram.com/shyshackle\",\"handle\":\"@shyshackle\"}]},{\"id\":3,\"name\":\"Mastercardi\",\"gamertag\":\"Mastercardi\",\"rank\":\"Everyone's Mod\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/cardi-avatar-cropped-square-20260503175015.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/cardi-banner-cropped-original-20260506193038.jpg\",\"accentColor\":\"#2b90ee\",\"socials\":[]},{\"id\":4,\"name\":\"SenoritoTaquito\",\"gamertag\":\"SenoritoTaquito\",\"rank\":\"The Mouth\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/taquito-cropped-square-20260505140339.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/taquito-banner-cropped-original-20260506193411.jpg\",\"accentColor\":\"#ff8800\",\"socials\":[]},{\"id\":5,\"name\":\"PrincessBayleaf\",\"gamertag\":\"PrincessBayleaf\",\"rank\":\"Rave Pincess\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/image_2026-05-06_085642085-cropped-square-20260506155644.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/bayleaf-banner-cropped-original-20260506192859.jpg\",\"accentColor\":\"#f472b6\",\"socials\":[]},{\"id\":6,\"name\":\"NeighborGuyBri\",\"gamertag\":\"NeighborGuyBri\",\"rank\":\"Neighbor\",\"isLeader\":false,\"about\":\"\",\"bio\":\"\",\"photoUrl\":\"../assets/image_2026-05-06_194922873-cropped-square-20260507024924.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/image_2026-05-06_195011728-cropped-original-20260507025014.jpg\",\"accentColor\":\"#2dd4bf\",\"socials\":[]},{\"id\":7,\"name\":\"Thomas\",\"gamertag\":\"Thomas\",\"rank\":\"Community Dad\",\"isLeader\":false,\"about\":\"\",\"bio\":\"An AC&R Technician with the Navy, Thomas's age is somehow both 26 and 56. Formerly being the youngest member of OGB(Old Grumpy Bastards), Thomas's demeanor, mechanical skills, and ability to somehow always be in the process of cooking bacon keeps him old at heart. He may be the youngest of the THICCums, but he wears the mustache well.\\nKey Highlights:\\n-Chazdyn once called Thomas for help fixing a lawnmower.\\n-Chazdyn called Thomas once again when the outdoor heater wasn't working.\\n-Thomas once gave a discord seminar on the states of water regarding pressure versus temperature.\\n-Thomas has remotely assisted in fixing Cardi and Taquito's garbage disposal.\",\"photoUrl\":\"../assets/image_2026-05-06_194604254-cropped-square-20260507024606.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"../assets/image_2026-05-06_194624407-cropped-original-20260507024627.jpg\",\"accentColor\":\"#a78bfa\",\"socials\":[]},{\"id\":8,\"name\":\"Krunch\",\"gamertag\":\"Krunch23\",\"rank\":\"Your Cousin\",\"isLeader\":false,\"about\":\"How does he look like your cousin? How does he look like my cousin??\",\"bio\":\"\",\"photoUrl\":\"../assets/krunchy pic.jpg\",\"videoUrl\":\"\",\"bannerUrl\":\"\",\"accentColor\":\"#f5a623\",\"socials\":[]}],\"thiccDesc\":\"We're not a tryhard clan. We're a group of friends who happen to be pretty decent at COD — and extremely good at talking over each other on comms.\",\"thiccGame\":\"BO6\",\"thiccFounded\":\"2025\",\"thiccTag\":\"THICC\",\"thiccFullname\":\"\",\"_lastDeploy\":\"2026-06-23T00:05:10.904Z\"}");}})();</script></head>
+<body>
+
+<!-- ───── MASTHEAD ───── -->
+<header class="masthead" data-screen-label="Masthead">
+  <a class="mh-brand" href="#hero">
+    <img class="mh-mark" src="assets/chazdyn-mark.png" alt="Chazdyn logo" />
+    <span class="mh-brand-txt">
+      <span class="mh-name">Chazdyn</span>
+      <span class="mh-sub">Morning After Dark · Washington</span>
+    </span>
+  </a>
+  <nav class="mh-nav">
+    <a href="#host">The Host</a>
+    <a href="#programming">On the Bill</a>
+    <a href="#music">Music</a>
+    <a href="#clips">Broadcast</a>
+    <a href="/streams/">Streams</a>
+    <a href="/projects/">Projects</a>
+    <a href="#connect">Connect</a>
+    <a href="/thicc" class="is-thicc">THICC</a>
+  </nav>
+  <div class="mh-right">
+    <span class="nav-live" id="nav-live"><span class="live-dot"></span>On Air</span>
+    <a class="mh-watch" href="https://twitch.tv/chazdyn" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+      Watch
+    </a>
+  </div>
+</header>
+
+<!-- ───── HERO ───── -->
+<section class="hero" id="hero" data-screen-label="Hero">
+  <div class="hero-bg"></div>
+  <div class="hero-scrim"></div>
+  <div class="hero-grain"></div>
+  <span class="hero-side">No. 01 — The Morning After Dark</span>
+  <div class="hero-inner">
+    <div class="live-badge" id="live-badge"><span class="live-dot"></span>Live Now · On Twitch</div>
+    <div class="hero-eyebrow"><span class="ln"></span><span class="eyebrow">Est. Washington State — Musician &amp; Host</span></div>
+    <h1 class="hero-title">A lifelong musician, building <em>The Morning After Dark.</em></h1>
+    <p class="hero-subtitle">Late-show energy at breakfast-hour weirdness: games, music, lore spirals, creator tools, and conversations that somehow still feel after dark.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="https://twitch.tv/chazdyn" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+        Watch Live
+      </a>
+      <a class="btn btn-ghost" href="https://discord.gg/BWV92m2T2D" target="_blank" rel="noopener">Join the Discord</a>
+      <a class="btn btn-ghost" href="/streams/">Creator Network</a>
+    </div>
+    <div class="hero-meta">
+      <div class="m"><div class="v">Guitar</div><div class="k">First instrument</div></div>
+      <div class="m"><div class="v">Morning After Dark</div><div class="k">Late-show energy · AM hours</div></div>
+      <div class="m"><div class="v">PNW</div><div class="k">Broadcasting from</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── BILLING MARQUEE ───── -->
+<div class="billing">
+  <div class="billing-track">
+    <span>The Morning After Dark with <b>Chazdyn</b></span><span>Dagoth Burro Book Club</span><span>Live Music Lab</span><span>Trash Talk Tuesday</span><span>Creator Tools</span><span>Washington State</span>
+    <span>The Morning After Dark with <b>Chazdyn</b></span><span>Dagoth Burro Book Club</span><span>Live Music Lab</span><span>Trash Talk Tuesday</span><span>Creator Tools</span><span>Washington State</span>
+  </div>
+</div>
+
+<!-- ───── THE HOST ───── -->
+<section class="host" id="host" data-screen-label="The Host">
+  <div class="wrap">
+    <div class="host-grid">
+      <div class="host-body fade-up">
+        <div class="host-head"><span class="no">01</span><span class="label">The Host</span></div>
+        <h2 class="section-title">A musician who <em>left the room rolling.</em></h2>
+        <p class="lead">Music has been the constant my whole life — long before any of it was on camera. The stream started as a place to share the games I love, then slowly turned into a studio, workshop, book club, comedy detour, and whatever else the room can survive.</p>
+        <p>Now I'm building toward the things I actually want to make: <strong>live sets straight from the room</strong>, a <strong>morning show with late-night DNA</strong>, creator tools that make streams feel custom-built, and recurring bits that are strange enough to earn their own lore.</p>
+        <div class="byline">
+          <img id="about-avatar" src="assets/Chazdyn-Avatar-cropped-square-20260503175007.jpg" alt="Chazdyn" onerror="this.onerror=null;this.src='assets/chazdyn-default-avatar.png';" />
+          <div><div class="bn">@Chazdyn</div><div class="bl">Host &amp; Musician · PNW</div></div>
+        </div>
+        <div class="tag-row">
+          <span>Guitar</span><span>Songwriting</span><span>Morrowind Lore</span><span>Creator Tools</span><span>Good Company</span>
+        </div>
+      </div>
+      <figure class="host-figure fade-up" style="transition-delay:.1s">
+        <div class="photo"><img src="assets/chazdyn-study.png" alt="Chazdyn in his study with a globe, books and an acoustic guitar" /></div>
+        <figcaption><span>The study</span><span>Washington · 2026</span></figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ───── PROGRAMMING / THE BILL ───── -->
+<section class="programming" id="programming" data-screen-label="On the Bill">
+  <div class="wrap">
+    <div class="prog-head fade-up">
+      <span class="label">The Programming</span>
+      <h2 class="section-title">What's <em>on the bill</em></h2>
+    </div>
+    <div class="prog-grid">
+      <div class="prog-list fade-up">
+        <div class="prog-item">
+          <span class="prog-no">01</span>
+          <div class="prog-main"><div class="t">Dagoth Burro Book Club</div><div class="s">A TES3MP Morrowind run with <a class="prog-link" href="https://twitch.tv/Smoka_Tidepod" target="_blank" rel="noopener">Smoka_Tidepod</a>: two streamers wandering Vvardenfell, finding books, and treating the lore like a deeply unserious but strangely sincere book club.</div><div class="prog-time">Tuesdays · 6 PM Pacific</div></div>
+          <span class="prog-status now">Now Showing</span>
+        </div>
+        <div class="prog-item">
+          <span class="prog-no">02</span>
+          <div class="prog-main"><div class="t">Trash Talk Tuesday</div><div class="s">A monthly raid train where every hour hands the room to the next streamer. Past stops include <em>Adam Duritz Syndrome</em>, a deep-dive into Adam Duritz dating history, plus a variety stream that went from DBZ Abridged into live music.</div><div class="prog-time">Every second Tuesday · Raid train format</div></div>
+          <span class="prog-status soon">Monthly</span>
+        </div>
+        <div class="prog-item">
+          <span class="prog-no">03</span>
+          <div class="prog-main"><div class="t">The Morning After Dark</div><div class="s">A talk-show concept for people who like the mood of late night but do not require the clock to cooperate: interviews, weird research holes, creator conversations, and musical interruptions when the guitar wins.</div></div>
+          <span class="prog-status soon">Building</span>
+        </div>
+        <div class="prog-item">
+          <span class="prog-no">04</span>
+          <div class="prog-main"><div class="t">Live Music Lab</div><div class="s">Guitar-forward streams, arrangement experiments, original ideas, Ableton rabbit holes, and the occasional “what if Polyphia had to host public access television?” moment.</div></div>
+          <span class="prog-status soon">In Rehearsal</span>
+        </div>
+        <div class="prog-item">
+          <span class="prog-no">05</span>
+          <div class="prog-main"><div class="t">Silly Micro Boyz Cameos</div><div class="s">Occasional Sunday drop-ins on Smoka_Tidepod's Ultima Online broadcast with his group — part MMO hang, part recurring side quest, part “how did we end up here?”</div><div class="prog-time">Sundays · Occasional cameo</div></div>
+          <span class="prog-status soon">Guest Spot</span>
+        </div>
+      </div>
+      <figure class="prog-figure fade-up" style="transition-delay:.1s">
+        <img src="assets/chazdyn-latenight-set.png" alt="The late-night talk show set, lit and ready" />
+        <div class="cap">The set, taking shape.</div>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ───── MUSIC ───── -->
+<section class="music" id="music" data-screen-label="Music">
+  <div class="wrap">
+    <div class="music-top">
+      <div class="music-intro fade-up">
+        <span class="label">Where It Started</span>
+        <h2 class="section-title" style="margin-top:.8rem">The <em>Music</em></h2>
+        <p>I've played as long as I can remember. The recordings live here — and once the rig's ready, you'll hear it live on stream.</p>
+      </div>
+      <div class="music-photo fade-up" style="transition-delay:.08s">
+        <img src="assets/chazdyn-guitar.png" alt="Chazdyn playing acoustic guitar on stream" />
+      </div>
+    </div>
+    <div class="music-grid">
+      <div class="music-video-wrap fade-up" id="music-video-wrap">
+        <div class="music-placeholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+          featured track / video<br>add a link in Control.Dyn
+        </div>
+      </div>
+      <div class="music-links fade-up" id="music-links" style="transition-delay:.1s">
+        <div class="ml-head">Listen Elsewhere</div>
+        <a class="music-link-card" href="#" id="music-yt">
+          <div class="music-link-icon"><svg viewBox="0 0 24 24" fill="#ff4d4d"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg></div>
+          <div class="music-link-text"><div class="music-link-name">YouTube</div><div class="music-link-sub">Link your channel in Control.Dyn</div></div>
+          <span class="music-link-arrow">↗</span>
+        </a>
+        <a class="music-link-card" href="#" id="music-spotify">
+          <div class="music-link-icon"><svg viewBox="0 0 24 24" fill="#1db954"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg></div>
+          <div class="music-link-text"><div class="music-link-name">Spotify</div><div class="music-link-sub">Link coming soon</div></div>
+          <span class="music-link-arrow">↗</span>
+        </a>
+        <a class="music-link-card" href="#" id="music-soundcloud">
+          <div class="music-link-icon"><svg viewBox="0 0 24 24" fill="#ff7700"><path d="M11.248 9.5a3.752 3.752 0 0 0-3.752 3.75c0 2.072 1.68 3.752 3.752 3.752a3.752 3.752 0 0 0 3.752-3.752A3.752 3.752 0 0 0 11.248 9.5zm8.252.25a4.5 4.5 0 0 0-4.5 4.5H24v-1.25a4.5 4.5 0 0 0-4.5-3.25zM2.5 11.5c-.27 0-.5.5-.5 1.75s.23 1.75.5 1.75.5-.5.5-1.75-.23-1.75-.5-1.75zm2 0c-.27 0-.5.5-.5 1.75s.23 1.75.5 1.75.5-.5.5-1.75-.23-1.75-.5-1.75zm2-.5c-.27 0-.5.7-.5 2.25s.23 2.25.5 2.25.5-.7.5-2.25-.23-2.25-.5-2.25z"/></svg></div>
+          <div class="music-link-text"><div class="music-link-name">SoundCloud</div><div class="music-link-sub">Link coming soon</div></div>
+          <span class="music-link-arrow">↗</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── BROADCAST / CLIPS ───── -->
+<section class="clips" id="clips" data-screen-label="Broadcast">
+  <div class="wrap">
+    <div class="sec-head fade-up">
+      <div>
+        <span class="label">From the Broadcast</span>
+        <h2 class="section-title" style="margin-top:.7rem">Recent <em>Clips</em></h2>
+      </div>
+      <a class="btn btn-ghost" href="https://twitch.tv/chazdyn/clips" target="_blank" rel="noopener">All Clips ↗</a>
+    </div>
+    <div class="clips-grid" id="clips-grid">
+      <div class="clip-card feature fade-up">
+        <div class="clip-video-wrap"><span class="clip-num">01</span><div class="clip-placeholder">[ featured clip ]<br>paste a link in Control.Dyn</div></div>
+        <div class="clip-meta"><span class="clip-source">Twitch</span><span class="clip-title">Featured clip coming soon</span></div>
+      </div>
+      <div class="clip-stack">
+        <div class="clip-card fade-up" style="transition-delay:.08s">
+          <div class="clip-video-wrap"><span class="clip-num">02</span><div class="clip-placeholder">[ clip 2 ]<br>paste a link in Control.Dyn</div></div>
+          <div class="clip-meta"><span class="clip-source">Twitch</span><span class="clip-title">Clip coming soon</span></div>
+        </div>
+        <div class="clip-card fade-up" style="transition-delay:.16s">
+          <div class="clip-video-wrap"><span class="clip-num">03</span><div class="clip-placeholder">[ clip 3 ]<br>paste a link in Control.Dyn</div></div>
+          <div class="clip-meta"><span class="clip-source">Twitch</span><span class="clip-title">Clip coming soon</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── BROADCAST LOG (schedule) ───── -->
+<section class="schedule" id="schedule" data-screen-label="Schedule">
+  <div class="wrap">
+    <div class="sched-head fade-up">
+      <div>
+        <span class="label">Broadcast Log</span>
+        <h2 class="section-title" style="margin-top:.7rem">When the <em>mic's on</em></h2>
+      </div>
+      <span class="label-muted">Times approximate · Follow on Twitch for go-live pings</span>
+    </div>
+    <div class="schedule-grid fade-up" id="schedule-grid">
+      <div class="day-card"><div class="day-name">Mon</div><div class="day-off">Off / Build</div></div>
+      <div class="day-card active"><div class="day-name">Tue</div><div class="day-live">Dagoth Burro</div><div class="day-time">6 PM PT</div></div>
+      <div class="day-card"><div class="day-name">Wed</div><div class="day-off">TBD</div></div>
+      <div class="day-card"><div class="day-name">Thu</div><div class="day-off">TBD</div></div>
+      <div class="day-card"><div class="day-name">Fri</div><div class="day-off">TBD</div></div>
+      <div class="day-card"><div class="day-name">Sat</div><div class="day-off">TBD</div></div>
+      <div class="day-card active"><div class="day-name">Sun</div><div class="day-live">Cameo</div><div class="day-time">Occasional</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── CONNECT ───── -->
+<section class="connect" id="connect" data-screen-label="Connect">
+  <div class="wrap">
+    <span class="label fade-up">Elsewhere</span>
+    <h2 class="section-title fade-up" style="margin-top:.7rem">Find me <em>everywhere</em></h2>
+    <div class="connect-grid">
+      <div class="soc-list fade-up">
+        <a class="soc-row" href="https://twitch.tv/chazdyn" target="_blank" rel="noopener">
+          <span class="soc-ic"><svg viewBox="0 0 24 24" fill="#a472ff"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg></span>
+          <span><span class="soc-name">Twitch</span><div class="soc-handle">twitch.tv/chazdyn</div></span>
+          <span class="soc-grow"></span><span class="soc-arrow">↗</span>
+        </a>
+        <a class="soc-row" href="https://discord.gg/BWV92m2T2D" target="_blank" rel="noopener">
+          <span class="soc-ic"><svg viewBox="0 0 24 24" fill="#7c87f7"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg></span>
+          <span><span class="soc-name">Discord</span><div class="soc-handle">discord.gg/BWV92m2T2D</div></span>
+          <span class="soc-grow"></span><span class="soc-arrow">↗</span>
+        </a>
+        <a class="soc-row" href="https://tiktok.com/@thiccchazdyn" target="_blank" rel="noopener">
+          <span class="soc-ic"><svg viewBox="0 0 24 24" fill="#ff5c82"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.5 2.89 2.89 0 01-2.89-2.89 2.89 2.89 0 012.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 00-.79-.05 6.34 6.34 0 00-6.34 6.34 6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.33-6.34V8.69a8.28 8.28 0 004.84 1.54V6.79a4.85 4.85 0 01-1.07-.1z"/></svg></span>
+          <span><span class="soc-name">TikTok</span><div class="soc-handle">@THICCChazdyn</div></span>
+          <span class="soc-grow"></span><span class="soc-arrow">↗</span>
+        </a>
+        <a class="soc-row" href="https://instagram.com/chazdynplays" target="_blank" rel="noopener">
+          <span class="soc-ic"><svg viewBox="0 0 24 24" fill="#ec6a99"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg></span>
+          <span><span class="soc-name">Instagram</span><div class="soc-handle">@ChazdynPlays</div></span>
+          <span class="soc-grow"></span><span class="soc-arrow">↗</span>
+        </a>
+      </div>
+      <div class="crew fade-up" style="transition-delay:.1s">
+        <h3>Run with the crew</h3>
+        <p>Chazdyn doesn't broadcast in a vacuum. There's a whole cast of regulars, collaborators, and creator pages worth meeting — dig into the roster, then jump into the stream network.</p>
+        <div class="crew-chips">
+          <span class="crew-chip">Princess Bayleaf</span>
+          <span class="crew-chip">Mastercardi</span>
+          <span class="crew-chip">Thomas</span>
+          <span class="crew-chip">NeighborGuyBri</span>
+          <span class="crew-chip">Señorito Taquito</span>
+        </div>
+        <a class="crew-cta" href="/thicc">Meet the crew →</a><br><br><a class="crew-cta" href="/streams/">Open the stream network →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── CTA ───── -->
+<section class="cta-band" data-screen-label="CTA">
+  <div class="cta-bg"></div>
+  <div class="cta-inner">
+    <div class="wrap fade-up">
+      <h2 class="cta-title">Pull up a chair.<br><em>The mic's on.</em></h2>
+      <p class="cta-text">Follow on Twitch so you don't miss go-live, hop in the Discord, and check the stream network for the creator pages and live rooms connected to the whole experiment.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="https://twitch.tv/chazdyn" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714z"/></svg>
+          Follow on Twitch
+        </a>
+        <a class="btn btn-ghost" href="https://discord.gg/BWV92m2T2D" target="_blank" rel="noopener">Join Discord</a>
+        <a class="btn btn-ghost" href="/projects/">See Projects</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───── FOOTER ───── -->
+<footer data-screen-label="Footer">
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-crest"><span class="ln"></span><img class="foot-mark-img" src="assets/chazdyn-mark.png" alt="Chazdyn logo" /><span class="ln r"></span></div>
+      <div class="foot-signoff">That's all for the Morning After Dark.</div>
+    </div>
+    <div class="foot-bottom">
+      <div class="foot-name">Chazdyn · Morning After Dark</div>
+      <div class="foot-copy">© <span id="year">2026</span> Chazdyn · Made in Washington State, after dark in spirit</div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+
+  // ── Fade-up reveal (enhancement only; content visible by default) ──
+  (function(){
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.documentElement.classList.add('reveal-on');
+    function reveal(){
+      var vh = window.innerHeight || document.documentElement.clientHeight || 800;
+      document.querySelectorAll('.fade-up:not(.visible)').forEach(function(el){
+        var r = el.getBoundingClientRect();
+        if (r.top < vh * 0.92 && r.bottom > -40) el.classList.add('visible');
+      });
+    }
+    reveal();
+    requestAnimationFrame(function(){ requestAnimationFrame(reveal); });
+    window.addEventListener('scroll', reveal, { passive: true });
+    window.addEventListener('resize', reveal);
+    window.addEventListener('load', reveal);
+    [100, 350, 700].forEach(function(t){ setTimeout(reveal, t); });
+    setTimeout(function(){ document.documentElement.classList.remove('reveal-on'); }, 900);
+  })();
+
+  // ── Clip renderer ── (compatible with Control.Dyn config schema)
+  function renderClip(card, clip) {
+    if (!clip || (!clip.url && !clip.file)) return;
+    var wrap = card.querySelector('.clip-video-wrap');
+    var metaSource = card.querySelector('.clip-source');
+    var metaTitle  = card.querySelector('.clip-title');
+    if (clip.title && metaTitle) metaTitle.textContent = clip.title;
+
+    var embedHtml = '';
+    var url = clip.url || '';
+
+    if (clip.file) {
+      embedHtml = '<video src="' + clip.file + '" controls playsinline muted></video>';
+      if (metaSource) metaSource.textContent = 'Upload';
+    } else if (url.includes('twitch.tv')) {
+      var slug = url.split('/').pop().split('?')[0];
+      embedHtml = '<iframe src="https://clips.twitch.tv/embed?clip=' + slug + '&parent=' + location.hostname + '&autoplay=false" allowfullscreen scrolling="no"></iframe>';
+      if (metaSource) metaSource.textContent = 'Twitch';
+    } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      var vid = url.includes('youtu.be') ? url.split('/').pop().split('?')[0] : new URL(url).searchParams.get('v');
+      embedHtml = '<iframe src="https://www.youtube.com/embed/' + vid + '" allowfullscreen></iframe>';
+      if (metaSource) metaSource.textContent = 'YouTube';
+    } else if (url.includes('tiktok.com')) {
+      embedHtml = '<iframe src="' + url + '" allowfullscreen></iframe>';
+      if (metaSource) metaSource.textContent = 'TikTok';
+    } else if (url.includes('instagram.com')) {
+      embedHtml = '<iframe src="' + url + 'embed/" allowfullscreen></iframe>';
+      if (metaSource) metaSource.textContent = 'Instagram';
+    } else if (url) {
+      embedHtml = '<video src="' + url + '" controls playsinline></video>';
+    }
+
+    if (embedHtml) wrap.innerHTML = embedHtml;
+  }
+
+  // ── Music video renderer ──
+  function renderMusicVideo(url) {
+    if (!url) return;
+    var wrap = document.getElementById('music-video-wrap');
+    var embedHtml = '';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+      var vid = url.includes('youtu.be') ? url.split('/').pop().split('?')[0] : new URL(url).searchParams.get('v');
+      embedHtml = '<iframe src="https://www.youtube.com/embed/' + vid + '" allowfullscreen></iframe>';
+    } else {
+      embedHtml = '<video src="' + url + '" controls playsinline></video>';
+    }
+    wrap.innerHTML = embedHtml;
+  }
+
+  // ── Load config from localStorage (written by Control.Dyn) ──
+  function applyConfig() {
+    var raw = localStorage.getItem('chazdyn_config');
+    if (!raw) return;
+    try {
+      var cfg = JSON.parse(raw);
+
+      if (cfg.isLive) {
+        var lb = document.getElementById('live-badge'); if (lb) lb.classList.add('is-live');
+        var nl = document.getElementById('nav-live'); if (nl) nl.classList.add('is-live');
+      }
+
+      var normalizeSitePath = function(path){
+        if (!path) return path;
+        if (/^(https?:|data:|blob:|mailto:|tel:|#)/i.test(path)) return path;
+        return path.replace(/^\.\.\//, '');
+      };
+
+      if (cfg.heroEyebrow) { var el1 = document.querySelector('.eyebrow'); if (el1) el1.textContent = cfg.heroEyebrow; }
+      if (cfg.heroTagline) { var el2 = document.querySelector('.hero-subtitle'); if (el2) el2.textContent = cfg.heroTagline; }
+      if (cfg.avatarUrl) { var el3 = document.getElementById('about-avatar'); if (el3) el3.src = normalizeSitePath(cfg.avatarUrl); }
+      if (cfg.aboutBio) { var el4 = document.querySelector('.host-bio'); if (el4) el4.textContent = cfg.aboutBio; }
+      if (cfg.aboutLong) { var el5 = document.querySelector('#host .lead'); if (el5) el5.textContent = cfg.aboutLong; }
+      if (Array.isArray(cfg.aboutTags)) { var wrapT = document.querySelector('.tag-row'); if (wrapT) wrapT.innerHTML = cfg.aboutTags.map(function(t){ return '<span>' + String(t).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }) + '</span>'; }).join(''); }
+
+      if (cfg.twitchUrl)  document.querySelectorAll('a[href*="twitch.tv"]').forEach(function(a){ a.href = cfg.twitchUrl; });
+      if (cfg.discordUrl) document.querySelectorAll('a[href*="discord"]').forEach(function(a){ a.href = cfg.discordUrl; });
+      if (cfg.tiktokUrl)  document.querySelectorAll('a[href*="tiktok"]').forEach(function(a){ a.href = cfg.tiktokUrl; });
+      if (cfg.instaUrl)   document.querySelectorAll('a[href*="instagram"]').forEach(function(a){ a.href = cfg.instaUrl; });
+
+      if (cfg.musicYtUrl)   { var m1 = document.getElementById('music-yt');         if(m1){ m1.href = cfg.musicYtUrl;   m1.querySelector('.music-link-sub').textContent = cfg.musicYtUrl; }}
+      if (cfg.musicSpotUrl) { var m2 = document.getElementById('music-spotify');    if(m2){ m2.href = cfg.musicSpotUrl; m2.querySelector('.music-link-sub').textContent = cfg.musicSpotUrl; }}
+      if (cfg.musicScUrl)   { var m3 = document.getElementById('music-soundcloud'); if(m3){ m3.href = cfg.musicScUrl;   m3.querySelector('.music-link-sub').textContent = cfg.musicScUrl; }}
+      if (cfg.musicVideoUrl) renderMusicVideo(cfg.musicVideoUrl);
+
+      var cards = document.querySelectorAll('#clips-grid .clip-card');
+      if (cfg.clips && cfg.clips.length) {
+        cfg.clips.forEach(function(clip, i){ if (cards[i]) renderClip(cards[i], clip); });
+      }
+
+      if (cfg.schedule) {
+        var days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        var grid = document.getElementById('schedule-grid');
+        if (grid) {
+          grid.innerHTML = days.map(function(day){
+            var s = cfg.schedule[day] || { live:false, time:'' };
+            if (s.live) {
+              return '<div class="day-card active"><div class="day-name">' + day + '</div><div class="day-live">Live</div><div class="day-time">' + (s.time || '') + '</div></div>';
+            }
+            return '<div class="day-card"><div class="day-name">' + day + '</div><div class="day-off">' + (s.label || 'Off') + '</div></div>';
+          }).join('');
+        }
+      }
+
+    } catch(e) { console.warn('Config error', e); }
+  }
+
+  applyConfig();
+</script>
+</body>
+</html>
+ 
