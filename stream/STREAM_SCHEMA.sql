@@ -5,6 +5,19 @@
 -- ════════════════════════════════════════════════════════════
 
 -- 1) CREATORS ----------------------------------------------------
+-- Discord ID of the signed-in user, read from auth.identities (Supabase-owned).
+-- Never use auth.jwt() -> 'user_metadata' in policies: users can edit it.
+create or replace function public.dyn_discord_id()
+returns text
+language sql stable security definer
+set search_path = ''
+as $$
+  select i.provider_id from auth.identities i
+  where i.user_id = auth.uid() and i.provider = 'discord'
+  order by i.created_at limit 1;
+$$;
+grant execute on function public.dyn_discord_id() to anon, authenticated;
+
 create table if not exists public.creators (
   id               uuid primary key default gen_random_uuid(),
   slug             text unique not null,              -- url: /stream/<slug>
@@ -109,35 +122,35 @@ create policy "public reads live creators"
 
 -- A creator can read/update ONLY their own row.
 -- (Map Discord login → owner_discord_id. With Supabase Discord OAuth,
---  the Discord user id is in auth.jwt() -> 'user_metadata' -> 'provider_id'.)
+--  the Discord user id comes from public.dyn_discord_id().)
 create policy "owner reads own row"
   on public.creators for select
-  using ( owner_discord_id = (auth.jwt() -> 'user_metadata' ->> 'provider_id') );
+  using ( owner_discord_id = public.dyn_discord_id() );
 
 create policy "owner updates own row"
   on public.creators for update
-  using ( owner_discord_id = (auth.jwt() -> 'user_metadata' ->> 'provider_id') )
-  with check ( owner_discord_id = (auth.jwt() -> 'user_metadata' ->> 'provider_id') );
+  using ( owner_discord_id = public.dyn_discord_id() )
+  with check ( owner_discord_id = public.dyn_discord_id() );
 
 -- Chazdyn's Control.Dyn admin panel uses the public anon key plus Discord
 -- OAuth. These policies let only the allowlisted Discord account manage
 -- all stream creator rows from Control.Dyn without exposing a service key.
 create policy "admin reads all creators"
   on public.creators for select
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' );
 
 create policy "admin inserts creators"
   on public.creators for insert
-  with check ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  with check ( public.dyn_discord_id() = '562352729482067968' );
 
 create policy "admin updates creators"
   on public.creators for update
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' )
-  with check ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' )
+  with check ( public.dyn_discord_id() = '562352729482067968' );
 
 create policy "admin deletes creators"
   on public.creators for delete
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' );
 
 -- Anyone signed in can file a join request; nobody else can read them.
 create policy "signed-in can request"
@@ -146,12 +159,12 @@ create policy "signed-in can request"
 
 create policy "admin reads creator requests"
   on public.creator_requests for select
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' );
 
 create policy "admin updates creator requests"
   on public.creator_requests for update
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' )
-  with check ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' )
+  with check ( public.dyn_discord_id() = '562352729482067968' );
 
 -- Public stream directory settings are safe to read. Only Chazdyn can edit.
 create policy "public reads stream settings"
@@ -160,20 +173,20 @@ create policy "public reads stream settings"
 
 create policy "admin reads stream settings"
   on public.stream_settings for select
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' );
 
 create policy "admin inserts stream settings"
   on public.stream_settings for insert
-  with check ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  with check ( public.dyn_discord_id() = '562352729482067968' );
 
 create policy "admin updates stream settings"
   on public.stream_settings for update
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' )
-  with check ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' )
+  with check ( public.dyn_discord_id() = '562352729482067968' );
 
 create policy "admin deletes stream settings"
   on public.stream_settings for delete
-  using ( (auth.jwt() -> 'user_metadata' ->> 'provider_id') = '562352729482067968' );
+  using ( public.dyn_discord_id() = '562352729482067968' );
 
 -- NOTE: Do NOT expose the service-role key in the website. Control.Dyn uses
 -- the public anon key and the admin Discord policy above.

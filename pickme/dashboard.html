@@ -1,0 +1,1180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>PickMe Dashboard</title>
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="pickme.css">
+<style>
+  body{ background:var(--void); min-height:100vh; font-size:15px; }
+  .wrap{ max-width:820px; margin:0 auto; padding:14px 14px 70px; }
+  header{ display:flex; align-items:center; gap:12px; padding:6px 0 12px; }
+  header img{ width:34px; height:34px; }
+  header h1{ margin:0; font-family:var(--display); font-weight:400; font-size:32px; letter-spacing:1px; color:var(--lime); line-height:1; }
+  header h1 span{ color:var(--purple-hi); }
+  header .me{ margin-left:auto; display:flex; align-items:center; gap:8px; color:var(--muted); font-size:13px; }
+  nav.tabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:14px; overflow-x:auto; }
+  nav.tabs button{ background:none; border:0; border-bottom:3px solid transparent; border-radius:0; padding:10px 14px; color:var(--muted); white-space:nowrap; }
+  nav.tabs button.on{ color:var(--lime); border-bottom-color:var(--lime); }
+  .card{ background:linear-gradient(180deg, var(--panel2), var(--panel)); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card h2{ margin:0 0 10px; font-size:12px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); font-weight:800; display:flex; align-items:center; gap:8px; }
+  .card h2 .r{ margin-left:auto; letter-spacing:0; text-transform:none; font-weight:600; }
+  .row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .grow{ flex:1; min-width:0; }
+  button{ font:inherit; font-weight:700; border-radius:10px; border:1px solid var(--line); background:#22134a; color:var(--text); padding:10px 14px; cursor:pointer; }
+  button:hover{ border-color:var(--purple-hi); }
+  button:disabled{ opacity:.45; cursor:not-allowed; }
+  button.go{ background:var(--lime); color:var(--ink); border-color:var(--lime); }
+  button.go:hover{ background:var(--lime-hi); }
+  button.bad{ background:#3a0b18; border-color:#7a1f33; color:#ffc2cd; }
+  button.twitch{ background:#9146ff; border-color:#9146ff; }
+  button.sm{ padding:6px 10px; font-size:13px; }
+  button.ghost{ background:transparent; }
+  button.sel{ background:var(--purple); border-color:var(--purple-hi); }
+  input, textarea, select{ font:inherit; color:var(--text); background:#0c0619; border:1px solid var(--line); border-radius:10px; padding:10px 12px; }
+  textarea{ width:100%; resize:vertical; min-height:62px; }
+  input:focus, textarea:focus, select:focus{ outline:2px solid var(--purple); outline-offset:0; }
+  label.chk{ display:flex; align-items:center; gap:8px; font-weight:600; cursor:pointer; }
+  label.chk input{ width:18px; height:18px; accent-color:var(--lime); }
+  .muted{ color:var(--muted); } .small{ font-size:13px; } .tiny{ font-size:12px; }
+  .stats{ display:flex; gap:10px; }
+  .stat{ flex:1; text-align:center; background:#0c0619; border:1px solid var(--line); border-radius:12px; padding:8px 6px 6px; }
+  .stat b{ display:block; font-family:var(--display); font-weight:400; font-size:44px; line-height:1; }
+  .stat > span{ font-size:11px; letter-spacing:2px; font-weight:800; color:var(--muted); text-transform:uppercase; }
+  .stat b .pick{ width:.7em; height:.7em; margin-right:6px; vertical-align:-.02em; }
+  .stat.h b{ color:var(--lime); } .stat.c b{ color:var(--chat); }
+  .chip{ display:inline-block; padding:3px 10px; border-radius:99px; font-size:12px; font-weight:800; letter-spacing:1.5px; background:#2a1656; color:var(--purple-hi); text-transform:uppercase; }
+  .chip.ok{ background:#17320a; color:var(--lime); } .chip.warn{ background:#3a2a06; color:var(--amber); } .chip.bad{ background:#3a0b18; color:#ff9aab; }
+  .big{ font-family:var(--display); font-size:64px; line-height:1; color:var(--lime); }
+  .guessbox input{ font-size:22px; font-weight:700; padding:12px 14px; }
+  .guessbox button{ font-size:18px; padding:12px 18px; }
+  .tl{ display:grid; gap:6px; margin-top:12px; }
+  .t{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background:#0c0619; border:1px solid var(--line); }
+  .t .n{ font-family:var(--display); font-size:26px; color:var(--lime); width:24px; text-align:center; }
+  .t .l{ flex:1; font-weight:700; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .t.hidden .l{ color:var(--faint); letter-spacing:4px; }
+  .t.rev{ border-color:var(--lime-deep); } .t.rev.chat{ border-color:rgba(52,226,255,.5); }
+  .t .c{ font-family:var(--display); font-size:26px; }
+  .t .c .pick{ width:.8em; height:.8em; margin-right:4px; }
+  .strk{ font-size:26px; letter-spacing:6px; color:var(--red); font-weight:800; }
+  .strk i{ font-style:normal; opacity:.2; } .strk i.on{ opacity:1; }
+  .last{ min-height:22px; font-weight:800; text-transform:uppercase; margin-top:10px; }
+  .last.hit, .last.judge{ color:var(--lime); } .last.miss, .last.strike{ color:var(--red); } .last.dupe{ color:var(--purple-hi); } .last.offboard{ color:var(--amber); }
+  details summary{ cursor:pointer; color:var(--muted); font-size:13px; margin-top:10px; }
+  .bank{ list-style:none; margin:8px 0 0; padding:0; display:grid; gap:4px; max-height:260px; overflow:auto; }
+  .bank li{ padding:7px 10px; border-radius:8px; background:#0c0619; cursor:pointer; font-size:14px; }
+  .bank li:hover{ background:#1a0e36; } .bank li.used{ opacity:.4; }
+  .list{ display:grid; gap:6px; }
+  .item{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background:#0c0619; border:1px solid var(--line); min-width:0; }
+  .item.click{ cursor:pointer; } .item.click:hover{ border-color:var(--purple-hi); }
+  .item .av{ width:30px; height:30px; border-radius:50%; background:var(--purple); flex:none; object-fit:cover; }
+  .item .nm{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item .sub{ color:var(--muted); font-size:12px; }
+  .item .bal{ margin-left:auto; font-family:var(--display); font-size:24px; color:var(--lime); white-space:nowrap; }
+  .item .bal .pick{ width:.8em; height:.8em; margin-right:3px; vertical-align:-.05em; }
+  .feed{ display:grid; gap:4px; max-height:520px; overflow:auto; }
+  .ev{ display:flex; gap:10px; padding:6px 8px; border-radius:8px; background:#0c0619; font-size:13px; align-items:baseline; }
+  .ev .k{ font-weight:800; color:var(--purple-hi); min-width:110px; text-transform:uppercase; font-size:11px; letter-spacing:1px; }
+  .ev .d{ flex:1; min-width:0; overflow-wrap:anywhere; }
+  .ev .w{ color:var(--faint); white-space:nowrap; font-size:12px; }
+  .ev .pos{ color:var(--lime); font-weight:800; } .ev .neg{ color:#ff9aab; font-weight:800; }
+  .pbig{ display:flex; align-items:center; gap:14px; }
+  .pbig img, .pbig .av{ width:64px; height:64px; border-radius:50%; background:var(--purple); object-fit:cover; }
+  .pbig .bal{ margin-left:auto; font-family:var(--display); font-size:58px; color:var(--lime); line-height:1; }
+  .pbig .bal .pick{ width:.7em; height:.7em; margin-right:6px; vertical-align:-.04em; }
+  .links code{ display:block; background:#0c0619; border:1px solid var(--line); border-radius:8px; padding:8px; font-size:12px; word-break:break-all; margin:4px 0 8px; color:var(--lime-hi); }
+  .gate{ text-align:center; padding:28px 14px; }
+  .gate p{ color:var(--muted); }
+  .sep{ height:1px; background:var(--line); margin:12px 0; }
+  #toast{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%) translateY(140px); background:#22134a; border:1px solid var(--purple);
+          padding:10px 16px; border-radius:12px; font-weight:700; transition:transform .3s; z-index:9; max-width:92vw; }
+  #toast.on{ transform:translateX(-50%); } #toast.err{ border-color:var(--red); background:#3a0b18; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="../assets/chazdyn-mark.png" alt="">
+    <h1>PICKME <span>DASHBOARD</span></h1>
+    <div class="me" id="me" hidden><span id="meName"></span><button class="sm ghost" id="signOut">Sign out</button></div>
+  </header>
+
+  <section class="card gate" id="gateIn" hidden>
+    <p>Sign in with the host account.</p>
+    <div class="row" style="justify-content:center">
+      <button class="twitch" id="inTwitch">Sign in with Twitch</button>
+      <button id="inDiscord">Discord</button>
+    </div>
+  </section>
+  <section class="card gate" id="gateNo" hidden>
+    <p><b id="noName"></b> isn't a host.</p>
+    <p class="small">Add the Twitch login to <code>pm_hosts</code> in Supabase, or sign in as Chazdyn.</p>
+  </section>
+  <section class="card gate" id="gateLoad"><p>Loading…</p></section>
+
+  <main id="app" hidden>
+    <nav class="tabs" id="tabs">
+      <button data-tab="live" class="on">Live game</button>
+      <button data-tab="session">Session</button>
+      <button data-tab="players">Players</button>
+      <button data-tab="logs">Logs</button>
+      <button data-tab="access">Access</button>
+    </nav>
+
+    <!-- ═══════════ LIVE ═══════════ -->
+    <div data-pane="live">
+      <section class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px">
+          <span class="chip" id="phase">idle</span>
+          <span class="small muted" id="sessLine"></span>
+        </div>
+        <div class="stats">
+          <div class="stat h"><b><span data-pick id="lPick"></span><span id="sLeft">0</span></b><span id="sLeftLbl">Chazdyn · Picks</span></div>
+          <div class="stat c"><b><span data-pick></span><span id="sRight">0</span></b><span id="sRightLbl">Chat · Picks</span></div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <span class="small muted">Mode</span>
+          <button class="sm" data-mode="versus">Host vs Chat</button>
+          <button class="sm" data-mode="crowd">Chat vs Chat</button>
+          <span class="grow"></span>
+          <span class="small muted">Overlay</span>
+          <button class="sm" data-scene="game">Game</button>
+          <button class="sm" data-scene="leaderboard">Leaderboard</button>
+          <button class="sm" id="hideBtn">Hide</button>
+        </div>
+        <div class="small muted" id="modeBlurb" style="margin-top:8px"></div>
+      </section>
+
+      <!-- ask -->
+      <section class="card" id="askCard">
+        <h2 id="askTitle">New question</h2>
+        <textarea id="qIn" maxlength="200" placeholder="Name something you'd find in a streamer's fridge at 3 AM."></textarea>
+        <div class="small muted" id="qFrom" hidden></div>
+        <div class="row" style="margin-top:8px">
+          <label class="small muted">Time <select id="secIn"><option>30</option><option selected>45</option><option>60</option><option>90</option><option>120</option></select></label>
+          <label class="small muted">Board <select id="topIn"><option>3</option><option>4</option><option selected>5</option><option>6</option><option>7</option><option>8</option></select></label>
+          <button class="sm" id="randQ">Random</button>
+          <span class="grow"></span>
+          <button class="go" id="startBtn">Open survey</button>
+        </div>
+        <details><summary>Question bank</summary><ul class="bank" id="bank"></ul></details>
+      </section>
+
+      <!-- collecting -->
+      <section class="card" id="collectCard" hidden>
+        <h2>Survey open</h2>
+        <div class="muted small" id="cQ"></div>
+        <div class="row" style="margin:10px 0">
+          <div class="grow"><div class="big" id="cTime">0</div><div class="muted small">seconds left</div></div>
+          <div style="text-align:right"><div class="big" id="cCount" style="color:var(--text)">0</div><div class="muted small">answers</div></div>
+        </div>
+        <div class="row">
+          <button id="addBtn">+15s</button>
+          <button class="go" id="closeBtn">Close now</button>
+          <span class="grow"></span>
+          <button class="bad sm" id="cancelBtn1">Cancel round</button>
+        </div>
+      </section>
+
+      <!-- board -->
+      <section class="card" id="boardCard" hidden>
+        <h2 id="boardTitle">Your guesses</h2>
+        <div class="muted small" id="bQ"></div>
+        <div id="versusCtl">
+          <div class="row guessbox" style="margin-top:10px">
+            <input class="grow" id="guessIn" maxlength="60" placeholder="Type a guess, hit Enter" autocomplete="off">
+            <button class="go" id="guessBtn">Guess</button>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <div class="strk" id="strk"><i>✕</i><i>✕</i><i>✕</i></div>
+            <span class="grow"></span>
+            <button class="sm bad" id="strikeBtn">Strike</button>
+            <button class="sm" id="endBtn">End round (chat steals)</button>
+          </div>
+          <div class="last" id="last"></div>
+        </div>
+        <div id="crowdCtl" hidden>
+          <p class="small muted">Reveal tiles in any order. Each reveal pays everyone who gave that answer.</p>
+          <div class="row"><button class="go" id="revealNextBtn">Reveal next (lowest first)</button><button id="revealAllBtn">Reveal all</button></div>
+        </div>
+        <div class="tl" id="tl"></div>
+        <div class="row" style="margin-top:10px">
+          <span class="muted small" id="surveyed"></span><span class="grow"></span>
+          <button class="bad sm" id="cancelBtn2">Cancel round</button>
+        </div>
+      </section>
+
+      <section class="card" id="doneCard" hidden>
+        <h2>Round over</h2>
+        <div id="doneSum" style="font-weight:800;font-size:18px"></div>
+        <div class="list" id="doneTop" style="margin-top:10px"></div>
+        <div class="tl" id="tlDone"></div>
+        <div class="row" style="margin-top:10px"><button id="idleBtn">Back to idle screen</button></div>
+      </section>
+
+      <!-- question call -->
+      <section class="card">
+        <h2>Questions from chat <span class="r"><label class="chk small"><input type="checkbox" id="qCallChk"> Taking questions</label></span></h2>
+        <div class="small muted">Viewers send questions on the site or with <b>!q your question</b> in chat. Click Use to load one into the next round.</div>
+        <div class="row small" style="margin:8px 0">
+          <label class="muted">Reward the asker <input id="qReward" type="number" min="0" max="1000" value="5" style="width:80px"> Picks when used</label>
+        </div>
+        <div class="list" id="qInbox"></div>
+      </section>
+
+      <!-- chat bridge -->
+      <section class="card">
+        <h2>Twitch chat <span class="r"><span class="chip" id="ircChip">off</span></span></h2>
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="chatAnsChk"> Accept <b>!a answer</b> from chat</label>
+          <label class="chk"><input type="checkbox" id="autoDelChk"> Auto-hide !a / !q messages</label>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <span class="small">Moderation: <span class="chip" id="modChip">not connected</span></span>
+          <span class="grow"></span>
+          <button class="sm twitch" id="modBtn">Connect moderation</button>
+        </div>
+        <div class="tiny muted" style="margin-top:6px">Hiding needs a Twitch token with permission to delete chat messages. Twitch tokens last a few hours, so reconnect at the start of a stream. Messages from you (the broadcaster) can't be deleted.</div>
+        <div class="feed" id="bridgeFeed" style="margin-top:10px;max-height:180px"></div>
+      </section>
+
+      <section class="card">
+        <h2>Links</h2>
+        <div class="links small">
+          <div class="muted">OBS browser source (1920×1080)</div><code id="lnOverlay"></code>
+          <div class="muted">Viewers play at</div><code id="lnViewer"></code>
+          <div class="muted">This dashboard as an OBS dock</div><code id="lnDash"></code>
+        </div>
+        <div class="row"><button class="sm" id="scoreBtn">Set team Picks</button><button class="bad sm" id="resetBtn">Reset game screen</button></div>
+      </section>
+    </div>
+
+    <!-- ═══════════ SESSION ═══════════ -->
+    <div data-pane="session" hidden>
+      <section class="card" id="noSess">
+        <h2>Start a session</h2>
+        <p class="small muted">A session is one stream's worth of games. Players join it when they answer. You can close it to new players, make it invite-only, or end it.</p>
+        <div class="row">
+          <input class="grow" id="newSessTitle" placeholder="Monday night" maxlength="80">
+          <select id="newSessAccess"><option value="everyone">Everyone</option><option value="whitelist">Whitelist only</option></select>
+          <button class="go" id="newSessBtn">Start session</button>
+        </div>
+      </section>
+      <section class="card" id="curSess" hidden>
+        <h2>Live session <span class="r"><span class="chip" id="sessChip"></span></span></h2>
+        <div style="font-size:22px;font-weight:800" id="sessTitle"></div>
+        <div class="small muted" id="sessMeta"></div>
+        <div class="sep"></div>
+        <div class="small muted" style="margin-bottom:6px">New players</div>
+        <div class="row">
+          <button data-sstatus="open">Open</button>
+          <button data-sstatus="closed">Closed (current players only)</button>
+          <button class="bad" id="endSessBtn">End session</button>
+        </div>
+        <div class="small muted" style="margin:12px 0 6px">Who can play</div>
+        <div class="row">
+          <button data-saccess="everyone">Everyone</button>
+          <button data-saccess="whitelist">Whitelist only</button>
+          <span class="small muted">Whitelist people from Players or Access.</span>
+        </div>
+        <div class="sep"></div>
+        <h2>Players in this session <span class="r small muted" id="partCount"></span></h2>
+        <div class="list" id="partList"></div>
+      </section>
+      <section class="card">
+        <h2>Past sessions</h2>
+        <div class="list" id="pastList"></div>
+      </section>
+    </div>
+
+    <!-- ═══════════ PLAYERS ═══════════ -->
+    <div data-pane="players" hidden>
+      <section class="card" id="playerCard" hidden>
+        <div class="pbig" id="pHead"></div>
+        <div class="small muted" id="pMeta" style="margin-top:8px"></div>
+        <div class="sep"></div>
+        <h2>Give or take Picks</h2>
+        <div class="row">
+          <input id="adjAmt" type="number" placeholder="Amount" style="width:110px" min="1">
+          <input id="adjReason" class="grow" placeholder="Reason (shows in their history)" maxlength="120">
+          <button class="go" id="giveBtn">Give</button>
+          <button class="bad" id="takeBtn">Take</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="sm" data-quick="5">+5</button><button class="sm" data-quick="25">+25</button><button class="sm" data-quick="100">+100</button>
+          <button class="sm" data-quick="-5">−5</button><button class="sm" data-quick="-25">−25</button>
+        </div>
+        <div class="sep"></div>
+        <h2>Access</h2>
+        <div class="list" id="pAccess"></div>
+        <div class="sep"></div>
+        <h2>Picks history</h2>
+        <div class="feed" id="pLedger" style="max-height:240px"></div>
+        <h2 style="margin-top:12px">Activity</h2>
+        <div class="feed" id="pEvents" style="max-height:300px"></div>
+        <div class="row" style="margin-top:10px"><button class="sm" id="pClose">Back to list</button></div>
+      </section>
+      <section class="card" id="playersList">
+        <h2>Players <span class="r small muted" id="pCount"></span></h2>
+        <div class="row" style="margin-bottom:10px">
+          <input class="grow" id="pSearch" placeholder="Search name">
+          <select id="pSort"><option value="balance">Most Picks</option><option value="recent">Recently seen</option><option value="new">Newest</option></select>
+        </div>
+        <div class="list" id="pList"></div>
+      </section>
+    </div>
+
+    <!-- ═══════════ LOGS ═══════════ -->
+    <div data-pane="logs" hidden>
+      <section class="card">
+        <h2>Activity <span class="r"><label class="chk small"><input type="checkbox" id="logAuto" checked> Live</label></span></h2>
+        <div class="row" style="margin-bottom:10px">
+          <select id="logKind">
+            <option value="">Everything</option>
+            <option value="ledger">Picks changes</option>
+            <option value="answered">Answers</option>
+            <option value="answer_rejected">Rejected (blocked/closed)</option>
+            <option value="question">Questions</option>
+            <option value="joined">Joins</option>
+            <option value="profile_created">New profiles</option>
+            <option value="adjusted">Manual adjustments</option>
+            <option value="access">Access changes</option>
+          </select>
+          <input class="grow" id="logSearch" placeholder="Filter by name">
+        </div>
+        <div class="feed" id="logFeed"></div>
+      </section>
+    </div>
+
+    <!-- ═══════════ ACCESS ═══════════ -->
+    <div data-pane="access" hidden>
+      <section class="card">
+        <h2>Add a rule</h2>
+        <div class="row">
+          <input class="grow" id="accName" placeholder="Twitch name" list="accNames">
+          <datalist id="accNames"></datalist>
+          <select id="accKind"><option value="block">Block</option><option value="allow">Whitelist</option></select>
+          <select id="accScope"><option value="global">Everything</option><option value="game:chatsays">Chat Says</option><option value="session">This session</option></select>
+          <button class="go" id="accAdd">Add</button>
+        </div>
+        <div class="tiny muted" style="margin-top:6px">Blocks always win. Whitelist entries only matter when a session is set to “Whitelist only”. Chat-only players appear here after they've answered once.</div>
+      </section>
+      <section class="card">
+        <h2>Rules</h2>
+        <div class="list" id="accList"></div>
+      </section>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="pickme-core.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const $$ = (sel) => [...document.querySelectorAll(sel)];
+const sb = PM.client();
+const BASE = location.origin + location.pathname.replace(/[^/]*$/, '');
+const CHANNEL = PM.CONFIG.channel;
+$('lnOverlay').textContent = BASE + 'overlay.html';
+$('lnViewer').textContent  = BASE;
+$('lnDash').textContent    = BASE + 'dashboard.html';
+$$('[data-pick]').forEach(el => { const id = el.id; el.outerHTML = PM.pickSVG('', true).replace('<svg', id ? `<svg id="${id}"` : '<svg'); });
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+let toastT = 0;
+function toast(msg, kind){
+  const t = $('toast'); t.textContent = msg; t.className = 'on ' + (kind || '');
+  clearTimeout(toastT); toastT = setTimeout(() => t.className = '', 3400);
+}
+const avatar = (url) => url ? `<img class="av" src="${PM.esc(url)}" alt="">` : '<span class="av"></span>';
+const nameOf = (p) => p ? (p.display_name || p.login || 'viewer') : 'viewer';
+
+/* ── tabs ── */
+let TAB = 'live';
+$$('#tabs button').forEach(b => b.onclick = () => {
+  TAB = b.dataset.tab;
+  $$('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $$('[data-pane]').forEach(p => p.hidden = p.dataset.pane !== TAB);
+  if (TAB === 'session') loadSession();
+  if (TAB === 'players') loadPlayers();
+  if (TAB === 'logs') loadLogs();
+  if (TAB === 'access') loadAccess();
+});
+
+/* ── question bank ── */
+const BANK = [
+  "Name something you'd find in a streamer's fridge at 3 AM.", "Name a reason you'd leave a Twitch stream.",
+  "Name something people yell at their TV.", "Name a snack that hits different at 2 AM.",
+  "Name something guitarists are weirdly protective of.", "Name an excuse for being late to work.",
+  "Name something that ruins a camping trip.", "Name a word every gamer has typed in all caps.",
+  "Name something you always forget to pack.", "Name a fast food item worth the drive.",
+  "Name something you hide before guests come over.", "Name a video game everyone has played at least once.",
+  "Name something that's always in the junk drawer.", "Name something that got way too expensive.",
+  "Name a sound that instantly wakes you up.", "Name a reason to call IT support.",
+  "Name something people do instead of sleeping.", "Name an animal you do NOT want in your tent.",
+  "Name a thing you say when you lose a game.", "Name something you'd bring to a desert island (not food).",
+  "Name a pizza topping that starts arguments.", "Name a superpower that would be useless in real life.",
+  "Name something you'd find under the couch cushions.", "Name the worst thing to hear from your dentist.",
+  "Name a reason your Wi-Fi is slow.", "Name a job you'd be terrible at.",
+  "Name something people lie about on dating apps.", "Name a drink that makes you feel like the main character.",
+  "Name a chore everyone puts off.", "Name something a streamer says way too often.",
+  "Name a band everyone pretends to like.", "Name something you'd grab first in a fire.",
+];
+const used = new Set((() => { try { return JSON.parse(localStorage.getItem('pickme-used') || '[]'); } catch (e) { return []; } })());
+function renderBank(){
+  $('bank').innerHTML = '';
+  BANK.forEach(q => {
+    const li = document.createElement('li');
+    li.textContent = q; if (used.has(q)) li.className = 'used';
+    li.onclick = () => { setQuestion(q, null); $('qIn').focus(); };
+    $('bank').appendChild(li);
+  });
+}
+renderBank();
+let pendingQuestion = null;   // {id, profile_id, display_name} when a chat question is loaded
+function setQuestion(text, q){
+  $('qIn').value = text; pendingQuestion = q;
+  $('qFrom').hidden = !q;
+  if (q) $('qFrom').textContent = 'From ' + (q.display_name || 'a viewer') + (q.source === 'chat' ? ' (chat)' : '');
+}
+$('qIn').addEventListener('input', () => { if (pendingQuestion){ pendingQuestion = null; $('qFrom').hidden = true; } });
+$('randQ').onclick = () => {
+  const pool = BANK.filter(q => !used.has(q));
+  const list = pool.length ? pool : BANK;
+  setQuestion(list[Math.floor(Math.random() * list.length)], null);
+};
+
+/* ── auth gate ── */
+let isAdmin = false, watching = null;
+function show(id){ ['gateIn', 'gateNo', 'gateLoad', 'app'].forEach(x => $(x).hidden = x !== id); }
+async function checkAuth(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if (!session){ $('me').hidden = true; show('gateIn'); return; }
+  $('me').hidden = false; $('meName').textContent = PM.displayName(session.user);
+  if (session.provider_token) captureModToken(session.provider_token);
+  const { data, error } = await sb.rpc('pm_is_admin');
+  if (error){ toast('Supabase: ' + error.message + ' (did you run PICKME_SETUP.sql?)', 'err'); $('noName').textContent = PM.displayName(session.user); show('gateNo'); return; }
+  isAdmin = !!data;
+  if (!isAdmin){ $('noName').textContent = PM.displayName(session.user); show('gateNo'); return; }
+  show('app');
+  await PM.syncClock().catch(() => {});
+  if (!watching) watching = PM.watchState((s) => { if (!writing){ S = s; render(); } }, 2500);
+  startBridge();
+  refreshMod();
+  loadInbox();
+}
+$('inTwitch').onclick  = () => PM.signInTwitch(BASE + 'dashboard.html');
+$('inDiscord').onclick = () => PM.signInDiscord(BASE + 'dashboard.html');
+$('signOut').onclick   = async () => { await sb.auth.signOut(); location.reload(); };
+sb.auth.onAuthStateChange((ev, session) => {
+  if (session && session.provider_token) captureModToken(session.provider_token);
+  if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') checkAuth();
+});
+checkAuth();
+setInterval(() => PM.syncClock().catch(() => {}), 60000);
+
+/* ── state (the dashboard is the only writer) ── */
+let S = PM.defaultState();
+let writing = 0;
+async function save(mut){
+  const n = PM.normalizeState(JSON.parse(JSON.stringify(S)));
+  mut(n);
+  writing++;
+  try {
+    const { data, error } = await sb.from('pm_state').update({ data:n, updated_at:new Date().toISOString() }).eq('key', 'live').select('key');
+    if (error) throw error;
+    if (!data || !data.length) throw new Error('Not allowed to update the game (host check failed)');
+    S = n; render();
+    return n;
+  } catch (e) { toast(e.message || String(e), 'err'); throw e; }
+  finally { writing--; }
+}
+
+/* ── mode / scene ── */
+$$('[data-mode]').forEach(b => b.onclick = () => {
+  if (!(S.phase === 'idle' || S.phase === 'done')){ toast('Switch modes between rounds', 'err'); return; }
+  save(n => { n.mode = b.dataset.mode; });
+});
+$$('[data-scene]').forEach(b => b.onclick = () => save(n => { n.scene = b.dataset.scene; n.hidden = false; }));
+$('hideBtn').onclick = () => save(n => { n.hidden = !n.hidden; });
+
+/* ── round flow ── */
+async function startRound(){
+  const q = $('qIn').value.trim();
+  if (!q){ toast('Type a question first', 'err'); $('qIn').focus(); return; }
+  const seconds = parseInt($('secIn').value, 10), topN = parseInt($('topIn').value, 10);
+  $('startBtn').disabled = true;
+  try {
+    await PM.syncClock().catch(() => {});
+    const row = { question:q, seconds, mode:S.mode, game:'chatsays', session_id:S.sessionId || null };
+    if (pendingQuestion) row.question_id = pendingQuestion.id;
+    const { data:r, error } = await sb.from('pm_rounds').insert(row).select().single();
+    if (error) throw error;
+    roundAnswers = [];
+    await save(n => Object.assign(n, {
+      phase:'collecting', roundId:r.id, roundNo:(n.roundNo || 0) + 1, question:q, seconds,
+      closesAt:r.closes_at, topN, board:[], overflow:[], total:0, strikes:0,
+      round:{ host:0, chat:0, paid:0 }, roundTop:[], lastGuess:null, result:null, hidden:false, scene:'game',
+    }));
+    if (pendingQuestion){
+      const pq = pendingQuestion;
+      await sb.from('pm_questions').update({ status:'used' }).eq('id', pq.id);
+      const reward = parseInt($('qReward').value, 10) || 0;
+      if (reward > 0){
+        const { error:e2 } = await sb.rpc('pm_admin_adjust', { p_profile:pq.profile_id, p_delta:reward, p_reason:'Your question was used: ' + q.slice(0, 60) });
+        if (e2) toast(e2.message, 'err'); else toast(`${pq.display_name || 'Asker'} got ${PM.picks(reward)}`);
+      }
+      loadInbox();
+    }
+    used.add(q); try { localStorage.setItem('pickme-used', JSON.stringify([...used])); } catch (e) {}
+    renderBank(); setQuestion('', null);
+  } catch (e) { toast(e.message || String(e), 'err'); }
+  $('startBtn').disabled = false;
+}
+$('startBtn').onclick = startRound;
+$('qIn').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) startRound(); });
+
+async function moveClose(iso, extraSecs){
+  const { error } = await sb.from('pm_rounds').update({ closes_at:iso }).eq('id', S.roundId);
+  if (error){ toast(error.message, 'err'); return; }
+  await save(n => { n.closesAt = iso; if (extraSecs) n.seconds = (n.seconds || 45) + extraSecs; });
+}
+$('addBtn').onclick = () => {
+  if (S.phase !== 'collecting') return;
+  const base = Math.max(Date.parse(S.closesAt) || 0, PM.serverNow());
+  moveClose(new Date(base + 15000).toISOString(), 15);
+};
+$('closeBtn').onclick = () => { if (S.phase === 'collecting') moveClose(new Date(PM.serverNow()).toISOString()); };
+
+let locking = false;
+let roundAnswers = [];   // [{id, profile_id, display_name, avatar_url, answer, tile_key}]
+async function fetchAnswers(roundId){
+  const out = [];
+  for (let from = 0; from < 50000; from += 1000){
+    const { data, error } = await sb.from('pm_answers').select('id, profile_id, display_name, avatar_url, answer, tile_key, awarded')
+      .eq('round_id', roundId).order('id', { ascending:true }).range(from, from + 999);
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+async function lock(){
+  if (locking) return;
+  locking = true;
+  const roundId = S.roundId;
+  try {
+    if (S.phase === 'collecting') await save(n => { n.phase = 'locking'; });
+    while (PM.serverNow() < (Date.parse(S.closesAt) || 0) + 2600) await sleep(200);
+    if (S.roundId !== roundId || S.phase !== 'locking') return;
+    await sb.from('pm_rounds').update({ status:'closed' }).eq('id', roundId);
+    const answers = await fetchAnswers(roundId);
+    const res = PM.cluster(answers, S.topN || 5);
+    if (!res.total){
+      await save(n => Object.assign(n, { phase:'idle', question:'', board:[], notice:{ seq:Date.now(), text:'NOBODY ANSWERED' } }));
+      return;
+    }
+    const tags = answers.map(a => ({ id:a.id, key:res.keyOf.get(PM.normalize(a.answer)) || null })).filter(t => t.key);
+    const { error } = await sb.rpc('pm_admin_tag_answers', { p_round:roundId, p_tags:tags });
+    if (error) toast('Tagging answers failed: ' + error.message, 'err');
+    roundAnswers = answers.map(a => Object.assign(a, { tile_key: res.keyOf.get(PM.normalize(a.answer)) || null }));
+    await save(n => Object.assign(n, { phase:'board', board:res.board, overflow:res.overflow, total:res.total }));
+    setTimeout(() => $('guessIn').focus(), 50);
+  } catch (e) { toast('Lock failed: ' + (e.message || e), 'err'); }
+  finally { locking = false; }
+}
+
+/* timer + live count */
+let countBusy = false;
+setInterval(async () => {
+  if (!isAdmin) return;
+  if (S.phase === 'collecting' || S.phase === 'locking'){
+    const rem = Math.max(0, ((Date.parse(S.closesAt) || 0) - PM.serverNow()) / 1000);
+    $('cTime').textContent = S.phase === 'locking' ? '…' : Math.ceil(rem);
+    if ((rem <= 0 || S.phase === 'locking') && !locking) lock();
+    if (!countBusy){
+      countBusy = true;
+      try {
+        const { count } = await sb.from('pm_answers').select('id', { count:'exact', head:true }).eq('round_id', S.roundId);
+        $('cCount').textContent = count || 0;
+      } catch (e) {}
+      countBusy = false;
+    }
+  }
+}, 500);
+
+/* pay the players behind a tile, then refresh the round's top earners */
+async function payTile(tile, reason){
+  const { data, error } = await sb.rpc('pm_admin_award_tile', { p_round:S.roundId, p_tile_key:tile.key, p_amount:tile.count, p_reason:reason });
+  if (error){ toast('Paying players failed: ' + error.message, 'err'); return 0; }
+  return data || 0;
+}
+async function roundTop(){
+  try {
+    if (!roundAnswers.length || roundAnswers[0].round_id && roundAnswers[0].round_id !== S.roundId) roundAnswers = await fetchAnswers(S.roundId);
+    const counts = new Map(S.board.map(t => [t.key, t.count]));
+    const paidKeys = new Set(S.board.filter(t => t.revealed && (t.by === 'chat' || t.by === 'crowd')).map(t => t.key));
+    const per = new Map(); let paid = 0;
+    for (const a of roundAnswers){
+      if (!a.tile_key || !paidKeys.has(a.tile_key)) continue;
+      const amt = counts.get(a.tile_key) || 0;
+      paid += amt;
+      const e = per.get(a.profile_id) || { name:a.display_name, avatar:a.avatar_url, picks:0 };
+      e.picks += amt; per.set(a.profile_id, e);
+    }
+    return { top:[...per.values()].sort((x, y) => y.picks - x.picks).slice(0, 5), paid };
+  } catch (e) { return { top:S.roundTop, paid:S.round.paid }; }
+}
+
+/* versus: host guesses */
+let busy = false;
+const allRevealed = (n) => n.board.length && n.board.every(t => t.revealed);
+async function afterStrike(n){ if (n.strikes >= 3){ await sleep(1800); finish('steal'); } }
+async function afterReveal(n){ if (allRevealed(n)){ await sleep(1500); finish('sweep'); } }
+async function guess(){
+  const text = $('guessIn').value.trim();
+  if (!text || S.phase !== 'board' || busy || S.mode !== 'versus') return;
+  const m = PM.matchGuess(S.board, S.overflow, text);
+  if (m.type === 'empty') return;
+  busy = true;
+  $('guessIn').value = '';
+  try {
+    const seq = Date.now();
+    if (m.type === 'hit'){
+      const n = await save(n => {
+        const t = n.board[m.idx]; t.revealed = true; t.by = 'host';
+        n.scores.host += t.count; n.round.host += t.count;
+        n.lastGuess = { seq, text, type:'hit', idx:m.idx, count:t.count };
+      });
+      afterReveal(n);
+    } else if (m.type === 'dupe'){
+      await save(n => { n.lastGuess = { seq, text, type:'dupe', idx:m.idx }; });
+    } else {
+      const n = await save(n => { n.strikes = (n.strikes || 0) + 1; n.lastGuess = { seq, text, type:m.type, count:m.count || 0 }; });
+      afterStrike(n);
+    }
+  } catch (e) {}
+  busy = false;
+  $('guessIn').focus();
+}
+$('guessBtn').onclick = guess;
+$('guessIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') guess(); });
+$('strikeBtn').onclick = async () => {
+  if (S.phase !== 'board' || S.mode !== 'versus') return;
+  const n = await save(n => { n.strikes = (n.strikes || 0) + 1; n.lastGuess = { seq:Date.now(), type:'strike' }; });
+  afterStrike(n);
+};
+async function judge(i){
+  if (S.phase !== 'board' || S.board[i].revealed) return;
+  const n = await save(n => {
+    const t = n.board[i]; t.revealed = true; t.by = 'host';
+    n.scores.host += t.count; n.round.host += t.count;
+    n.lastGuess = { seq:Date.now(), type:'judge', idx:i, count:t.count };
+  });
+  afterReveal(n);
+}
+async function drop(i){
+  if (S.phase !== 'board' || S.board[i].revealed) return;
+  if (!confirm(`Drop tile #${i + 1}? The next answer moves up. Nobody gets paid for the dropped one.`)) return;
+  await save(n => {
+    n.board.splice(i, 1);
+    const t = n.overflow.shift();
+    if (t) n.board.push({ label:t.label, count:t.count, key:t.key, keys:t.keys, revealed:false, by:null });
+    n.board.sort((a, b) => b.count - a.count);
+  });
+}
+
+/* crowd: reveal pays players */
+let revealing = false;
+async function crowdReveal(i){
+  if (S.phase !== 'board' || S.mode !== 'crowd' || revealing) return;
+  const t = S.board[i]; if (!t || t.revealed) return;
+  revealing = true;
+  try {
+    await payTile(t, 'Chat Says: matched the crowd');
+    const n = await save(n => { n.board[i].revealed = true; n.board[i].by = 'crowd'; });
+    const r = await roundTop();
+    const n2 = await save(n => { n.roundTop = r.top; n.round.paid = r.paid; n.round.chat = r.paid; });
+    if (allRevealed(n2)){ await sleep(1600); await save(n => { n.phase = 'done'; }); }
+  } catch (e) {}
+  revealing = false;
+}
+$('revealNextBtn').onclick = () => {
+  let idx = -1;
+  for (let i = S.board.length - 1; i >= 0; i--) if (!S.board[i].revealed){ idx = i; break; }
+  if (idx >= 0) crowdReveal(idx);
+};
+$('revealAllBtn').onclick = async () => {
+  for (let i = S.board.length - 1; i >= 0; i--){
+    if (S.phase !== 'board') break;
+    if (!S.board[i].revealed){ await crowdReveal(i); await sleep(900); }
+  }
+};
+
+let finishing = false;
+async function finish(kind){
+  if (finishing || S.phase !== 'board') return;
+  finishing = true;
+  try {
+    await save(n => { n.phase = 'reveal'; n.result = kind; });
+    await sleep(2200);
+    for (let i = 0; i < S.board.length; i++){
+      if (S.board[i].revealed) continue;
+      if (kind === 'steal') await payTile(S.board[i], 'Chat Says: stumped the host');
+      await save(n => {
+        const t = n.board[i]; t.revealed = true; t.by = kind === 'steal' ? 'chat' : 'none';
+        if (kind === 'steal'){ n.scores.chat += t.count; n.round.chat += t.count; }
+      });
+      await sleep(1100);
+    }
+    const r = await roundTop();
+    await sleep(600);
+    await save(n => { n.phase = 'done'; n.roundTop = r.top; n.round.paid = r.paid; });
+  } catch (e) {}
+  finishing = false;
+}
+$('endBtn').onclick = () => { if (confirm('End the round? Chat gets the Picks for every hidden answer.')) finish('steal'); };
+
+async function cancelRound(){
+  if (!confirm('Cancel this round? Nobody is paid.')) return;
+  if (S.roundId) await sb.from('pm_rounds').update({ status:'cancelled' }).eq('id', S.roundId);
+  await save(n => Object.assign(n, { phase:'idle', question:'', board:[], overflow:[], strikes:0, lastGuess:null,
+                                     roundNo:Math.max(0, (n.roundNo || 1) - 1) }));
+}
+$('cancelBtn1').onclick = cancelRound;
+$('cancelBtn2').onclick = cancelRound;
+$('idleBtn').onclick = () => save(n => Object.assign(n, { phase:'idle', question:'', board:[], overflow:[], strikes:0, lastGuess:null }));
+$('scoreBtn').onclick = () => {
+  const v = prompt('Team Picks as host,chat (overlay scoreboard only)', S.scores.host + ',' + S.scores.chat);
+  if (!v) return;
+  const [h, c] = v.split(',').map(x => parseInt(x, 10));
+  if (Number.isFinite(h) && Number.isFinite(c)) save(n => { n.scores = { host:h, chat:c }; });
+};
+$('resetBtn').onclick = () => {
+  if (!confirm('Reset the game screen? Team scores and round count go back to 0. Player Picks are not touched.')) return;
+  save(n => Object.assign(n, PM.defaultState(), { hidden:n.hidden, mode:n.mode, sessionId:n.sessionId, sessionTitle:n.sessionTitle,
+                                                   sessionStatus:n.sessionStatus, chatAnswers:n.chatAnswers }));
+};
+
+/* ── question call ── */
+$('qCallChk').onchange = () => save(n => { n.questionCall = $('qCallChk').checked; });
+async function loadInbox(){
+  if (!isAdmin) return;
+  const { data, error } = await sb.from('pm_questions').select('id, profile_id, display_name, text, source, status, created_at')
+    .eq('status', 'new').order('id', { ascending:false }).limit(40);
+  if (error) return;
+  const box = $('qInbox');
+  box.innerHTML = data.length ? '' : '<div class="small muted">No questions yet.</div>';
+  data.forEach(q => {
+    const d = document.createElement('div'); d.className = 'item';
+    d.innerHTML = `<div class="grow"><div style="font-weight:700">${PM.esc(q.text)}</div><div class="sub">${PM.esc(q.display_name || '')} · ${q.source} · ${PM.timeAgo(q.created_at)}</div></div>`;
+    const use = document.createElement('button'); use.className = 'sm'; use.textContent = 'Use';
+    use.onclick = () => { setQuestion(q.text, q); $('qIn').scrollIntoView({ behavior:'smooth', block:'center' }); };
+    const dis = document.createElement('button'); dis.className = 'sm ghost'; dis.textContent = 'Dismiss';
+    dis.onclick = async () => { await sb.from('pm_questions').update({ status:'dismissed' }).eq('id', q.id); loadInbox(); };
+    d.append(use, dis); box.appendChild(d);
+  });
+}
+setInterval(() => { if (TAB === 'live') loadInbox(); }, 5000);
+
+/* ── Twitch chat bridge ── */
+$('chatAnsChk').onchange = () => save(n => { n.chatAnswers = $('chatAnsChk').checked; });
+const autoDel = { get on(){ try { return localStorage.getItem('pickme-autodel') !== '0'; } catch (e) { return true; } } };
+$('autoDelChk').checked = autoDel.on;
+$('autoDelChk').onchange = () => { try { localStorage.setItem('pickme-autodel', $('autoDelChk').checked ? '1' : '0'); } catch (e) {} };
+let bridgeStop = null;
+function feed(text, cls){
+  const d = document.createElement('div'); d.className = 'ev';
+  d.innerHTML = `<span class="d ${cls || ''}">${text}</span><span class="w">${new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' })}</span>`;
+  $('bridgeFeed').prepend(d);
+  while ($('bridgeFeed').children.length > 40) $('bridgeFeed').lastElementChild.remove();
+}
+function startBridge(){
+  if (bridgeStop) return;
+  bridgeStop = PM.Twitch.chat(CHANNEL, onChat, (st) => {
+    $('ircChip').textContent = st === 'connected' ? '#' + CHANNEL : st;
+    $('ircChip').className = 'chip ' + (st === 'connected' ? 'ok' : st === 'connecting' ? 'warn' : 'bad');
+  });
+}
+async function onChat(m){
+  const a = /^!(?:a|answer)\s+(.+)/i.exec(m.text || '');
+  const q = /^!(?:q|question)\s+(.+)/i.exec(m.text || '');
+  if (!a && !q) return;
+  if (!m.userId) return;
+  if (a){
+    if (!(S.phase === 'collecting' && S.chatAnswers && S.roundId)) return;
+    hideMessage(m);
+    const { data, error } = await sb.rpc('pm_admin_chat_answer', { p_round:S.roundId, p_twitch_id:m.userId, p_login:m.login, p_display:m.display, p_answer:a[1] });
+    const res = error ? error.message : data;
+    feed(`<b>${PM.esc(m.display)}</b> answered · ${res === 'ok' ? '<span class="pos">counted</span>' : '<span class="neg">' + PM.esc(PM.reason(res)) + '</span>'}`);
+  } else if (q){
+    if (!S.questionCall) return;
+    hideMessage(m);
+    const { data, error } = await sb.rpc('pm_admin_chat_question', { p_twitch_id:m.userId, p_login:m.login, p_display:m.display, p_text:q[1] });
+    const res = error ? error.message : data;
+    feed(`<b>${PM.esc(m.display)}</b> asked “${PM.esc(q[1].slice(0, 80))}” · ${res === 'ok' ? '<span class="pos">added</span>' : '<span class="neg">' + PM.esc(PM.reason(res)) + '</span>'}`);
+    if (res === 'ok') loadInbox();
+  }
+}
+
+/* moderation token (from a Twitch sign-in with the delete-messages scope) */
+const MOD_KEY = 'pickme-mod';
+let MOD = (() => { try { return JSON.parse(localStorage.getItem(MOD_KEY) || 'null'); } catch (e) { return null; } })();
+async function captureModToken(token){
+  if (MOD && MOD.token === token) return;
+  try {
+    const v = await PM.Twitch.validate(token);
+    if (!v || !(v.scopes || []).includes('moderator:manage:chat_messages')) return;
+    let broadcasterId = v.login === CHANNEL ? v.user_id : null;
+    if (!broadcasterId){
+      const r = await PM.Twitch.helix(token, v.client_id, 'GET', 'users?login=' + encodeURIComponent(CHANNEL));
+      if (r.ok){ const j = await r.json(); broadcasterId = j.data && j.data[0] && j.data[0].id; }
+    }
+    MOD = { token, clientId:v.client_id, userId:v.user_id, login:v.login, broadcasterId, expiresAt:Date.now() + (v.expires_in || 0) * 1000 };
+    try { localStorage.setItem(MOD_KEY, JSON.stringify(MOD)); } catch (e) {}
+    refreshMod();
+    toast('Chat moderation connected as ' + v.login);
+  } catch (e) {}
+}
+function refreshMod(){
+  const chip = $('modChip');
+  if (!MOD){ chip.textContent = 'not connected'; chip.className = 'chip bad'; return; }
+  const left = MOD.expiresAt - Date.now();
+  if (left <= 0){ chip.textContent = 'expired, reconnect'; chip.className = 'chip bad'; return; }
+  const h = Math.floor(left / 3600000), mn = Math.floor((left % 3600000) / 60000);
+  chip.textContent = `${MOD.login} · ${h}h ${mn}m left`; chip.className = 'chip ' + (left < 1800000 ? 'warn' : 'ok');
+}
+setInterval(refreshMod, 30000);
+$('modBtn').onclick = () => PM.signInTwitch(BASE + 'dashboard.html', PM.CONFIG.modScopes);
+async function hideMessage(m){
+  if (!$('autoDelChk').checked || !MOD || !m.id || m.broadcaster) return;
+  if (MOD.expiresAt < Date.now()){ refreshMod(); return; }
+  try {
+    const r = await PM.Twitch.helix(MOD.token, MOD.clientId, 'DELETE',
+      `moderation/chat?broadcaster_id=${MOD.broadcasterId}&moderator_id=${MOD.userId}&message_id=${encodeURIComponent(m.id)}`);
+    if (r.status === 401){ MOD.expiresAt = 0; refreshMod(); feed('<span class="neg">Moderation token expired. Reconnect to keep hiding answers.</span>'); }
+  } catch (e) {}
+}
+
+/* ── render live tab ── */
+function tileList(el, board, actions){
+  el.innerHTML = '';
+  board.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.className = 't ' + (t.revealed ? 'rev ' + (t.by || '') : 'hidden');
+    d.innerHTML = `<span class="n">${i + 1}</span><span class="l">${t.revealed ? PM.esc(t.label) : 'hidden'}</span>` +
+                  (t.revealed ? `<span class="c">${PM.pickSVG('', true)}${t.count}</span>` : '');
+    if (!t.revealed && actions === 'versus'){
+      const give = document.createElement('button'); give.className = 'sm'; give.textContent = 'Give it';
+      give.title = "Judge's call: count this tile as yours"; give.onclick = () => judge(i);
+      const dr = document.createElement('button'); dr.className = 'sm ghost'; dr.textContent = 'Drop';
+      dr.title = 'Remove this answer (e.g. offensive) and pull the next one up'; dr.onclick = () => drop(i);
+      d.append(give, dr);
+    } else if (!t.revealed && actions === 'crowd'){
+      const rv = document.createElement('button'); rv.className = 'sm go'; rv.textContent = 'Reveal'; rv.onclick = () => crowdReveal(i);
+      const dr = document.createElement('button'); dr.className = 'sm ghost'; dr.textContent = 'Drop'; dr.onclick = () => drop(i);
+      d.append(rv, dr);
+    }
+    el.appendChild(d);
+  });
+}
+function render(){
+  const p = S.phase, crowd = S.mode === 'crowd';
+  $('phase').textContent = p;
+  $('sessLine').textContent = S.sessionId ? `${S.sessionTitle || 'Session'} · ${S.sessionStatus || ''}` + (S.roundNo ? ` · Round ${S.roundNo}` : '') : 'No session (anyone can play, nothing grouped)';
+  $('sLeft').textContent = crowd ? (S.total || 0) : S.scores.host;
+  $('sRight').textContent = crowd ? (S.round.paid || 0) : S.scores.chat;
+  $('lPick').style.display = crowd ? 'none' : '';
+  $('sLeftLbl').textContent = crowd ? 'Players this round' : `${S.hostName || PM.CONFIG.hostName} · Picks`;
+  $('sRightLbl').textContent = crowd ? 'Picks paid this round' : 'Chat · Picks';
+  $$('[data-mode]').forEach(b => b.classList.toggle('sel', b.dataset.mode === S.mode));
+  $$('[data-scene]').forEach(b => b.classList.toggle('sel', !S.hidden && b.dataset.scene === S.scene));
+  $('hideBtn').classList.toggle('sel', !!S.hidden);
+  $('modeBlurb').textContent = (PM.MODES[S.mode] || PM.MODES.versus).blurb;
+  $('qCallChk').checked = !!S.questionCall;
+  $('chatAnsChk').checked = !!S.chatAnswers;
+
+  $('askCard').hidden = !(p === 'idle' || p === 'done');
+  $('askTitle').textContent = p === 'done' ? 'Next question' : 'New question';
+  $('collectCard').hidden = !(p === 'collecting' || p === 'locking');
+  $('boardCard').hidden = !(p === 'board' || p === 'reveal');
+  $('doneCard').hidden = p !== 'done';
+  $('versusCtl').hidden = crowd; $('crowdCtl').hidden = !crowd;
+  $('boardTitle').textContent = crowd ? 'Reveal the board' : 'Your guesses';
+
+  $('cQ').textContent = S.question || '';
+  $('bQ').textContent = S.question || '';
+  $('closeBtn').disabled = $('addBtn').disabled = p !== 'collecting';
+  const inBoard = p === 'board';
+  ['guessIn', 'guessBtn', 'strikeBtn', 'endBtn', 'revealNextBtn', 'revealAllBtn'].forEach(id => $(id).disabled = !inBoard);
+  [...$('strk').children].forEach((el, i) => el.classList.toggle('on', i < (S.strikes || 0)));
+  const g = S.lastGuess;
+  if (g){
+    const t = '"' + String(g.text || '').toUpperCase() + '"';
+    $('last').textContent = { hit:`${t} ✔ +${PM.picks(g.count || 0)}`, miss:`${t} ✕ nobody said it`, dupe:`${t} already revealed`,
+      offboard:`${t} ✕ ${g.count} said it, not top ${S.board.length}`, strike:'✕ strike', judge:`judge's call: #${(g.idx || 0) + 1} · +${PM.picks(g.count || 0)}` }[g.type] || '';
+    $('last').className = 'last ' + g.type;
+  } else { $('last').textContent = ''; $('last').className = 'last'; }
+  $('surveyed').textContent = S.total ? S.total + ' answered' : '';
+  if (p === 'board' || p === 'reveal') tileList($('tl'), S.board, inBoard ? (crowd ? 'crowd' : 'versus') : null);
+  if (p === 'done'){
+    tileList($('tlDone'), S.board, null);
+    $('doneSum').textContent = crowd
+      ? `${PM.picks(S.round.paid || 0)} paid to players`
+      : `${S.hostName || PM.CONFIG.hostName} +${PM.picks(S.round.host)} · Chat +${PM.picks(S.round.chat)}`;
+    $('doneTop').innerHTML = (S.roundTop || []).map((t, i) =>
+      `<div class="item">${avatar(t.avatar)}<span class="nm">${i + 1}. ${PM.esc(t.name)}</span><span class="bal">+${PM.pickSVG('', true)}${t.picks}</span></div>`).join('');
+  }
+}
+
+/* ═══════════ SESSION ═══════════ */
+async function loadSession(){
+  const sid = S.sessionId;
+  let cur = null;
+  if (sid){ const { data } = await sb.from('pm_sessions').select('*').eq('id', sid).maybeSingle(); cur = data; }
+  $('noSess').hidden = !!(cur && cur.status !== 'ended');
+  $('curSess').hidden = !(cur && cur.status !== 'ended');
+  if (cur && cur.status !== 'ended'){
+    $('sessTitle').textContent = cur.title;
+    $('sessChip').textContent = cur.status === 'open' ? 'open' : 'closed to new players';
+    $('sessChip').className = 'chip ' + (cur.status === 'open' ? 'ok' : 'warn');
+    $('sessMeta').textContent = `Started ${PM.timeAgo(cur.created_at)} · ${cur.access === 'whitelist' ? 'Whitelist only' : 'Everyone can play'}`;
+    $$('[data-sstatus]').forEach(b => b.classList.toggle('sel', b.dataset.sstatus === cur.status));
+    $$('[data-saccess]').forEach(b => b.classList.toggle('sel', b.dataset.saccess === cur.access));
+    const { data:parts } = await sb.from('pm_participants').select('profile_id, via, joined_at').eq('session_id', cur.id).order('joined_at', { ascending:false }).limit(500);
+    const ids = (parts || []).map(x => x.profile_id);
+    const profs = await profilesById(ids);
+    $('partCount').textContent = (parts || []).length + ' players';
+    const box = $('partList'); box.innerHTML = '';
+    (parts || []).forEach(pt => {
+      const pr = profs.get(pt.profile_id) || {};
+      const d = document.createElement('div'); d.className = 'item';
+      d.innerHTML = `${avatar(pr.avatar_url)}<div class="grow"><div class="nm">${PM.esc(nameOf(pr))}</div><div class="sub">via ${pt.via} · ${PM.timeAgo(pt.joined_at)}</div></div>`;
+      const open = document.createElement('button'); open.className = 'sm'; open.textContent = 'Profile'; open.onclick = () => openPlayer(pt.profile_id);
+      const kick = document.createElement('button'); kick.className = 'sm bad'; kick.textContent = 'Block from session';
+      kick.onclick = async () => { await addRule(pt.profile_id, 'session', cur.id, 'block'); loadSession(); };
+      d.append(open, kick); box.appendChild(d);
+    });
+  }
+  const { data:past } = await sb.from('pm_sessions').select('*').order('created_at', { ascending:false }).limit(12);
+  const pl = $('pastList'); pl.innerHTML = '';
+  (past || []).forEach(s => {
+    const d = document.createElement('div'); d.className = 'item';
+    d.innerHTML = `<div class="grow"><div class="nm">${PM.esc(s.title)}</div><div class="sub">${new Date(s.created_at).toLocaleString()} · ${s.status}${s.id === S.sessionId ? ' · live' : ''}</div></div>`;
+    if (s.status !== 'ended' && s.id !== S.sessionId){
+      const b = document.createElement('button'); b.className = 'sm'; b.textContent = 'Make live';
+      b.onclick = async () => { await save(n => { n.sessionId = s.id; n.sessionTitle = s.title; n.sessionStatus = s.status; }); loadSession(); };
+      d.appendChild(b);
+    }
+    pl.appendChild(d);
+  });
+}
+$('newSessBtn').onclick = async () => {
+  const title = $('newSessTitle').value.trim() || new Date().toLocaleDateString([], { weekday:'long', month:'short', day:'numeric' });
+  const { data, error } = await sb.from('pm_sessions').insert({ title, access:$('newSessAccess').value, game:'chatsays' }).select().single();
+  if (error){ toast(error.message, 'err'); return; }
+  await save(n => { n.sessionId = data.id; n.sessionTitle = data.title; n.sessionStatus = data.status; });
+  $('newSessTitle').value = '';
+  toast('Session started');
+  loadSession();
+};
+async function updateSession(patch){
+  const { data, error } = await sb.from('pm_sessions').update(patch).eq('id', S.sessionId).select().single();
+  if (error){ toast(error.message, 'err'); return; }
+  await save(n => { n.sessionStatus = data.status; n.sessionTitle = data.title; if (data.status === 'ended') n.sessionId = null; });
+  loadSession();
+}
+$$('[data-sstatus]').forEach(b => b.onclick = () => updateSession({ status:b.dataset.sstatus }));
+$$('[data-saccess]').forEach(b => b.onclick = () => updateSession({ access:b.dataset.saccess }));
+$('endSessBtn').onclick = () => { if (confirm('End this session? Nobody can play in it after this.')) updateSession({ status:'ended' }); };
+
+/* ═══════════ PLAYERS ═══════════ */
+let allProfiles = [];
+async function profilesById(ids){
+  const map = new Map();
+  const want = [...new Set(ids.filter(Boolean))];
+  for (let i = 0; i < want.length; i += 100){
+    const { data } = await sb.from('pm_profiles').select('id, login, display_name, avatar_url, balance').in('id', want.slice(i, i + 100));
+    (data || []).forEach(p => map.set(p.id, p));
+  }
+  return map;
+}
+async function loadPlayers(){
+  const { data, error } = await sb.from('pm_profiles').select('*').order('balance', { ascending:false }).limit(1000);
+  if (error){ toast(error.message, 'err'); return; }
+  allProfiles = data || [];
+  $('pCount').textContent = allProfiles.length + ' total';
+  renderPlayers();
+  $('accNames').innerHTML = allProfiles.map(p => `<option value="${PM.esc(p.login || '')}">${PM.esc(p.display_name || '')}</option>`).join('');
+}
+function renderPlayers(){
+  const q = $('pSearch').value.trim().toLowerCase();
+  const sort = $('pSort').value;
+  let list = allProfiles.filter(p => !q || (p.login || '').includes(q) || (p.display_name || '').toLowerCase().includes(q));
+  if (sort === 'recent') list = list.slice().sort((a, b) => Date.parse(b.last_seen_at) - Date.parse(a.last_seen_at));
+  if (sort === 'new') list = list.slice().sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  const box = $('pList'); box.innerHTML = '';
+  list.slice(0, 200).forEach(p => {
+    const d = document.createElement('div'); d.className = 'item click';
+    d.innerHTML = `${avatar(p.avatar_url)}<div class="grow"><div class="nm">${PM.esc(nameOf(p))}</div><div class="sub">${p.user_id ? 'signed in' : 'chat only'} · seen ${PM.timeAgo(p.last_seen_at)}</div></div><span class="bal">${PM.pickSVG('', true)}${p.balance}</span>`;
+    d.onclick = () => openPlayer(p.id);
+    box.appendChild(d);
+  });
+  if (!list.length) box.innerHTML = '<div class="small muted">Nobody yet.</div>';
+}
+$('pSearch').oninput = renderPlayers;
+$('pSort').onchange = renderPlayers;
+
+let P = null;   // open player
+async function openPlayer(id){
+  if (TAB !== 'players') $$('#tabs button').find(b => b.dataset.tab === 'players').click();
+  const { data:p } = await sb.from('pm_profiles').select('*').eq('id', id).maybeSingle();
+  if (!p) return;
+  P = p;
+  $('playersList').hidden = true; $('playerCard').hidden = false;
+  $('pHead').innerHTML = (p.avatar_url ? `<img src="${PM.esc(p.avatar_url)}" alt="">` : '<span class="av"></span>') +
+    `<div><div style="font-size:24px;font-weight:800">${PM.esc(nameOf(p))}</div><div class="small muted">twitch.tv/${PM.esc(p.login || '')}</div></div>` +
+    `<span class="bal">${PM.pickSVG('', true)}${p.balance}</span>`;
+  $('pMeta').textContent = `${p.user_id ? 'Signed in on the site' : 'Chat-only (not signed in yet)'} · first seen via ${p.source} ${PM.timeAgo(p.created_at)} · last seen ${PM.timeAgo(p.last_seen_at)} · Twitch ID ${p.twitch_id}`;
+  renderPlayerAccess();
+  const [{ data:led }, { data:evs }] = await Promise.all([
+    sb.from('pm_ledger').select('*').eq('profile_id', id).order('id', { ascending:false }).limit(60),
+    sb.from('pm_events').select('*').eq('profile_id', id).order('id', { ascending:false }).limit(80),
+  ]);
+  $('pLedger').innerHTML = (led || []).map(l => `<div class="ev"><span class="${l.delta > 0 ? 'pos' : 'neg'}">${l.delta > 0 ? '+' : ''}${l.delta}</span><span class="d">${PM.esc(l.reason || '')}${l.actor === 'admin' ? ' <span class="muted">(you)</span>' : ''}</span><span class="w">${PM.timeAgo(l.created_at)}</span></div>`).join('') || '<div class="small muted">No Picks yet.</div>';
+  $('pEvents').innerHTML = (evs || []).map(e => evRow(e, null)).join('') || '<div class="small muted">No activity.</div>';
+  window.scrollTo({ top:0 });
+}
+$('pClose').onclick = () => { P = null; $('playerCard').hidden = true; $('playersList').hidden = false; loadPlayers(); };
+async function adjust(delta){
+  if (!P || !delta) return;
+  const reason = $('adjReason').value.trim() || (delta > 0 ? 'Gift from Chazdyn' : 'Adjusted by Chazdyn');
+  const { data, error } = await sb.rpc('pm_admin_adjust', { p_profile:P.id, p_delta:delta, p_reason:reason });
+  if (error){ toast(error.message, 'err'); return; }
+  toast(`${delta > 0 ? 'Gave' : 'Took'} ${PM.picks(Math.abs(delta))} · balance ${data}`);
+  $('adjAmt').value = ''; $('adjReason').value = '';
+  openPlayer(P.id);
+}
+$('giveBtn').onclick = () => adjust(Math.abs(parseInt($('adjAmt').value, 10) || 0));
+$('takeBtn').onclick = () => adjust(-Math.abs(parseInt($('adjAmt').value, 10) || 0));
+$$('[data-quick]').forEach(b => b.onclick = () => adjust(parseInt(b.dataset.quick, 10)));
+
+const RULES = () => [
+  { scope:'global', value:'', kind:'block', label:'Block from everything' },
+  { scope:'game', value:'chatsays', kind:'block', label:'Block from Chat Says' },
+  ...(S.sessionId ? [{ scope:'session', value:S.sessionId, kind:'block', label:'Block from this session' },
+                     { scope:'session', value:S.sessionId, kind:'allow', label:'Whitelist for this session' }] : []),
+  { scope:'game', value:'chatsays', kind:'allow', label:'Whitelist for Chat Says (every session)' },
+];
+async function renderPlayerAccess(){
+  const { data } = await sb.from('pm_access').select('*').eq('profile_id', P.id);
+  const have = (r) => (data || []).find(x => x.scope === r.scope && x.scope_value === r.value && x.kind === r.kind);
+  const box = $('pAccess'); box.innerHTML = '';
+  RULES().forEach(r => {
+    const on = have(r);
+    const d = document.createElement('label'); d.className = 'item chk';
+    d.innerHTML = `<input type="checkbox" ${on ? 'checked' : ''}><span>${r.label}</span>`;
+    d.querySelector('input').onchange = async (e) => {
+      if (e.target.checked) await addRule(P.id, r.scope, r.value, r.kind);
+      else await removeRule(on.id);
+      renderPlayerAccess();
+    };
+    box.appendChild(d);
+  });
+}
+
+/* ═══════════ ACCESS ═══════════ */
+async function addRule(profileId, scope, value, kind){
+  const { error } = await sb.from('pm_access').insert({ profile_id:profileId, scope, scope_value:value || '', kind });
+  if (error && !/duplicate/i.test(error.message)){ toast(error.message, 'err'); return false; }
+  toast(kind === 'block' ? 'Blocked' : 'Whitelisted');
+  return true;
+}
+async function removeRule(id){
+  const { error } = await sb.from('pm_access').delete().eq('id', id);
+  if (error) toast(error.message, 'err');
+}
+async function loadAccess(){
+  if (!allProfiles.length) await loadPlayers();
+  const { data, error } = await sb.from('pm_access').select('*').order('id', { ascending:false }).limit(500);
+  if (error){ toast(error.message, 'err'); return; }
+  const profs = new Map(allProfiles.map(p => [p.id, p]));
+  const sessNames = new Map();
+  const sids = [...new Set((data || []).filter(r => r.scope === 'session').map(r => r.scope_value))];
+  if (sids.length){ const { data:ss } = await sb.from('pm_sessions').select('id, title').in('id', sids); (ss || []).forEach(s => sessNames.set(s.id, s.title)); }
+  const box = $('accList'); box.innerHTML = '';
+  (data || []).forEach(r => {
+    const p = profs.get(r.profile_id) || {};
+    const where = r.scope === 'global' ? 'everything' : r.scope === 'game' ? (PM.GAMES[r.scope_value] || {}).name || r.scope_value : 'session “' + (sessNames.get(r.scope_value) || 'old session') + '”';
+    const d = document.createElement('div'); d.className = 'item';
+    d.innerHTML = `${avatar(p.avatar_url)}<div class="grow"><div class="nm">${PM.esc(nameOf(p))}</div><div class="sub"><span class="chip ${r.kind === 'block' ? 'bad' : 'ok'}">${r.kind === 'block' ? 'blocked' : 'whitelisted'}</span> ${PM.esc(where)} · ${PM.timeAgo(r.created_at)}</div></div>`;
+    const rm = document.createElement('button'); rm.className = 'sm'; rm.textContent = 'Remove';
+    rm.onclick = async () => { await removeRule(r.id); loadAccess(); };
+    d.appendChild(rm); box.appendChild(d);
+  });
+  if (!(data || []).length) box.innerHTML = '<div class="small muted">No rules. Everyone can play.</div>';
+}
+$('accAdd').onclick = async () => {
+  if (!allProfiles.length) await loadPlayers();
+  const nm = $('accName').value.trim().toLowerCase();
+  const p = allProfiles.find(x => (x.login || '') === nm || (x.display_name || '').toLowerCase() === nm);
+  if (!p){ toast('No player named ' + nm + '. They need to sign in or answer once first.', 'err'); return; }
+  let [scope, value] = $('accScope').value.split(':');
+  if (scope === 'session'){ if (!S.sessionId){ toast('No live session', 'err'); return; } value = S.sessionId; }
+  if (await addRule(p.id, scope, value || '', $('accKind').value)){ $('accName').value = ''; loadAccess(); }
+};
+
+/* ═══════════ LOGS ═══════════ */
+function evRow(e, profs){
+  const p = profs ? (profs.get(e.profile_id) || {}) : null;
+  const who = p ? `<b>${PM.esc(nameOf(p))}</b> ` : '';
+  const d = e.detail || {};
+  let txt = '';
+  switch (e.kind){
+    case 'answered': txt = `answered “${PM.esc(d.answer)}” to ${PM.esc(d.question || 'a question')}${d.source === 'chat' ? ' (chat)' : ''}`; break;
+    case 'answer_rejected': txt = `couldn't answer: ${PM.esc(PM.reason(d.reason))}${d.source === 'chat' ? ' (chat)' : ''}`; break;
+    case 'question': txt = `asked “${PM.esc(d.text)}”${d.source === 'chat' ? ' (chat)' : ''}`; break;
+    case 'joined': txt = `joined the session${d.via === 'chat' ? ' from chat' : ''}`; break;
+    case 'profile_created': txt = `profile created${d.via === 'chat' ? ' from chat' : ''}`; break;
+    case 'profile_claimed': txt = 'signed in and claimed their chat profile'; break;
+    case 'adjusted': txt = `<span class="${d.delta > 0 ? 'pos' : 'neg'}">${d.delta > 0 ? '+' : ''}${d.delta}</span> by you${d.reason ? ': ' + PM.esc(d.reason) : ''}`; break;
+    case 'ledger': txt = `<span class="${d.delta > 0 ? 'pos' : 'neg'}">${d.delta > 0 ? '+' : ''}${d.delta}</span> ${PM.esc(d.reason || '')}`; break;
+    case 'access_added': txt = `${d.kind === 'block' ? 'blocked from' : 'whitelisted for'} ${d.scope === 'global' ? 'everything' : d.scope === 'game' ? d.scope_value : 'a session'}`; break;
+    case 'access_removed': txt = `${d.kind === 'block' ? 'unblocked from' : 'removed from whitelist for'} ${d.scope === 'global' ? 'everything' : d.scope === 'game' ? d.scope_value : 'a session'}`; break;
+    default: txt = PM.esc(e.kind);
+  }
+  return `<div class="ev"><span class="k">${PM.esc(e.kind.replace(/_/g, ' '))}</span><span class="d">${who}${txt}</span><span class="w">${PM.timeAgo(e.created_at)}</span></div>`;
+}
+async function loadLogs(){
+  const kind = $('logKind').value;
+  let rows = [];
+  if (kind === '' || kind === 'ledger'){
+    const { data } = await sb.from('pm_ledger').select('*').order('id', { ascending:false }).limit(200);
+    rows.push(...(data || []).filter(l => l.actor !== 'admin').map(l => ({ kind:'ledger', profile_id:l.profile_id, created_at:l.created_at, detail:{ delta:l.delta, reason:l.reason } })));
+  }
+  if (kind !== 'ledger'){
+    let q = sb.from('pm_events').select('*').order('id', { ascending:false }).limit(300);
+    if (kind === 'access') q = q.in('kind', ['access_added', 'access_removed']);
+    else if (kind) q = q.eq('kind', kind);
+    const { data } = await q;
+    rows.push(...(data || []));
+  }
+  rows.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+  const profs = await profilesById(rows.map(r => r.profile_id));
+  const s = $('logSearch').value.trim().toLowerCase();
+  if (s) rows = rows.filter(r => { const p = profs.get(r.profile_id); return p && ((p.login || '').includes(s) || (p.display_name || '').toLowerCase().includes(s)); });
+  $('logFeed').innerHTML = rows.slice(0, 300).map(r => evRow(r, profs)).join('') || '<div class="small muted">Nothing yet.</div>';
+}
+$('logKind').onchange = loadLogs;
+$('logSearch').oninput = () => { clearTimeout(window.__ls); window.__ls = setTimeout(loadLogs, 250); };
+setInterval(() => { if (TAB === 'logs' && $('logAuto').checked) loadLogs(); }, 5000);
+})();
+</script>
+</body>
+</html>

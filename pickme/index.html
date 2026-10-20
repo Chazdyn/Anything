@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PickMe</title>
+<meta name="description" content="Play along with Chazdyn's stream. Sign in with Twitch, answer live, earn Picks.">
+<meta name="theme-color" content="#07040e">
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="pickme.css">
+<style>
+  body{ min-height:100vh; min-height:100dvh; overflow-x:hidden; }
+  .bgfix{ position:fixed; inset:0; z-index:-1; }
+  .bgfix .stars{ position:absolute; inset:0; opacity:.5; }
+  .wrap{ max-width:560px; margin:0 auto; padding:20px 16px calc(40px + env(safe-area-inset-bottom)); }
+  header{ display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+  header img.mark{ width:44px; height:44px; flex:none; filter:drop-shadow(0 0 12px rgba(184,255,46,.4)); }
+  header .wb{ white-space:nowrap; }
+  header .word{ font-family:var(--display); font-size:clamp(34px, 10vw, 56px); line-height:.85; color:var(--lime); text-shadow:3px 3px 0 var(--purple); letter-spacing:1px; display:flex; align-items:center; gap:6px; }
+  header .word .pick{ width:.62em; height:.62em; }
+  header .tag{ font-size:10px; letter-spacing:2px; font-weight:800; color:var(--purple-hi); text-transform:uppercase; margin-top:4px; }
+  header img.logo{ height:84px; display:none; }
+  header.has-logo img.logo{ display:block; } header.has-logo .wb, header.has-logo img.mark{ display:none; }
+  header .live{ margin-left:auto; font-size:13px; font-weight:800; letter-spacing:1px; color:#c9a8ff; text-decoration:none;
+                border:1px solid var(--line); padding:7px 10px; border-radius:99px; flex:none; background:rgba(21,11,42,.8); white-space:nowrap; }
+
+  .card{ background:linear-gradient(180deg, rgba(29,16,56,.94), rgba(21,11,42,.94)); border:1px solid var(--line); border-radius:20px; padding:20px; }
+  .card + .card, main > .card + .card, .gap{ margin-top:14px; }
+  .eyebrow{ font-size:12px; font-weight:800; letter-spacing:4px; color:var(--muted); text-transform:uppercase; display:flex; align-items:center; gap:8px; }
+  .eyebrow .r{ margin-left:auto; letter-spacing:1px; }
+  .q{ font-weight:800; font-size:26px; line-height:1.2; margin:10px 0 16px; letter-spacing:-.3px; }
+  .timer{ display:flex; align-items:baseline; gap:8px; margin-bottom:14px; }
+  .timer b{ font-family:var(--display); font-weight:400; font-size:64px; line-height:.9; color:var(--lime); font-variant-numeric:tabular-nums; }
+  .timer.hurry b{ color:var(--red); }
+  .timer span{ font-weight:700; color:var(--muted); }
+  .bar{ height:6px; border-radius:6px; background:rgba(139,77,255,.2); overflow:hidden; margin-bottom:16px; }
+  .bar i{ display:block; height:100%; background:var(--lime); width:100%; transition:width .25s linear; }
+  .timer.hurry + .bar i{ background:var(--red); }
+  form{ display:flex; flex-direction:column; gap:10px; }
+  input, textarea{ font:inherit; font-size:20px; font-weight:700; color:var(--text); background:#0b0518; border:2px solid var(--line); border-radius:14px; padding:14px 16px; width:100%; }
+  textarea{ resize:vertical; min-height:80px; font-size:18px; }
+  input:focus, textarea:focus{ outline:none; border-color:var(--lime); box-shadow:0 0 0 4px rgba(184,255,46,.15); }
+  button{ font:inherit; font-weight:800; font-size:20px; border:0; border-radius:14px; padding:16px; cursor:pointer; background:var(--lime); color:var(--ink); letter-spacing:.5px; }
+  button:active{ transform:translateY(1px); }
+  button:disabled{ opacity:.5; cursor:not-allowed; }
+  button.twitch{ background:#9146ff; color:#fff; display:flex; align-items:center; justify-content:center; gap:10px; width:100%; }
+  button.twitch svg{ width:22px; height:22px; }
+  button.link{ background:none; color:var(--muted); font-size:14px; padding:6px; font-weight:700; text-decoration:underline; }
+  button.soft{ background:#22134a; color:var(--text); border:1px solid var(--line); font-size:16px; padding:12px; }
+  .hint{ font-size:14px; color:var(--muted); line-height:1.5; }
+  .err{ color:#ff9aab; font-weight:700; font-size:15px; min-height:20px; }
+  .okmsg{ color:var(--lime); font-weight:700; font-size:15px; min-height:20px; }
+  .note{ padding:12px 14px; border-radius:12px; background:rgba(255,61,90,.12); border:1px solid rgba(255,61,90,.35); color:#ffc2cd; font-weight:700; line-height:1.4; margin-bottom:14px; }
+  .locked{ text-align:center; padding:8px 0; }
+  .locked .big{ font-family:var(--display); font-size:48px; color:var(--lime); line-height:1; }
+  .locked .mine{ margin-top:10px; font-size:24px; font-weight:800; text-transform:uppercase; word-break:break-word; }
+  .center{ text-align:center; }
+  .wait .big{ font-family:var(--display); font-size:56px; line-height:.95; }
+  .wait .big em{ font-style:normal; color:var(--lime); }
+  .pulse{ display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--lime); animation:p 1.4s ease-in-out infinite; }
+  @keyframes p{ 50%{ opacity:.2; transform:scale(.7); } }
+  .tiles{ display:grid; gap:8px; margin-top:12px; }
+  .tile{ display:flex; align-items:center; gap:12px; border-radius:12px; padding:10px 12px; background:#160a2e; border:1px solid #4a2b85; min-height:52px; }
+  .tile .n{ font-family:var(--display); font-size:28px; color:var(--lime); width:26px; text-align:center; }
+  .tile .l{ flex:1; font-weight:800; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .tile .c{ font-family:var(--display); font-size:30px; display:flex; align-items:center; gap:4px; }
+  .tile .c .pick{ width:.8em; height:.8em; }
+  .tile.rev{ background:linear-gradient(180deg, var(--lime-hi), var(--lime)); border-color:#e9ffb0; color:var(--ink); }
+  .tile.rev .n{ color:var(--ink); }
+  .tile.rev.chat{ background:#12203a; border-color:rgba(52,226,255,.6); color:#dff9ff; }
+  .tile.rev.chat .n, .tile.rev.chat .c{ color:var(--chat); }
+  .tile.rev.none{ background:#1d1832; border-color:#4a3f6e; color:#cfc6e8; }
+  .tile.mine{ outline:3px solid var(--purple-hi); outline-offset:2px; }
+  .you{ margin-top:14px; padding:12px 14px; border-radius:12px; background:rgba(139,77,255,.15); border:1px solid var(--line); font-weight:700; line-height:1.4; }
+  .you b{ color:var(--lime); }
+  .me{ display:flex; align-items:center; gap:14px; }
+  .me img, .me .av{ width:58px; height:58px; border-radius:50%; background:var(--purple); object-fit:cover; flex:none; }
+  .me .nm{ font-weight:800; font-size:22px; }
+  .me .rk{ color:var(--muted); font-size:14px; font-weight:700; }
+  .me .bal{ margin-left:auto; text-align:right; }
+  .me .bal b{ display:flex; align-items:center; gap:6px; font-family:var(--display); font-weight:400; font-size:52px; line-height:.9; color:var(--lime); }
+  .me .bal b .pick{ width:.66em; height:.66em; }
+  .me .bal span{ font-size:11px; font-weight:800; letter-spacing:3px; color:var(--muted); }
+  .rows{ display:grid; gap:6px; margin-top:10px; }
+  .r1{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background:#0b0518; border:1px solid var(--line); font-size:15px; }
+  .r1 .av{ width:30px; height:30px; border-radius:50%; background:var(--purple); flex:none; object-fit:cover; }
+  .r1 .rk{ font-family:var(--display); font-size:22px; color:var(--purple-hi); width:22px; text-align:center; }
+  .r1 .nm{ flex:1; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .r1 .v{ font-family:var(--display); font-size:24px; color:var(--lime); display:flex; align-items:center; gap:4px; }
+  .r1 .v .pick{ width:.8em; height:.8em; }
+  .r1.mine{ border-color:var(--lime-deep); }
+  .r1 .pos{ color:var(--lime); font-weight:800; } .r1 .neg{ color:#ff9aab; font-weight:800; }
+  .r1 .w{ color:var(--faint); font-size:12px; white-space:nowrap; }
+  .scores{ display:flex; gap:10px; margin-top:12px; }
+  .scores div{ flex:1; text-align:center; border-radius:14px; border:1px solid var(--line); padding:10px 6px 6px; background:#0b0518; }
+  .scores b{ display:flex; justify-content:center; align-items:center; gap:6px; font-family:var(--display); font-weight:400; font-size:40px; line-height:1; }
+  .scores b .pick{ width:.66em; height:.66em; }
+  .scores b span{ font-size:inherit; letter-spacing:0; color:inherit; font-weight:inherit; }
+  .scores > div > span{ font-size:11px; font-weight:800; letter-spacing:3px; color:var(--muted); }
+  .scores .h b{ color:var(--lime); } .scores .c b{ color:var(--chat); }
+  .modechip{ display:inline-block; padding:3px 10px; border-radius:99px; background:#2a1656; color:var(--lime); font-size:11px; letter-spacing:2px; font-weight:800; }
+  .games{ display:grid; gap:8px; margin-top:10px; }
+  .game{ padding:12px 14px; border-radius:12px; background:#0b0518; border:1px solid var(--line); }
+  .game b{ font-size:18px; } .game p{ margin:4px 0 0; color:var(--muted); font-size:14px; line-height:1.4; }
+  .game.soon{ opacity:.55; border-style:dashed; }
+  .steps{ margin:14px 0 18px; padding:0; list-style:none; display:grid; gap:10px; counter-reset:s; }
+  .steps li{ display:flex; gap:12px; align-items:flex-start; font-weight:600; line-height:1.4; }
+  .steps li::before{ counter-increment:s; content:counter(s); flex:none; width:28px; height:28px; border-radius:50%; background:var(--purple); color:#fff; font-weight:800; display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .foot{ text-align:center; margin-top:16px; color:var(--muted); font-size:14px; }
+  [hidden]{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="bgfix cosmos"><div class="stars"></div></div>
+<div class="wrap">
+  <header id="hdr">
+    <img class="mark" src="../assets/chazdyn-mark.png" alt="">
+    <div class="wb"><div class="word">PICKME<span data-pick></span></div><div class="tag">play along with the stream</div></div>
+    <img class="logo" id="logoImg" alt="PickMe">
+    <a class="live" href="https://twitch.tv/chazdyn" target="_blank" rel="noopener">● Watch live</a>
+  </header>
+
+  <!-- public profile (?u=login) -->
+  <section class="card" id="vPublic" hidden>
+    <div class="me" id="pubMe"></div>
+    <div class="rows" id="pubStats"></div>
+    <button class="soft gap" style="width:100%" onclick="location.href=location.pathname">Back to the game</button>
+  </section>
+
+  <!-- signed out -->
+  <section class="card" id="vSignin" hidden>
+    <div class="eyebrow">Live on stream</div>
+    <div class="q">Answer live, beat the host, and stack up Picks.</div>
+    <ol class="steps">
+      <li>Sign in with Twitch. That's your profile; your Picks follow you to every game.</li>
+      <li>When a question pops up on stream, answer here (or type <b>!a your answer</b> in chat).</li>
+      <li>Answers that make the board pay out Picks.</li>
+    </ol>
+    <button class="twitch" id="signinBtn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.3 3 3 6.4v13.4h4.6V22h2.6l2.4-2.2h3.7L21 15.1V3H4.3zm15 11.3-2.9 2.8h-4.6l-2.4 2.3v-2.3H5.5V4.7h13.8v9.6zM16.5 8h-1.7v4.9h1.7V8zm-4.6 0h-1.7v4.9h1.7V8z"/></svg>Sign in with Twitch</button>
+    <div class="err" id="signinErr" style="margin-top:10px"></div>
+    <p class="hint">We use your Twitch name and avatar for your profile and the leaderboard. Nothing gets posted to your account. Already answered in chat? Signing in picks up those Picks.</p>
+  </section>
+
+  <section class="card center" id="vNotTwitch" hidden>
+    <div class="q">PickMe needs a Twitch sign-in</div>
+    <p class="hint">You're signed in with a different account. Switch to Twitch to play.</p>
+    <button class="twitch" id="switchBtn">Switch to Twitch</button>
+  </section>
+
+  <main id="vGame" hidden>
+    <!-- my profile -->
+    <section class="card">
+      <div class="me" id="meBox"></div>
+      <div class="row" style="display:flex;gap:8px;margin-top:12px">
+        <button class="soft" style="flex:1" id="histBtn">My history</button>
+        <button class="soft" style="flex:1" id="shareBtn">Share profile</button>
+      </div>
+      <div class="rows" id="hist" hidden></div>
+    </section>
+
+    <div class="note gap" id="accessNote" hidden></div>
+
+    <!-- live game -->
+    <section class="card gap" id="cIdle">
+      <div class="wait center">
+        <div class="eyebrow" style="justify-content:center"><span class="pulse"></span>&nbsp;<span id="idleMode"></span></div>
+        <div class="big" style="margin-top:12px">NEXT QUESTION<br><em>INCOMING</em></div>
+        <p class="hint" id="idleHint">Keep this page open. The question shows up here the moment it goes live.</p>
+      </div>
+    </section>
+
+    <section class="card gap" id="cAsk" hidden>
+      <div class="eyebrow"><span id="roundEyebrow">Survey</span><span class="r modechip" id="askMode"></span></div>
+      <div class="q" id="askQ"></div>
+      <div class="timer" id="timer"><b id="secs">0</b><span>seconds left</span></div>
+      <div class="bar"><i id="barFill"></i></div>
+      <form id="ansForm" autocomplete="off">
+        <input id="ansIn" maxlength="60" placeholder="Your answer" enterkeyhint="send" autocapitalize="sentences">
+        <button id="ansBtn" type="submit">Lock it in</button>
+        <div class="err" id="ansErr"></div>
+      </form>
+      <div class="locked" id="locked" hidden>
+        <div class="big" id="lockedBig">LOCKED IN</div>
+        <div class="mine" id="mine"></div>
+        <p class="hint">Now watch the stream.</p>
+      </div>
+    </section>
+
+    <section class="card gap" id="cBoard" hidden>
+      <div class="eyebrow"><span id="boardEyebrow">The board</span><span class="r modechip" id="boardMode"></span></div>
+      <div class="q" id="boardQ" style="font-size:20px;margin-bottom:6px"></div>
+      <div class="tiles" id="tiles"></div>
+      <div class="you" id="you" hidden></div>
+      <div class="scores" id="teamScores">
+        <div class="h"><b><span data-pick></span><span id="sHost">0</span></b><span id="sHostName">CHAZDYN</span></div>
+        <div class="c"><b><span data-pick></span><span id="sChat">0</span></b><span>CHAT</span></div>
+      </div>
+    </section>
+
+    <!-- questions -->
+    <section class="card gap" id="cQuestions" hidden>
+      <div class="eyebrow"><span class="pulse"></span> Taking questions</div>
+      <div class="q" style="font-size:22px">Got a survey question for the stream?</div>
+      <form id="qForm" autocomplete="off">
+        <textarea id="qIn" maxlength="200" placeholder="Name something you'd never say on a first date."></textarea>
+        <button type="submit" id="qBtn">Send question</button>
+        <div class="err" id="qErr"></div><div class="okmsg" id="qOk"></div>
+      </form>
+      <p class="hint">Or type <b>!q your question</b> in Twitch chat. If Chazdyn uses yours, you might get Picks for it.</p>
+    </section>
+
+    <!-- leaderboard -->
+    <section class="card gap">
+      <div class="eyebrow">Top Pickers</div>
+      <div class="rows" id="lb"></div>
+    </section>
+
+    <section class="card gap">
+      <div class="eyebrow">Games</div>
+      <div class="games" id="games"></div>
+    </section>
+
+    <div class="foot">Playing as <b id="meName"></b> · <button class="link" id="outBtn">Sign out</button></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="pickme-core.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const sb = PM.client();
+const HERE = location.origin + location.pathname.replace(/index\.html$/, '');
+document.querySelectorAll('[data-pick]').forEach(el => el.outerHTML = PM.pickSVG('', true));
+{ const l = $('logoImg'); l.onload = () => $('hdr').classList.add('has-logo'); l.src = 'assets/logo.png'; }
+const avatar = (url, cls) => url ? `<img class="${cls || 'av'}" src="${PM.esc(url)}" alt="">` : `<span class="${cls || 'av'}"></span>`;
+
+let user = null, ME = null, S = null, mine = { roundId:null, answer:null, loaded:false };
+let joinedSession = null, joinReason = null;
+function view(id){ ['vSignin', 'vNotTwitch', 'vGame', 'vPublic'].forEach(x => $(x).hidden = x !== id); }
+
+/* games list */
+$('games').innerHTML = Object.entries(PM.GAMES).map(([k, g]) => `<div class="game"><b>${PM.esc(g.name)}</b><p>${PM.esc(g.blurb)}</p></div>`).join('') +
+  '<div class="game soon"><b>More games coming</b><p>Same profile, same Picks.</p></div>';
+
+/* public profile view */
+const PUB = new URLSearchParams(location.search).get('u');
+async function showPublic(login){
+  view('vPublic');
+  const { data:p } = await sb.from('pm_profiles').select('id, login, display_name, avatar_url, balance, created_at').eq('login', login.toLowerCase()).maybeSingle();
+  if (!p){ $('pubMe').innerHTML = '<div class="q">No player called ' + PM.esc(login) + ' yet.</div>'; return; }
+  const [{ count:above }, { count:answers }] = await Promise.all([
+    sb.from('pm_profiles').select('id', { count:'exact', head:true }).gt('balance', p.balance),
+    sb.from('pm_answers').select('id', { count:'exact', head:true }).eq('profile_id', p.id),
+  ]);
+  $('pubMe').innerHTML = `${avatar(p.avatar_url)}<div><div class="nm">${PM.esc(p.display_name || p.login)}</div><div class="rk">#${(above || 0) + 1} · joined ${new Date(p.created_at).toLocaleDateString()}</div></div>` +
+    `<div class="bal"><b>${PM.pickSVG('', true)}${p.balance}</b><span>PICKS</span></div>`;
+  $('pubStats').innerHTML = `<div class="r1"><span class="nm">Answers given</span><span class="v">${answers || 0}</span></div>` +
+    `<div class="r1"><span class="nm">Twitch</span><a style="color:var(--lime);font-weight:700" href="https://twitch.tv/${PM.esc(p.login)}" target="_blank" rel="noopener">twitch.tv/${PM.esc(p.login)}</a></div>`;
+}
+
+/* sign in */
+async function signIn(){
+  $('signinErr').textContent = '';
+  const { error } = await PM.signInTwitch(HERE);
+  if (error) $('signinErr').textContent = error.message;
+}
+$('signinBtn').onclick = signIn;
+$('switchBtn').onclick = async () => { await sb.auth.signOut(); signIn(); };
+$('outBtn').onclick = async () => { await sb.auth.signOut(); user = null; ME = null; boot(); };
+{
+  const p = new URLSearchParams(location.hash.replace(/^#/, '') || location.search);
+  if (p.get('error_description')) $('signinErr').textContent = p.get('error_description');
+}
+
+let watching = null;
+async function boot(){
+  if (PUB){ showPublic(PUB); return; }
+  const { data:{ session } } = await sb.auth.getSession();
+  user = session ? session.user : null;
+  if (!user){ view('vSignin'); startLeaders(); return; }
+  if (!PM.twitchIdentity(user)){ view('vNotTwitch'); return; }
+  const { data:prof, error } = await sb.rpc('pm_ensure_profile');
+  if (error || !prof){ view('vSignin'); $('signinErr').textContent = error ? error.message : 'Could not create your profile.'; return; }
+  ME = Array.isArray(prof) ? prof[0] : prof;
+  $('meName').textContent = ME.display_name || ME.login;
+  view('vGame');
+  renderMe();
+  PM.syncClock().catch(() => {});
+  if (!watching) watching = PM.watchState((s) => { S = s; onState(); }, 2000);
+  startLeaders();
+}
+sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_IN' || ev === 'SIGNED_OUT') boot(); });
+boot();
+setInterval(() => PM.syncClock().catch(() => {}), 60000);
+
+/* my profile */
+async function refreshMe(){
+  if (!ME) return;
+  const { data } = await sb.from('pm_profiles').select('*').eq('id', ME.id).maybeSingle();
+  if (data){ ME = data; renderMe(); }
+}
+async function renderMe(){
+  const { count:above } = await sb.from('pm_profiles').select('id', { count:'exact', head:true }).gt('balance', ME.balance);
+  $('meBox').innerHTML = `${avatar(ME.avatar_url)}<div><div class="nm">${PM.esc(ME.display_name || ME.login)}</div><div class="rk">Rank #${(above || 0) + 1}</div></div>` +
+    `<div class="bal"><b>${PM.pickSVG('', true)}${ME.balance}</b><span>PICKS</span></div>`;
+}
+setInterval(refreshMe, 8000);
+$('histBtn').onclick = async () => {
+  const box = $('hist');
+  if (!box.hidden){ box.hidden = true; return; }
+  const { data } = await sb.from('pm_ledger').select('delta, reason, created_at').eq('profile_id', ME.id).order('id', { ascending:false }).limit(40);
+  box.innerHTML = (data || []).map(l => `<div class="r1"><span class="${l.delta > 0 ? 'pos' : 'neg'}">${l.delta > 0 ? '+' : ''}${l.delta}</span><span class="nm">${PM.esc(l.reason || '')}</span><span class="w">${PM.timeAgo(l.created_at)}</span></div>`).join('')
+    || '<div class="hint">No Picks yet. Answer a question on stream to get started.</div>';
+  box.hidden = false;
+};
+$('shareBtn').onclick = async () => {
+  const url = HERE + '?u=' + encodeURIComponent(ME.login);
+  try { if (navigator.share) await navigator.share({ title:'My PickMe profile', url }); else { await navigator.clipboard.writeText(url); $('shareBtn').textContent = 'Link copied'; } }
+  catch (e) {}
+};
+
+/* leaderboard */
+let lbTimer = 0;
+async function loadLeaders(){
+  const { data } = await sb.from('pm_profiles').select('id, login, display_name, avatar_url, balance').order('balance', { ascending:false }).limit(10);
+  $('lb').innerHTML = (data || []).map((p, i) =>
+    `<a class="r1${ME && p.id === ME.id ? ' mine' : ''}" style="text-decoration:none;color:inherit" href="?u=${encodeURIComponent(p.login || '')}"><span class="rk">${i + 1}</span>${avatar(p.avatar_url)}<span class="nm">${PM.esc(p.display_name || p.login)}</span><span class="v">${PM.pickSVG('', true)}${p.balance}</span></a>`).join('')
+    || '<div class="hint">Nobody has Picks yet. Be first.</div>';
+}
+function startLeaders(){ if (!lbTimer){ loadLeaders(); lbTimer = setInterval(loadLeaders, 15000); } }
+
+/* session access */
+async function ensureJoined(){
+  if (!S || !S.sessionId || joinedSession === S.sessionId) return;
+  const sid = S.sessionId;
+  const { data } = await sb.rpc('pm_join', { p_session:sid });
+  joinedSession = sid;
+  joinReason = data && data !== 'ok' ? data : null;
+  renderAccess();
+}
+function renderAccess(){
+  $('accessNote').hidden = !joinReason;
+  $('accessNote').textContent = joinReason ? PM.reason(joinReason) : '';
+}
+
+async function loadMine(roundId){
+  if (!ME || !roundId) return;
+  if (mine.roundId === roundId && mine.loaded) return;
+  mine = { roundId, answer:null, loaded:false };
+  const { data } = await sb.from('pm_answers').select('answer').eq('round_id', roundId).eq('profile_id', ME.id).maybeSingle();
+  if (mine.roundId !== roundId) return;
+  mine.answer = data ? data.answer : null;
+  mine.loaded = true;
+  onState();
+}
+
+$('ansForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const answer = $('ansIn').value.trim();
+  if (!answer || !S || S.phase !== 'collecting') return;
+  $('ansBtn').disabled = true; $('ansErr').textContent = '';
+  const { data, error } = await sb.rpc('pm_submit_answer', { p_round:S.roundId, p_answer:answer });
+  const res = error ? error.message : data;
+  if (res === 'ok'){ mine = { roundId:S.roundId, answer, loaded:true }; joinReason = null; renderAccess(); }
+  else if (res === 'already'){ mine.loaded = false; await loadMine(S.roundId); }
+  else { $('ansErr').textContent = PM.reason(res); if (['blocked','not_whitelisted','closed','ended'].includes(res)){ joinReason = res; renderAccess(); } }
+  $('ansBtn').disabled = false;
+  onState();
+});
+
+$('qForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = $('qIn').value.trim();
+  if (!text) return;
+  $('qBtn').disabled = true; $('qErr').textContent = ''; $('qOk').textContent = '';
+  const { data, error } = await sb.rpc('pm_submit_question', { p_text:text });
+  const res = error ? error.message : data;
+  if (res === 'ok'){ $('qIn').value = ''; $('qOk').textContent = 'Sent. Chazdyn will see it in the queue.'; }
+  else $('qErr').textContent = PM.reason(res);
+  $('qBtn').disabled = false;
+});
+
+let lastPhase = null;
+function onState(){
+  if (!S || $('vGame').hidden) return;
+  if (S.phase !== lastPhase){ if (S.phase === 'done' || S.phase === 'idle') { loadLeaders(); refreshMe(); } lastPhase = S.phase; }
+  ensureJoined();
+  const p = S.phase, crowd = S.mode === 'crowd';
+  const modeName = (PM.MODES[S.mode] || PM.MODES.versus).name;
+  $('idleMode').textContent = S.sessionId ? (S.sessionTitle || 'Live session') + ' · ' + modeName : 'You\'re in · ' + modeName;
+  $('askMode').textContent = $('boardMode').textContent = modeName.toUpperCase();
+  $('cQuestions').hidden = !S.questionCall;
+  if (S.roundId) loadMine(S.roundId);
+
+  const ask = p === 'collecting' || p === 'locking';
+  const board = p === 'board' || p === 'reveal' || p === 'done';
+  $('cIdle').hidden = ask || board;
+  $('cAsk').hidden = !ask;
+  $('cBoard').hidden = !board;
+
+  if (ask){
+    $('roundEyebrow').textContent = 'Question ' + (S.roundNo || 1);
+    if ($('askQ').textContent !== S.question) $('askQ').textContent = S.question;
+    const have = mine.roundId === S.roundId && mine.answer;
+    $('ansForm').hidden = !!have || p === 'locking';
+    $('locked').hidden = !have && p !== 'locking';
+    $('mine').textContent = have ? mine.answer : '';
+    $('lockedBig').textContent = have ? 'LOCKED IN' : 'TIME!';
+    if (!have && p === 'collecting' && $('ansIn').dataset.round !== S.roundId){
+      $('ansIn').dataset.round = S.roundId; $('ansIn').value = ''; $('ansErr').textContent = '';
+      setTimeout(() => $('ansIn').focus({ preventScroll:true }), 50);
+    }
+  }
+
+  if (board){
+    $('boardEyebrow').textContent = p === 'done' ? 'Final board' : 'The board';
+    $('boardQ').textContent = S.question;
+    $('teamScores').hidden = crowd;
+    $('sHost').textContent = S.scores.host; $('sChat').textContent = S.scores.chat;
+    $('sHostName').textContent = (S.hostName || PM.CONFIG.hostName).toUpperCase();
+    const m = mine.roundId === S.roundId && mine.answer ? PM.matchGuess(S.board, S.overflow, mine.answer) : null;
+    const myIdx = m && (m.type === 'hit' || m.type === 'dupe') ? m.idx : -1;
+    $('tiles').innerHTML = S.board.map((t, i) => {
+      const cls = 'tile' + (t.revealed ? ' rev ' + (t.by || 'host') : '') + (i === myIdx && t.revealed ? ' mine' : '');
+      return `<div class="${cls}"><span class="n">${i + 1}</span><span class="l">${t.revealed ? PM.esc(t.label) : ''}</span>` +
+             (t.revealed ? `<span class="c">${PM.pickSVG('', true)}${t.count}</span>` : '') + '</div>';
+    }).join('');
+    const you = $('you');
+    if (!m){ you.hidden = true; }
+    else {
+      you.hidden = false;
+      const a = '<b>' + PM.esc(mine.answer) + '</b>';
+      const t = myIdx >= 0 ? S.board[myIdx] : null;
+      if (t && t.revealed){
+        const paid = t.by === 'chat' || t.by === 'crowd';
+        you.innerHTML = paid ? `${a} is #${myIdx + 1}. You earned ${PM.picks(t.count)}!` : `${a} is #${myIdx + 1}, but the host guessed it. No Picks this time.`;
+        if (paid) refreshMe();
+      }
+      else if (t) you.innerHTML = crowd ? `${a} made the board. Waiting on the reveal…` : `${a} made the board. Hope the host misses it…`;
+      else if (m.type === 'offboard') you.innerHTML = `${a}: ${m.count} people agreed with you, just not enough for the board.`;
+      else you.innerHTML = `${a}: original thinker. Nobody else said it.`;
+    }
+  }
+}
+setInterval(() => {
+  if (!S || S.phase !== 'collecting' || $('cAsk').hidden) return;
+  const total = Math.max(1, S.seconds || 45);
+  const rem = Math.max(0, ((Date.parse(S.closesAt) || 0) - PM.serverNow()) / 1000);
+  $('secs').textContent = Math.ceil(rem);
+  $('timer').classList.toggle('hurry', rem <= 10);
+  $('barFill').style.width = Math.min(100, (rem / total) * 100) + '%';
+}, 200);
+})();
+</script>
+</body>
+</html>
