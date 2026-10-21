@@ -84,6 +84,17 @@
   .pbig img, .pbig .av{ width:64px; height:64px; border-radius:50%; background:var(--purple); object-fit:cover; }
   .pbig .bal{ margin-left:auto; font-family:var(--display); font-size:58px; color:var(--lime); line-height:1; }
   .pbig .bal .pick{ width:.7em; height:.7em; margin-right:6px; vertical-align:-.04em; }
+  .bw{ display:inline-flex; align-items:center; gap:6px; padding:4px 6px 4px 10px; border-radius:99px; background:#3a0b18; border:1px solid #7a1f33; color:#ffc2cd; font-weight:700; font-size:13px; }
+  .bw em{ font-style:normal; color:var(--faint); font-size:11px; }
+  .bw button{ padding:0 7px; border-radius:99px; background:transparent; border:0; color:#ffc2cd; font-size:15px; line-height:1.4; }
+  .tvch{ display:flex; gap:10px; align-items:center; padding:8px 10px; border-radius:10px; background:#0c0619; border:1px solid var(--line); }
+  .tvch b{ width:26px; height:26px; flex:none; border-radius:8px; display:grid; place-items:center; background:var(--purple); color:#fff; font-size:13px; }
+  .tvch.ok{ border-color:var(--lime-deep); background:#132008; } .tvch.ok b{ background:var(--lime); color:var(--ink); }
+  .tvch .pc{ margin-left:auto; color:var(--muted); font-weight:700; font-size:13px; }
+  .sh-prev{ width:120px; flex:none; display:flex; align-items:center; gap:8px; min-width:0; }
+  .sh-prev .cav{ --av:30px; }
+  .sh-sw{ width:100%; height:28px; border-radius:8px; border:1px solid var(--line); }
+  .item input.price{ width:80px; padding:6px 8px; }
   .links code{ display:block; background:#0c0619; border:1px solid var(--line); border-radius:8px; padding:8px; font-size:12px; word-break:break-all; margin:4px 0 8px; color:var(--lime-hi); }
   .gate{ text-align:center; padding:28px 14px; }
   .gate p{ color:var(--muted); }
@@ -122,6 +133,8 @@
       <button data-tab="players">Players</button>
       <button data-tab="logs">Logs</button>
       <button data-tab="access">Access</button>
+      <button data-tab="trivia">Trivia</button>
+      <button data-tab="shop">Shop</button>
     </nav>
 
     <!-- ═══════════ LIVE ═══════════ -->
@@ -212,6 +225,7 @@
         <div id="doneSum" style="font-weight:800;font-size:18px"></div>
         <div class="list" id="doneTop" style="margin-top:10px"></div>
         <div class="tl" id="tlDone"></div>
+        <details id="alsoDone" hidden><summary>Also said (no Picks)</summary><div class="tl" id="alsoDoneList"></div></details>
         <div class="row" style="margin-top:10px"><button id="idleBtn">Back to idle screen</button></div>
       </section>
 
@@ -223,6 +237,31 @@
           <label class="muted">Reward the asker <input id="qReward" type="number" min="0" max="1000" value="5" style="width:80px"> Picks when used</label>
         </div>
         <div class="list" id="qInbox"></div>
+      </section>
+
+      <!-- auto-survey -->
+      <section class="card">
+        <h2>Auto-survey in chat <span class="r"><label class="chk small"><input type="checkbox" id="autoChk"> Running</label></span></h2>
+        <div class="small muted">Asks a bank question in Twitch chat. Once enough different people answer (<b>!a</b> in chat or on the site), it's ready to play. Pauses while a round is live.</div>
+        <div class="row small" style="margin-top:10px">
+          <label class="muted">Ready after <input id="autoN" type="number" min="1" max="500" style="width:70px"> answers</label>
+          <label class="muted">Post every <input id="autoEvery" type="number" min="1" max="60" style="width:60px"> min</label>
+          <label class="muted">Move on after <input id="autoGive" type="number" min="2" max="240" style="width:60px"> min</label>
+        </div>
+        <div class="item" id="autoNow" style="margin-top:10px"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="sm" id="autoSkip">Next question</button>
+          <button class="sm" id="autoRepost">Post again</button>
+          <span class="grow"></span><span class="small muted" id="autoNote"></span>
+        </div>
+        <h2 style="margin-top:14px">Ready to play <span class="r small muted" id="readyCount"></span></h2>
+        <div class="list" id="readyList"></div>
+        <details><summary>Still collecting <span id="waitCount"></span></summary><div class="list" id="waitList" style="margin-top:8px"></div></details>
+        <details><summary>Question bank <span id="bankCount"></span></summary>
+          <textarea id="bankAdd" placeholder="Add questions, one per line" style="margin-top:8px"></textarea>
+          <div class="row" style="margin-top:6px"><button class="sm go" id="bankAddBtn">Add to bank</button></div>
+          <div class="list" id="bankList" style="margin-top:8px;max-height:300px;overflow:auto"></div>
+        </details>
       </section>
 
       <!-- chat bridge -->
@@ -311,6 +350,9 @@
         <h2>Access</h2>
         <div class="list" id="pAccess"></div>
         <div class="sep"></div>
+        <h2>Give a shop item</h2>
+        <div class="row"><select class="grow" id="giveItem"></select><button id="giveItemBtn">Give for free</button></div>
+        <div class="sep"></div>
         <h2>Picks history</h2>
         <div class="feed" id="pLedger" style="max-height:240px"></div>
         <h2 style="margin-top:12px">Activity</h2>
@@ -319,6 +361,7 @@
       </section>
       <section class="card" id="playersList">
         <h2>Players <span class="r small muted" id="pCount"></span></h2>
+        <label class="chk small" style="margin-bottom:10px"><input type="checkbox" id="xferChk"> Players can send Picks to each other</label>
         <div class="row" style="margin-bottom:10px">
           <input class="grow" id="pSearch" placeholder="Search name">
           <select id="pSort"><option value="balance">Most Picks</option><option value="recent">Recently seen</option><option value="new">Newest</option></select>
@@ -338,6 +381,10 @@
             <option value="answered">Answers</option>
             <option value="answer_rejected">Rejected (blocked/closed)</option>
             <option value="question">Questions</option>
+            <option value="transfer">Picks sent between players</option>
+            <option value="filtered">Blocked-word rejections</option>
+            <option value="trivia">Trivia Ladder</option>
+            <option value="shop">Pick Shop</option>
             <option value="joined">Joins</option>
             <option value="profile_created">New profiles</option>
             <option value="adjusted">Manual adjustments</option>
@@ -349,6 +396,99 @@
       </section>
     </div>
 
+
+    <!-- ═══════════ TRIVIA ═══════════ -->
+    <div data-pane="trivia" hidden>
+      <section class="card" id="tvSetup">
+        <h2>New Trivia Ladder</h2>
+        <div class="small muted" style="margin-bottom:10px">Multiple choice from Open Trivia DB. Players join in the lobby (site or <b>!join</b>), answer A–D (site or <b>!a B</b> in chat). One wrong answer and they're out. Survivors split the pot.</div>
+        <div class="row">
+          <label class="small muted">Category <select id="tvCat"></select></label>
+          <label class="small muted">Difficulty <select id="tvDiff"><option value="">Any</option><option>easy</option><option>medium</option><option>hard</option></select></label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="small muted">Questions <select id="tvTotal"><option>5</option><option>7</option><option selected>10</option><option>12</option><option>15</option></select></label>
+          <label class="small muted">Seconds each <select id="tvSecs"><option>10</option><option>15</option><option selected>20</option><option>30</option></select></label>
+          <label class="chk small"><input type="checkbox" id="tvRevive" checked> If everyone misses, nobody is out</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <span class="small muted">Pot</span>
+          <button class="sm sel" data-pot="prize">Prize (free entry)</button>
+          <button class="sm" data-pot="buyin">Buy-in</button>
+          <label class="small muted" id="tvBuyLbl" hidden>Buy-in <input id="tvBuy" type="number" min="1" value="10" style="width:80px"></label>
+          <label class="small muted"><span id="tvPrizeLbl">Prize</span> <input id="tvPrize" type="number" min="0" value="50" style="width:90px"></label>
+        </div>
+        <details style="margin-top:8px"><summary>Use my own questions (optional)</summary>
+          <div class="tiny muted" style="margin:6px 0">One question per block, blank line between. Mark the right answer with <b>*</b>. These are asked first; the rest come from Open Trivia DB.</div>
+          <textarea id="tvCustom" placeholder="What year did the Les Paul come out?&#10;*1952&#10;1949&#10;1961&#10;1958"></textarea>
+        </details>
+        <div class="row" style="margin-top:10px"><span class="small muted" id="tvSetupMsg"></span><span class="grow"></span><button class="go" id="tvOpenBtn">Open lobby</button></div>
+      </section>
+
+      <section class="card" id="tvLobby" hidden>
+        <h2>Lobby <span class="r small muted" id="tvLobbyMeta"></span></h2>
+        <div class="stats"><div class="stat h"><b id="tvEnt">0</b><span>joined</span></div><div class="stat c"><b><span data-pick></span><span id="tvPot">0</span></b><span>pot</span></div></div>
+        <div class="list" id="tvEntList" style="margin-top:10px;max-height:220px;overflow:auto"></div>
+        <div class="row" style="margin-top:10px"><button class="bad sm" id="tvCancel1">Cancel (refund)</button><span class="grow"></span><button class="go" id="tvStartBtn">Ask question 1</button></div>
+      </section>
+
+      <section class="card" id="tvQ" hidden>
+        <h2><span id="tvQno"></span> <span class="r small muted" id="tvQmeta"></span></h2>
+        <div style="font-weight:800;font-size:18px;margin-bottom:10px" id="tvQtext"></div>
+        <div class="list" id="tvQch"></div>
+        <div class="row" style="margin-top:10px">
+          <div class="grow"><span class="big" id="tvTime" style="font-size:44px">0</span> <span class="small muted">sec</span></div>
+          <div class="small muted"><b id="tvAnsN" style="font-size:22px;color:var(--text)">0</b> / <span id="tvAliveN">0</span> answered</div>
+        </div>
+        <div class="tiny muted" style="margin-top:4px">Only you see the ✓. It reveals automatically when time runs out.</div>
+        <div class="row" style="margin-top:10px">
+          <button class="sm" id="tvSkipBtn">Skip question</button>
+          <button class="bad sm" id="tvCancel2">Cancel game</button>
+          <span class="grow"></span>
+          <button class="go" id="tvRevealBtn">Reveal now</button>
+        </div>
+      </section>
+
+      <section class="card" id="tvR" hidden>
+        <h2>Revealed <span class="r small muted" id="tvRmeta"></span></h2>
+        <div style="font-weight:800;font-size:18px" id="tvRsum"></div>
+        <div class="list" id="tvRch" style="margin-top:10px"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="bad sm" id="tvCancel3">Cancel game</button>
+          <span class="grow"></span>
+          <button id="tvFinishBtn">Finish &amp; pay</button>
+          <button class="go" id="tvNextBtn">Next question</button>
+        </div>
+      </section>
+
+      <section class="card" id="tvDone" hidden>
+        <h2>Finished</h2>
+        <div style="font-weight:800;font-size:18px" id="tvDsum"></div>
+        <div class="list" id="tvDlist" style="margin-top:10px"></div>
+        <div class="row" style="margin-top:10px"><span class="grow"></span><button class="go" id="tvBackBtn">Back to Chat Says</button></div>
+      </section>
+      <div class="tiny muted" style="text-align:center">Questions: <a href="https://opentdb.com" target="_blank" rel="noopener" style="color:var(--muted)">Open Trivia DB</a>, CC BY-SA 4.0.</div>
+    </div>
+
+    <!-- ═══════════ SHOP ═══════════ -->
+    <div data-pane="shop" hidden>
+      <section class="card">
+        <h2>Add an item</h2>
+        <div class="row">
+          <select id="shKind"><option value="namecolor">Name color</option><option value="badge">Badge</option><option value="frame">Avatar frame</option><option value="theme">Card theme</option></select>
+          <input class="grow" id="shName" placeholder="Name shown in the shop" maxlength="40">
+          <input id="shPrice" type="number" min="0" value="50" style="width:90px" title="Price in Picks">
+        </div>
+        <div class="row" style="margin-top:8px" id="shOpts"></div>
+        <div class="row" style="margin-top:8px"><span class="small muted" id="shPrevNew"></span><span class="grow"></span><button class="go" id="shAdd">Add to shop</button></div>
+      </section>
+      <section class="card">
+        <h2>Items <span class="r small muted" id="shCount"></span></h2>
+        <div class="tiny muted" style="margin-bottom:8px">Change a price and press Enter. Untick to hide an item from the shop (owners keep it).</div>
+        <div class="list" id="shList"></div>
+      </section>
+    </div>
+
     <!-- ═══════════ ACCESS ═══════════ -->
     <div data-pane="access" hidden>
       <section class="card">
@@ -357,10 +497,20 @@
           <input class="grow" id="accName" placeholder="Twitch name" list="accNames">
           <datalist id="accNames"></datalist>
           <select id="accKind"><option value="block">Block</option><option value="allow">Whitelist</option></select>
-          <select id="accScope"><option value="global">Everything</option><option value="game:chatsays">Chat Says</option><option value="session">This session</option></select>
+          <select id="accScope"><option value="global">Everything</option><option value="game:chatsays">Chat Says</option><option value="game:trivia">Trivia Ladder</option><option value="session">This session</option></select>
           <button class="go" id="accAdd">Add</button>
         </div>
         <div class="tiny muted" style="margin-top:6px">Blocks always win. Whitelist entries only matter when a session is set to “Whitelist only”. Chat-only players appear here after they've answered once.</div>
+      </section>
+      <section class="card">
+        <h2>Blocked words <span class="r small muted" id="bwCount"></span></h2>
+        <div class="small muted" style="margin-bottom:8px">Answers, questions and transfer notes containing these are rejected (site and chat). Already-collected answers aren't changed; use Drop for those.</div>
+        <div class="row">
+          <input class="grow" id="bwIn" placeholder="word or phrase (comma or new line for several)">
+          <label class="chk small"><input type="checkbox" id="bwPart"> also inside longer words</label>
+          <button class="go" id="bwAdd">Add</button>
+        </div>
+        <div class="row" id="bwList" style="margin-top:10px;gap:6px"></div>
       </section>
       <section class="card">
         <h2>Rules</h2>
@@ -386,6 +536,7 @@ $('lnViewer').textContent  = BASE;
 $('lnDash').textContent    = BASE + 'dashboard.html';
 $$('[data-pick]').forEach(el => { const id = el.id; el.outerHTML = PM.pickSVG('', true).replace('<svg', id ? `<svg id="${id}"` : '<svg'); });
 
+const fmtQ = (q) => PM.esc(q.length > 90 ? q.slice(0, 89) + '…' : q);
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 let toastT = 0;
 function toast(msg, kind){
@@ -404,7 +555,9 @@ $$('#tabs button').forEach(b => b.onclick = () => {
   if (TAB === 'session') loadSession();
   if (TAB === 'players') loadPlayers();
   if (TAB === 'logs') loadLogs();
-  if (TAB === 'access') loadAccess();
+  if (TAB === 'access'){ loadAccess(); loadWords(); }
+  if (TAB === 'shop') loadShopAdmin();
+  if (TAB === 'trivia') renderTrivia();
 });
 
 /* ── question bank ── */
@@ -468,6 +621,7 @@ async function checkAuth(){
   startBridge();
   refreshMod();
   loadInbox();
+  loadSurveys();
 }
 $('inTwitch').onclick  = () => PM.signInTwitch(BASE + 'dashboard.html');
 $('inDiscord').onclick = () => PM.signInDiscord(BASE + 'dashboard.html');
@@ -506,6 +660,7 @@ $('hideBtn').onclick = () => save(n => { n.hidden = !n.hidden; });
 
 /* ── round flow ── */
 async function startRound(){
+  if (triviaLive()){ toast('A Trivia Ladder is running. Finish or cancel it first.', 'err'); return; }
   const q = $('qIn').value.trim();
   if (!q){ toast('Type a question first', 'err'); $('qIn').focus(); return; }
   const seconds = parseInt($('secIn').value, 10), topN = parseInt($('topIn').value, 10);
@@ -517,7 +672,7 @@ async function startRound(){
     const { data:r, error } = await sb.from('pm_rounds').insert(row).select().single();
     if (error) throw error;
     roundAnswers = [];
-    await save(n => Object.assign(n, {
+    await save(n => Object.assign(n, { game:'chatsays', trivia:PM.defaultTrivia(),
       phase:'collecting', roundId:r.id, roundNo:(n.roundNo || 0) + 1, question:q, seconds,
       closesAt:r.closes_at, topN, board:[], overflow:[], total:0, strikes:0,
       round:{ host:0, chat:0, paid:0 }, roundTop:[], lastGuess:null, result:null, hidden:false, scene:'game',
@@ -778,7 +933,15 @@ async function loadInbox(){
     use.onclick = () => { setQuestion(q.text, q); $('qIn').scrollIntoView({ behavior:'smooth', block:'center' }); };
     const dis = document.createElement('button'); dis.className = 'sm ghost'; dis.textContent = 'Dismiss';
     dis.onclick = async () => { await sb.from('pm_questions').update({ status:'dismissed' }).eq('id', q.id); loadInbox(); };
-    d.append(use, dis); box.appendChild(d);
+    const sv = document.createElement('button'); sv.className = 'sm'; sv.textContent = 'Survey it';
+    sv.title = 'Add to the auto-survey bank so chat answers it ahead of time';
+    sv.onclick = async () => {
+      const { error } = await sb.from('pm_bank').insert({ text:q.text, source:'viewer' });
+      if (error && !/duplicate/i.test(error.message)){ toast(error.message, 'err'); return; }
+      await sb.from('pm_questions').update({ status:'used' }).eq('id', q.id);
+      toast('Added to the survey bank'); loadInbox(); loadSurveys();
+    };
+    d.append(use, sv, dis); box.appendChild(d);
   });
 }
 setInterval(() => { if (TAB === 'live') loadInbox(); }, 5000);
@@ -803,16 +966,41 @@ function startBridge(){
   });
 }
 async function onChat(m){
+  if (S.game === 'trivia' && S.trivia.gameId && m.userId){
+    const T = S.trivia, txt = (m.text || '').trim();
+    if (T.phase === 'lobby' && /^!join\b/i.test(txt)){
+      hideMessage(m);
+      const { data, error } = await sb.rpc('pm_admin_trivia_chat_join', { p_game:T.gameId, p_twitch_id:m.userId, p_login:m.login, p_display:m.display });
+      const res = error ? error.message : data;
+      feed(`<b>${PM.esc(m.display)}</b> !join · ${res === 'ok' ? '<span class="pos">on the ladder</span>' : '<span class="neg">' + PM.esc(PM.reason(res)) + '</span>'}`);
+      return;
+    }
+    const ch = /^!(?:a|answer)\s+([a-d1-4])\b/i.exec(txt) || /^!([a-d])$/i.exec(txt);
+    if (T.phase === 'question' && ch){
+      hideMessage(m);
+      const c = ch[1].toLowerCase(), idx = /[1-4]/.test(c) ? +c - 1 : 'abcd'.indexOf(c);
+      const { data, error } = await sb.rpc('pm_admin_trivia_chat_answer', { p_game:T.gameId, p_qno:T.qno, p_twitch_id:m.userId, p_choice:idx });
+      const res = error ? error.message : data;
+      if (res !== 'ok') feed(`<b>${PM.esc(m.display)}</b> trivia · <span class="neg">${PM.esc(PM.reason(res))}</span>`);
+      return;
+    }
+    if (triviaLive() && /^!(?:a|answer)\b/i.test(txt)) return;
+  }
   const a = /^!(?:a|answer)\s+(.+)/i.exec(m.text || '');
   const q = /^!(?:q|question)\s+(.+)/i.exec(m.text || '');
   if (!a && !q) return;
   if (!m.userId) return;
   if (a){
-    if (!(S.phase === 'collecting' && S.chatAnswers && S.roundId)) return;
+    // a live round takes priority; otherwise the answer goes to the running chat survey
+    let target = null, label = 'answered';
+    if (S.phase === 'collecting' && S.chatAnswers && S.roundId) target = S.roundId;
+    else if (!liveRound() && S.auto.on && S.auto.activeId){ target = S.auto.activeId; label = 'answered the survey'; }
+    if (!target) return;
     hideMessage(m);
-    const { data, error } = await sb.rpc('pm_admin_chat_answer', { p_round:S.roundId, p_twitch_id:m.userId, p_login:m.login, p_display:m.display, p_answer:a[1] });
+    const { data, error } = await sb.rpc('pm_admin_chat_answer', { p_round:target, p_twitch_id:m.userId, p_login:m.login, p_display:m.display, p_answer:a[1] });
     const res = error ? error.message : data;
-    feed(`<b>${PM.esc(m.display)}</b> answered · ${res === 'ok' ? '<span class="pos">counted</span>' : '<span class="neg">' + PM.esc(PM.reason(res)) + '</span>'}`);
+    feed(`<b>${PM.esc(m.display)}</b> ${label} · ${res === 'ok' ? '<span class="pos">counted</span>' : '<span class="neg">' + PM.esc(PM.reason(res)) + '</span>'}`);
+    if (res === 'ok' && target === S.auto.activeId) autoTick();
   } else if (q){
     if (!S.questionCall) return;
     hideMessage(m);
@@ -836,7 +1024,8 @@ async function captureModToken(token){
       const r = await PM.Twitch.helix(token, v.client_id, 'GET', 'users?login=' + encodeURIComponent(CHANNEL));
       if (r.ok){ const j = await r.json(); broadcasterId = j.data && j.data[0] && j.data[0].id; }
     }
-    MOD = { token, clientId:v.client_id, userId:v.user_id, login:v.login, broadcasterId, expiresAt:Date.now() + (v.expires_in || 0) * 1000 };
+    MOD = { token, clientId:v.client_id, userId:v.user_id, login:v.login, broadcasterId, expiresAt:Date.now() + (v.expires_in || 0) * 1000,
+            canSend:(v.scopes || []).includes('user:write:chat') };
     try { localStorage.setItem(MOD_KEY, JSON.stringify(MOD)); } catch (e) {}
     refreshMod();
     toast('Chat moderation connected as ' + v.login);
@@ -848,10 +1037,23 @@ function refreshMod(){
   const left = MOD.expiresAt - Date.now();
   if (left <= 0){ chip.textContent = 'expired, reconnect'; chip.className = 'chip bad'; return; }
   const h = Math.floor(left / 3600000), mn = Math.floor((left % 3600000) / 60000);
-  chip.textContent = `${MOD.login} · ${h}h ${mn}m left`; chip.className = 'chip ' + (left < 1800000 ? 'warn' : 'ok');
+  chip.textContent = `${MOD.login} · ${h}h ${mn}m left` + (MOD.canSend ? '' : ' · can’t post, reconnect'); chip.className = 'chip ' + (left < 1800000 || !MOD.canSend ? 'warn' : 'ok');
 }
 setInterval(refreshMod, 30000);
 $('modBtn').onclick = () => PM.signInTwitch(BASE + 'dashboard.html', PM.CONFIG.modScopes);
+async function sendChat(text){
+  if (!MOD || !MOD.canSend || MOD.expiresAt < Date.now()){ feed('<span class="neg">Can\'t post to chat. Click Connect moderation.</span>'); return false; }
+  try {
+    const r = await PM.Twitch.helix(MOD.token, MOD.clientId, 'POST', 'chat/messages',
+      { broadcaster_id:MOD.broadcasterId, sender_id:MOD.userId, message:text.slice(0, 480) });
+    if (r.status === 401){ MOD.expiresAt = 0; refreshMod(); }
+    if (!r.ok){ feed('<span class="neg">Twitch refused the chat message (' + r.status + ').</span>'); return false; }
+    const j = await r.json().catch(() => ({}));
+    const d0 = j.data && j.data[0];
+    if (d0 && d0.is_sent === false){ feed('<span class="neg">Chat message dropped: ' + PM.esc((d0.drop_reason && d0.drop_reason.message) || 'unknown') + '</span>'); return false; }
+    return true;
+  } catch (e) { return false; }
+}
 async function hideMessage(m){
   if (!$('autoDelChk').checked || !MOD || !m.id || m.broadcaster) return;
   if (MOD.expiresAt < Date.now()){ refreshMod(); return; }
@@ -861,6 +1063,161 @@ async function hideMessage(m){
     if (r.status === 401){ MOD.expiresAt = 0; refreshMod(); feed('<span class="neg">Moderation token expired. Reconnect to keep hiding answers.</span>'); }
   } catch (e) {}
 }
+
+/* ── auto-survey ── */
+const triviaLive = () => S.game === 'trivia' && !['off', 'done'].includes(S.trivia.phase);
+const liveRound = () => ['collecting', 'locking', 'board', 'reveal'].includes(S.phase) || triviaLive();
+const surveyMsg = (q, need) => `📋 SURVEY: ${q} Answer with !a your answer (or at ${PM.CONFIG.joinUrl})` + (need ? ` · ${need} more needed` : '');
+async function countAnswers(roundId){
+  const { count } = await sb.from('pm_answers').select('id', { count:'exact', head:true }).eq('round_id', roundId);
+  return count || 0;
+}
+async function askSurvey(round){
+  // round: {id, question} of an existing survey, or null to pull the next bank question
+  let r = round;
+  if (!r){
+    const { data:open } = await sb.from('pm_rounds').select('question').eq('kind', 'survey').eq('status', 'collecting').limit(500);
+    const taken = new Set((open || []).map(x => x.question));
+    const { data:bank, error } = await sb.from('pm_bank').select('id, text, times_asked').eq('active', true).order('times_asked', { ascending:true }).limit(400);
+    if (error){ toast(error.message, 'err'); return; }
+    const fresh = (bank || []).filter(b => !taken.has(b.text));
+    if (!fresh.length){ feed('<span class="neg">Survey bank is empty or every question is already waiting.</span>'); return; }
+    const low = fresh.filter(b => b.times_asked === fresh[0].times_asked);
+    const pickQ = low[Math.floor(Math.random() * low.length)];
+    const { data:ins, error:e2 } = await sb.from('pm_rounds').insert({ question:pickQ.text, kind:'survey', seconds:600, game:'chatsays' }).select().single();
+    if (e2){ toast(e2.message, 'err'); return; }
+    await sb.from('pm_bank').update({ times_asked:pickQ.times_asked + 1, last_asked_at:new Date().toISOString() }).eq('id', pickQ.id);
+    r = ins;
+  }
+  const count = await countAnswers(r.id);
+  const now = Date.now();
+  await save(n => { n.auto.activeId = r.id; n.auto.activeQ = r.question; n.auto.count = count; n.auto.askedAt = now; n.auto.postedAt = now; });
+  const sent = await sendChat(surveyMsg(r.question, Math.max(0, S.auto.threshold - count)));
+  feed(`Asked in chat${sent ? '' : ' (not posted)'}: “${fmtQ(r.question)}”`);
+  loadSurveys();
+}
+let ticking = false;
+async function autoTick(){
+  if (!isAdmin || ticking || !S.auto.on) return;
+  ticking = true;
+  try {
+    const A = S.auto;
+    if (liveRound()) return;
+    if (!A.activeId){ await askSurvey(null); return; }
+    const count = await countAnswers(A.activeId);
+    if (count !== A.count) await save(n => { n.auto.count = count; });
+    const now = Date.now();
+    const sincePost = now - (A.postedAt || 0), sinceAsk = now - (A.askedAt || 0);
+    if (count >= A.threshold){
+      if (A.count < A.threshold) feed(`<span class="pos">Ready to play:</span> “${fmtQ(A.activeQ)}” (${count} answers)`), loadSurveys();
+      if (sincePost >= A.interval * 1000) await askSurvey(null);
+    } else if (sinceAsk >= A.timeout * 1000){
+      feed(`Moving on from “${fmtQ(A.activeQ)}” at ${count}/${A.threshold}. It stays in Still collecting.`);
+      await askSurvey(null);
+    } else if (sincePost >= A.interval * 1000){
+      await sendChat(surveyMsg(A.activeQ, A.threshold - count));
+      await save(n => { n.auto.postedAt = now; });
+    }
+  } catch (e) { /* next tick */ }
+  finally { ticking = false; }
+}
+setInterval(autoTick, 4000);
+
+$('autoChk').onchange = async () => {
+  const on = $('autoChk').checked;
+  if (on && !(MOD && MOD.canSend)) toast('Surveys will run, but posting to chat needs Connect moderation', 'err');
+  await save(n => { n.auto.on = on; });
+  if (on) autoTick();
+};
+function autoSetting(id, key, mult){
+  $(id).onchange = () => {
+    const v = parseInt($(id).value, 10);
+    if (!Number.isFinite(v) || v < 1) return;
+    save(n => { n.auto[key] = v * mult; });
+  };
+}
+autoSetting('autoN', 'threshold', 1); autoSetting('autoEvery', 'interval', 60); autoSetting('autoGive', 'timeout', 60);
+$('autoSkip').onclick = () => { if (!liveRound()) askSurvey(null); };
+$('autoRepost').onclick = async () => {
+  if (!S.auto.activeId) return;
+  await sendChat(surveyMsg(S.auto.activeQ, Math.max(0, S.auto.threshold - S.auto.count)));
+  save(n => { n.auto.postedAt = Date.now(); });
+};
+
+async function playSurvey(r){
+  if (liveRound()){ toast('Finish the current round first', 'err'); return; }
+  const topN = parseInt($('topIn').value, 10) || 5;
+  try {
+    const { error } = await sb.from('pm_rounds').update({ status:'closed', session_id:S.sessionId || null, mode:S.mode }).eq('id', r.id);
+    if (error) throw error;
+    const answers = await fetchAnswers(r.id);
+    const res = PM.cluster(answers, topN);
+    if (!res.total){ toast('Nobody answered that one', 'err'); return; }
+    const tags = answers.map(a => ({ id:a.id, key:res.keyOf.get(PM.normalize(a.answer)) || null })).filter(t => t.key);
+    await sb.rpc('pm_admin_tag_answers', { p_round:r.id, p_tags:tags });
+    roundAnswers = answers.map(a => Object.assign(a, { tile_key: res.keyOf.get(PM.normalize(a.answer)) || null }));
+    await save(n => Object.assign(n, {
+      phase:'board', roundId:r.id, roundNo:(n.roundNo || 0) + 1, question:r.question, topN, seconds:0, closesAt:null,
+      board:res.board, overflow:res.overflow, total:res.total, strikes:0, round:{ host:0, chat:0, paid:0 }, roundTop:[],
+      lastGuess:null, result:null, hidden:false, scene:'game', notice:{ seq:Date.now(), text:'THE SURVEY IS IN' },
+      auto:Object.assign(n.auto, n.auto.activeId === r.id ? { activeId:null, activeQ:'', count:0 } : {}),
+    }));
+    loadSurveys();
+    setTimeout(() => $('guessIn').focus(), 50);
+  } catch (e) { toast(e.message || String(e), 'err'); }
+}
+async function discardSurvey(r){
+  if (!confirm('Discard this survey and its answers? Nobody gets paid for it.')) return;
+  await sb.from('pm_rounds').update({ status:'cancelled' }).eq('id', r.id);
+  if (S.auto.activeId === r.id) await save(n => { n.auto.activeId = null; n.auto.activeQ = ''; n.auto.count = 0; });
+  loadSurveys();
+}
+let surveysBusy = false;
+async function loadSurveys(){
+  if (!isAdmin || surveysBusy) return;
+  surveysBusy = true;
+  try {
+    const { data } = await sb.from('pm_rounds').select('id, question, created_at').eq('kind', 'survey').eq('status', 'collecting')
+      .order('created_at', { ascending:false }).limit(60);
+    const rows = data || [];
+    const counts = await Promise.all(rows.map(r => countAnswers(r.id)));
+    rows.forEach((r, i) => r.count = counts[i]);
+    const T = S.auto.threshold;
+    const ready = rows.filter(r => r.count >= T), wait = rows.filter(r => r.count < T);
+    const mk = (r, buttons) => {
+      const d = document.createElement('div'); d.className = 'item';
+      d.innerHTML = `<div class="grow"><div style="font-weight:700">${PM.esc(r.question)}</div><div class="sub">${r.count} answer${r.count === 1 ? '' : 's'}${r.id === S.auto.activeId ? ' · asking now' : ''} · ${PM.timeAgo(r.created_at)}</div></div>`;
+      buttons.forEach(([label, cls, fn]) => { const b = document.createElement('button'); b.className = 'sm ' + cls; b.textContent = label; b.onclick = () => fn(r); d.appendChild(b); });
+      return d;
+    };
+    $('readyList').innerHTML = ready.length ? '' : '<div class="small muted">Nothing ready yet.</div>';
+    ready.forEach(r => $('readyList').appendChild(mk(r, [['Play', 'go', playSurvey], ['Discard', 'ghost', discardSurvey]])));
+    $('readyCount').textContent = ready.length ? ready.length + ' ready' : '';
+    $('waitList').innerHTML = wait.length ? '' : '<div class="small muted">None.</div>';
+    wait.forEach(r => $('waitList').appendChild(mk(r, [['Ask now', '', (x) => { if (!liveRound()) askSurvey(x); }], ['Play anyway', '', playSurvey], ['Discard', 'ghost', discardSurvey]])));
+    $('waitCount').textContent = '(' + wait.length + ')';
+    const { data:bank } = await sb.from('pm_bank').select('id, text, times_asked, source').order('id', { ascending:false }).limit(500);
+    $('bankCount').textContent = '(' + (bank || []).length + ')';
+    const bl = $('bankList'); bl.innerHTML = '';
+    (bank || []).forEach(b => {
+      const d = document.createElement('div'); d.className = 'item';
+      d.innerHTML = `<div class="grow"><div>${PM.esc(b.text)}</div><div class="sub">asked ${b.times_asked}×${b.source === 'viewer' ? ' · from a viewer' : ''}</div></div>`;
+      const rm = document.createElement('button'); rm.className = 'sm ghost'; rm.textContent = 'Remove';
+      rm.onclick = async () => { await sb.from('pm_bank').delete().eq('id', b.id); loadSurveys(); };
+      d.appendChild(rm); bl.appendChild(d);
+    });
+  } catch (e) {}
+  surveysBusy = false;
+}
+setInterval(() => { if (TAB === 'live') loadSurveys(); }, 8000);
+$('bankAddBtn').onclick = async () => {
+  const lines = $('bankAdd').value.split('\n').map(x => x.trim()).filter(x => x.length >= 3).map(x => x.slice(0, 200));
+  if (!lines.length) return;
+  let added = 0;
+  for (const text of lines){ const { error } = await sb.from('pm_bank').insert({ text }); if (!error) added++; }
+  toast(`Added ${added} question${added === 1 ? '' : 's'}` + (added < lines.length ? ` (${lines.length - added} already there)` : ''));
+  $('bankAdd').value = ''; loadSurveys();
+};
 
 /* ── render live tab ── */
 function tileList(el, board, actions){
@@ -885,6 +1242,7 @@ function tileList(el, board, actions){
   });
 }
 function render(){
+  if (TAB === 'trivia') renderTrivia();
   const p = S.phase, crowd = S.mode === 'crowd';
   $('phase').textContent = p;
   $('sessLine').textContent = S.sessionId ? `${S.sessionTitle || 'Session'} · ${S.sessionStatus || ''}` + (S.roundNo ? ` · Round ${S.roundNo}` : '') : 'No session (anyone can play, nothing grouped)';
@@ -898,6 +1256,17 @@ function render(){
   $('hideBtn').classList.toggle('sel', !!S.hidden);
   $('modeBlurb').textContent = (PM.MODES[S.mode] || PM.MODES.versus).blurb;
   $('qCallChk').checked = !!S.questionCall;
+  $('xferChk').checked = !S.transfersOff;
+  const A = S.auto;
+  $('autoChk').checked = !!A.on;
+  if (document.activeElement !== $('autoN')) $('autoN').value = A.threshold;
+  if (document.activeElement !== $('autoEvery')) $('autoEvery').value = Math.round(A.interval / 60);
+  if (document.activeElement !== $('autoGive')) $('autoGive').value = Math.round(A.timeout / 60);
+  $('autoNow').innerHTML = A.activeId
+    ? `<div class="grow"><div style="font-weight:700">${PM.esc(A.activeQ)}</div><div class="sub">${A.count}/${A.threshold} answers${A.count >= A.threshold ? ' · ready' : ''}</div></div>`
+    : '<div class="grow small muted">No survey running.</div>';
+  $('autoNote').textContent = !A.on ? 'Off' : liveRound() ? 'Paused during the round' : (MOD && MOD.canSend ? 'Posting as ' + MOD.login : 'Not posting to chat (connect moderation)');
+  $('autoSkip').disabled = !A.on || liveRound(); $('autoRepost').disabled = !A.activeId;
   $('chatAnsChk').checked = !!S.chatAnswers;
 
   $('askCard').hidden = !(p === 'idle' || p === 'done');
@@ -925,6 +1294,8 @@ function render(){
   if (p === 'board' || p === 'reveal') tileList($('tl'), S.board, inBoard ? (crowd ? 'crowd' : 'versus') : null);
   if (p === 'done'){
     tileList($('tlDone'), S.board, null);
+    $('alsoDone').hidden = !S.overflow.length;
+    $('alsoDoneList').innerHTML = S.overflow.map((t, i) => `<div class="t"><span class="n" style="color:var(--faint)">${S.board.length + i + 1}</span><span class="l">${PM.esc(t.label)}</span><span class="c muted">${t.count}</span></div>`).join('');
     $('doneSum').textContent = crowd
       ? `${PM.picks(S.round.paid || 0)} paid to players`
       : `${S.hostName || PM.CONFIG.hostName} +${PM.picks(S.round.host)} · Chat +${PM.picks(S.round.chat)}`;
@@ -1033,6 +1404,7 @@ $('pSort').onchange = renderPlayers;
 
 let P = null;   // open player
 async function openPlayer(id){
+  if (!$('giveItem').options.length) loadShopAdmin();
   if (TAB !== 'players') $$('#tabs button').find(b => b.dataset.tab === 'players').click();
   const { data:p } = await sb.from('pm_profiles').select('*').eq('id', id).maybeSingle();
   if (!p) return;
@@ -1070,7 +1442,9 @@ const RULES = () => [
   { scope:'game', value:'chatsays', kind:'block', label:'Block from Chat Says' },
   ...(S.sessionId ? [{ scope:'session', value:S.sessionId, kind:'block', label:'Block from this session' },
                      { scope:'session', value:S.sessionId, kind:'allow', label:'Whitelist for this session' }] : []),
+  { scope:'game', value:'trivia', kind:'block', label:'Block from Trivia Ladder' },
   { scope:'game', value:'chatsays', kind:'allow', label:'Whitelist for Chat Says (every session)' },
+  { scope:'game', value:'trivia', kind:'allow', label:'Whitelist for Trivia Ladder (every session)' },
 ];
 async function renderPlayerAccess(){
   const { data } = await sb.from('pm_access').select('*').eq('profile_id', P.id);
@@ -1130,6 +1504,293 @@ $('accAdd').onclick = async () => {
   if (await addRule(p.id, scope, value || '', $('accKind').value)){ $('accName').value = ''; loadAccess(); }
 };
 
+/* transfers on/off */
+$('xferChk').onchange = () => save(n => { n.transfersOff = !$('xferChk').checked; });
+
+/* blocked words */
+async function loadWords(){
+  const { data, error } = await sb.from('pm_blocklist').select('*').order('word');
+  if (error){ toast(error.message, 'err'); return; }
+  $('bwCount').textContent = (data || []).length + ' words';
+  const box = $('bwList'); box.innerHTML = (data || []).length ? '' : '<span class="small muted">None yet.</span>';
+  (data || []).forEach(w => {
+    const s = document.createElement('span'); s.className = 'bw';
+    s.innerHTML = `${PM.esc(w.word)}${w.whole_word ? '' : ' <em>(partial)</em>'}`;
+    const x = document.createElement('button'); x.textContent = '×'; x.title = 'Remove';
+    x.onclick = async () => { await sb.from('pm_blocklist').delete().eq('word', w.word); loadWords(); };
+    s.appendChild(x); box.appendChild(s);
+  });
+}
+$('bwAdd').onclick = async () => {
+  const words = $('bwIn').value.split(/[,\n]/).map(x => x.trim().toLowerCase()).filter(Boolean).map(x => x.slice(0, 60));
+  if (!words.length) return;
+  const whole = !$('bwPart').checked;
+  let added = 0;
+  for (const word of words){ const { error } = await sb.from('pm_blocklist').insert({ word, whole_word:whole }); if (!error) added++; }
+  toast(`Blocked ${added} word${added === 1 ? '' : 's'}`);
+  $('bwIn').value = ''; loadWords();
+};
+$('bwIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('bwAdd').click(); });
+
+
+/* ═══════════ TRIVIA LADDER ═══════════ */
+$('tvCat').innerHTML = PM.TRIVIA_CATEGORIES.map(([id, n]) => `<option value="${id}">${PM.esc(n)}</option>`).join('');
+let potMode = 'prize';
+$$('[data-pot]').forEach(b => b.onclick = () => {
+  potMode = b.dataset.pot;
+  $$('[data-pot]').forEach(x => x.classList.toggle('sel', x === b));
+  $('tvBuyLbl').hidden = potMode !== 'buyin';
+  $('tvPrizeLbl').textContent = potMode === 'buyin' ? 'Bonus on top' : 'Prize';
+  if (potMode === 'buyin' && $('tvPrize').value === '50') $('tvPrize').value = '0';
+});
+let TQ = null;   // { gameId, queue:[{question, choices, correct}], current }
+const tqKey = (id) => 'pickme-trivia-' + id;
+function tqSave(){ if (TQ) try { localStorage.setItem(tqKey(TQ.gameId), JSON.stringify(TQ)); } catch (e) {} }
+function tqLoad(id){
+  if (TQ && TQ.gameId === id) return TQ;
+  try { TQ = JSON.parse(localStorage.getItem(tqKey(id)) || 'null'); } catch (e) { TQ = null; }
+  return TQ;
+}
+function parseCustom(text){
+  const out = [];
+  text.split(/\n\s*\n/).forEach(block => {
+    const lines = block.split('\n').map(x => x.trim()).filter(Boolean);
+    if (lines.length < 3) return;
+    const question = lines[0];
+    const raw = lines.slice(1, 5);
+    const correct = raw.findIndex(x => x.startsWith('*'));
+    if (correct < 0) return;
+    const choices = raw.map(x => x.replace(/^\*\s*/, ''));
+    // shuffle, keep track of the right one
+    const right = choices[correct];
+    for (let i = choices.length - 1; i > 0; i--){ const k = Math.floor(Math.random() * (i + 1)); [choices[i], choices[k]] = [choices[k], choices[i]]; }
+    out.push({ question, choices, correct:choices.indexOf(right), custom:true });
+  });
+  return out;
+}
+async function tvOpen(){
+  if (S.phase !== 'idle' && S.phase !== 'done'){ toast('Finish the Chat Says round first', 'err'); return; }
+  if (triviaLive()){ toast('A ladder is already running', 'err'); return; }
+  const total = +$('tvTotal').value, seconds = +$('tvSecs').value;
+  const buyIn = potMode === 'buyin' ? Math.max(1, parseInt($('tvBuy').value, 10) || 0) : 0;
+  const prize = Math.max(0, parseInt($('tvPrize').value, 10) || 0);
+  if (!buyIn && !prize && !confirm('No buy-in and no prize: survivors win nothing. Open anyway?')) return;
+  const cat = +$('tvCat').value, diff = $('tvDiff').value;
+  $('tvOpenBtn').disabled = true;
+  try {
+    let qs = parseCustom($('tvCustom').value);
+    const need = total + 4 - qs.length;   // a few spares for Skip
+    if (need > 0){
+      $('tvSetupMsg').textContent = 'Getting questions from Open Trivia DB…';
+      try { qs = qs.concat(await PM.OpenTrivia.fetch(need, cat || null, diff || null)); }
+      catch (e){
+        if (qs.length < total) throw new Error((e.message || 'Could not reach Open Trivia DB') + (qs.length ? ` (you have ${qs.length} of your own)` : ''));
+        toast('Open Trivia DB failed, using your questions only', 'err');
+      }
+    }
+    const catName = (PM.TRIVIA_CATEGORIES.find(c => c[0] === cat) || [0, 'Any'])[1];
+    const { data:gid, error } = await sb.rpc('pm_admin_trivia_create', { p_session:S.sessionId || null, p_buy_in:buyIn, p_prize:prize, p_total:total, p_revive:$('tvRevive').checked, p_category:catName });
+    if (error) throw error;
+    TQ = { gameId:gid, queue:qs, current:null };
+    tqSave();
+    await save(n => { n.game = 'trivia'; n.hidden = false; n.scene = 'game';
+      n.trivia = Object.assign(PM.defaultTrivia(), { phase:'lobby', gameId:gid, total, seconds, buyIn, prize, pot:prize, category:catName }); });
+    $('tvSetupMsg').textContent = '';
+    toast('Lobby open: chat can !join');
+  } catch (e) { $('tvSetupMsg').textContent = ''; toast(e.message || String(e), 'err'); }
+  $('tvOpenBtn').disabled = false;
+}
+$('tvOpenBtn').onclick = tvOpen;
+
+let tvEntrants = [];
+async function tvPollLobby(){
+  const T = S.trivia;
+  if (!isAdmin || S.game !== 'trivia' || !T.gameId || !['lobby', 'question', 'reveal'].includes(T.phase)) return;
+  try {
+    if (T.phase === 'lobby'){
+      const { data } = await sb.from('pm_trivia_entries').select('profile_id, display_name, via, paid, joined_at').eq('game_id', T.gameId).order('joined_at', { ascending:false });
+      tvEntrants = data || [];
+      const pot = tvEntrants.reduce((a, e) => a + e.paid, 0) + T.prize;
+      if (tvEntrants.length !== T.entrants || pot !== T.pot) await save(n => { n.trivia.entrants = tvEntrants.length; n.trivia.pot = pot; n.trivia.alive = tvEntrants.length; });
+      if (TAB === 'trivia') renderTrivia();
+    } else if (T.phase === 'question'){
+      const { data } = await sb.rpc('pm_trivia_progress', { p_game:T.gameId, p_qno:T.qno });
+      if (data){ $('tvAnsN').textContent = data.answered; $('tvAliveN').textContent = data.alive; }
+    }
+  } catch (e) {}
+}
+setInterval(tvPollLobby, 1500);
+
+async function tvAsk(replace){
+  const T = S.trivia;
+  if (!tqLoad(T.gameId)){ toast('Questions for this game are on another device/browser. Cancel and reopen.', 'err'); return; }
+  if (!TQ.queue.length){
+    try { toast('Getting more questions…'); TQ.queue = await PM.OpenTrivia.fetch(5, null, null); tqSave(); }
+    catch (e){ toast('Out of questions: ' + (e.message || e), 'err'); return; }
+  }
+  if (!replace && T.phase === 'lobby' && !T.entrants && !confirm('Nobody has joined. Start anyway?')) return;
+  const qno = replace ? T.qno : T.qno + 1;
+  const q = TQ.queue.shift();
+  try {
+    const { data:closes, error } = await sb.rpc('pm_admin_trivia_ask', { p_game:T.gameId, p_qno:qno, p_question:q.question, p_choices:q.choices, p_seconds:T.seconds });
+    if (error) throw error;
+    TQ.current = Object.assign({ qno }, q); tqSave();
+    await save(n => Object.assign(n.trivia, { phase:'question', qno, question:q.question, choices:q.choices, closesAt:closes,
+      correct:null, dist:[], out:0, revived:false, answered:0 }));
+    tvRevealing = false;
+  } catch (e) { TQ.queue.unshift(q); tqSave(); toast(e.message || String(e), 'err'); }
+}
+$('tvStartBtn').onclick = () => tvAsk(false);
+$('tvNextBtn').onclick = () => tvAsk(false);
+$('tvSkipBtn').onclick = () => { if (confirm('Skip this question? Answers to it are thrown out and a new one is shown.')) tvAsk(true); };
+
+let tvRevealing = false;
+async function tvReveal(){
+  const T = S.trivia;
+  if (tvRevealing || T.phase !== 'question') return;
+  tvRevealing = true;
+  tqLoad(T.gameId);
+  const cur = TQ && TQ.current && TQ.current.qno === T.qno ? TQ.current : null;
+  if (!cur){ toast('Lost the answer key for this question (different browser?). Skip it.', 'err'); tvRevealing = false; return; }
+  try {
+    const { data:r, error } = await sb.rpc('pm_admin_trivia_reveal', { p_game:T.gameId, p_qno:T.qno, p_correct:cur.correct });
+    if (error) throw error;
+    await save(n => Object.assign(n.trivia, { phase:'reveal', correct:r.correct, dist:r.dist || [], out:r.out, revived:r.revived, alive:r.alive, answered:r.dist ? r.dist.reduce((a, b) => a + b, 0) : 0 }));
+  } catch (e) { toast(e.message || String(e), 'err'); tvRevealing = false; }
+}
+$('tvRevealBtn').onclick = tvReveal;
+setInterval(() => {
+  const T = S.trivia;
+  if (!isAdmin || S.game !== 'trivia' || T.phase !== 'question') return;
+  const rem = ((Date.parse(T.closesAt) || 0) - PM.serverNow()) / 1000;
+  $('tvTime').textContent = Math.max(0, Math.ceil(rem));
+  if (rem <= -2.3) tvReveal();   // grace period for late answers
+}, 300);
+
+async function tvFinish(){
+  const T = S.trivia;
+  if (!['question', 'reveal', 'lobby'].includes(T.phase)) return;
+  if (T.phase === 'question'){ toast('Reveal the question first', 'err'); return; }
+  if (!confirm(T.alive ? `Finish and split ${PM.picks(T.pot)} between ${T.alive} survivor${T.alive === 1 ? '' : 's'}?` : 'Finish? Nobody is left, so buy-ins get refunded.')) return;
+  try {
+    const { data:r, error } = await sb.rpc('pm_admin_trivia_finish', { p_game:T.gameId });
+    if (error) throw error;
+    const { data:w } = await sb.from('pm_trivia_entries').select('profile_id, display_name, avatar_url, payout').eq('game_id', T.gameId).eq('alive', true).order('payout', { ascending:false });
+    await save(n => Object.assign(n.trivia, { phase:'done', refunded:!!r.refunded, pot:r.pot,
+      winners:r.refunded ? [] : (w || []).map(x => ({ id:x.profile_id, name:x.display_name, avatar:x.avatar_url, payout:x.payout })) }));
+    try { localStorage.removeItem(tqKey(T.gameId)); } catch (e) {}
+  } catch (e) { toast(e.message || String(e), 'err'); }
+}
+$('tvFinishBtn').onclick = tvFinish;
+async function tvCancel(){
+  const T = S.trivia;
+  if (!confirm('Cancel this ladder? Buy-ins are refunded and nobody wins.')) return;
+  const { data, error } = await sb.rpc('pm_admin_trivia_cancel', { p_game:T.gameId });
+  if (error){ toast(error.message, 'err'); return; }
+  try { localStorage.removeItem(tqKey(T.gameId)); } catch (e) {}
+  await save(n => { n.game = 'chatsays'; n.trivia = PM.defaultTrivia(); n.notice = { seq:Date.now(), text:'TRIVIA CANCELLED' }; });
+  toast(data ? `Refunded ${data} player${data === 1 ? '' : 's'}` : 'Cancelled');
+}
+$('tvCancel1').onclick = tvCancel; $('tvCancel2').onclick = tvCancel; $('tvCancel3').onclick = tvCancel;
+$('tvBackBtn').onclick = () => save(n => { n.game = 'chatsays'; n.trivia = PM.defaultTrivia(); });
+
+function renderTrivia(){
+  const T = S.trivia, on = S.game === 'trivia' && T.phase !== 'off';
+  $('tvSetup').hidden = on;
+  $('tvLobby').hidden = !(on && T.phase === 'lobby');
+  $('tvQ').hidden = !(on && T.phase === 'question');
+  $('tvR').hidden = !(on && T.phase === 'reveal');
+  $('tvDone').hidden = !(on && T.phase === 'done');
+  if (!on) return;
+  const L = 'ABCD';
+  if (T.phase === 'lobby'){
+    $('tvEnt').textContent = T.entrants; $('tvPot').textContent = T.pot;
+    $('tvLobbyMeta').textContent = `${T.total} Qs · ${T.seconds}s · ${T.category || 'Any'}` + (T.buyIn ? ` · buy-in ${T.buyIn}` : '');
+    $('tvEntList').innerHTML = tvEntrants.map(e => `<div class="item"><span class="nm">${PM.esc(e.display_name)}</span><span class="sub" style="margin-left:auto">${e.via}</span></div>`).join('') || '<div class="small muted">Waiting for players…</div>';
+  }
+  if (T.phase === 'question'){
+    tqLoad(T.gameId);
+    const cur = TQ && TQ.current && TQ.current.qno === T.qno ? TQ.current : null;
+    $('tvQno').textContent = `Question ${T.qno} of ${T.total}`;
+    $('tvQmeta').textContent = `${T.alive} alive · pot ${T.pot}`;
+    $('tvQtext').textContent = T.question;
+    $('tvQch').innerHTML = T.choices.map((c, i) => `<div class="tvch ${cur && cur.correct === i ? 'ok' : ''}"><b>${L[i]}</b><span>${PM.esc(c)}</span>${cur && cur.correct === i ? '<span class="pc">✓</span>' : ''}</div>`).join('');
+    $('tvSkipBtn').disabled = false;
+  }
+  if (T.phase === 'reveal'){
+    const tot = T.dist.reduce((a, b) => a + b, 0) || 1;
+    $('tvRmeta').textContent = `Q${T.qno} of ${T.total}`;
+    $('tvRsum').textContent = T.revived ? `Everyone missed, nobody is out. ${T.alive} still alive.` : `${T.out} out · ${T.alive} still alive · pot ${PM.picks(T.pot)}`;
+    $('tvRch').innerHTML = T.choices.map((c, i) => `<div class="tvch ${i === T.correct ? 'ok' : ''}"><b>${L[i]}</b><span>${PM.esc(c)}</span><span class="pc">${T.dist[i] || 0} (${Math.round((T.dist[i] || 0) * 100 / tot)}%)</span></div>`).join('');
+    const last = T.qno >= T.total || T.alive <= 1;
+    $('tvNextBtn').hidden = T.qno >= T.total;
+    $('tvNextBtn').className = last ? '' : 'go';
+    $('tvFinishBtn').className = last ? 'go' : '';
+    $('tvFinishBtn').textContent = T.alive ? 'Finish & pay' : 'Finish (refund)';
+  }
+  if (T.phase === 'done'){
+    $('tvDsum').textContent = T.refunded ? 'Nobody survived. Buy-ins refunded.' : `${T.winners.length} survivor${T.winners.length === 1 ? '' : 's'} split ${PM.picks(T.pot)}`;
+    $('tvDlist').innerHTML = T.winners.map(w => `<div class="item"><span class="nm">${PM.esc(w.name)}</span><span class="bal">+${PM.pickSVG('', true)}${w.payout}</span></div>`).join('');
+  }
+}
+
+/* ═══════════ SHOP (admin) ═══════════ */
+function shopPreview(it, sample){
+  const p = { display_name:sample || 'Viewer', cosmetics:{ [it.kind]:it.id } };
+  if (it.kind === 'namecolor') return PM.Shop.name(p, it.name, true);
+  if (it.kind === 'badge') return `<span style="font-size:20px">${PM.esc((it.data || {}).icon || '★')}</span> ${PM.esc((it.data || {}).title || '')}`;
+  if (it.kind === 'frame') return PM.Shop.avatar(p);
+  return `<div class="sh-sw ${PM.Shop.themeClass(p)}"></div>`;
+}
+const KIND_NAMES = { namecolor:'Name colors', badge:'Badges', frame:'Avatar frames', theme:'Card themes' };
+async function loadShopAdmin(){
+  await PM.Shop.load(true);
+  const all = [...PM.Shop.items().values()];
+  $('shCount').textContent = all.length + ' items';
+  const box = $('shList'); box.innerHTML = '';
+  ['namecolor', 'badge', 'frame', 'theme'].forEach(k => {
+    const h = document.createElement('div'); h.className = 'small muted'; h.style.margin = '8px 0 2px'; h.textContent = KIND_NAMES[k];
+    box.appendChild(h);
+    all.filter(i => i.kind === k).forEach(it => {
+      const d = document.createElement('div'); d.className = 'item';
+      d.innerHTML = `<div class="sh-prev">${shopPreview(it)}</div><div class="grow"><div class="nm">${PM.esc(it.name)}</div><div class="sub">${it.id}</div></div>`;
+      const price = document.createElement('input'); price.type = 'number'; price.min = 0; price.className = 'price'; price.value = it.price;
+      price.onchange = async () => { const { error } = await sb.from('pm_shop_items').update({ price:Math.max(0, parseInt(price.value, 10) || 0) }).eq('id', it.id); toast(error ? error.message : 'Price saved', error ? 'err' : ''); };
+      const act = document.createElement('label'); act.className = 'chk small'; act.innerHTML = `<input type="checkbox" ${it.active ? 'checked' : ''}> on sale`;
+      act.querySelector('input').onchange = async (e) => { await sb.from('pm_shop_items').update({ active:e.target.checked }).eq('id', it.id); loadShopAdmin(); };
+      const del = document.createElement('button'); del.className = 'sm ghost'; del.textContent = 'Delete';
+      del.onclick = async () => { if (!confirm(`Delete ${it.name}? Anyone who owns it loses it.`)) return; await sb.from('pm_shop_items').delete().eq('id', it.id); loadShopAdmin(); };
+      d.append(price, act, del); box.appendChild(d);
+    });
+  });
+  $('giveItem').innerHTML = all.map(i => `<option value="${i.id}">${PM.esc(KIND_NAMES[i.kind] + ': ' + i.name)}</option>`).join('');
+}
+function shopOpts(){
+  const k = $('shKind').value, o = $('shOpts');
+  if (k === 'namecolor') o.innerHTML = `<label class="small muted">Color <input type="color" id="shC1" value="#b8ff2e"></label><label class="small muted">Fade to <input type="color" id="shC2" value="#34e2ff"></label><label class="chk small"><input type="checkbox" id="shFade"> fade</label><label class="chk small"><input type="checkbox" id="shAnim"> animated</label>`;
+  else if (k === 'badge') o.innerHTML = `<label class="small muted">Emoji <input id="shIcon" maxlength="4" value="⭐" style="width:60px"></label><input class="grow" id="shTitle" placeholder="Hover title, e.g. Riff Lord" maxlength="30">`;
+  else o.innerHTML = `<label class="small muted">Style <select id="shStyle">${(k === 'frame' ? PM.Shop.FRAMES : PM.Shop.THEMES).map(s => `<option>${s}</option>`).join('')}</select></label>`;
+}
+$('shKind').onchange = shopOpts; shopOpts();
+$('shAdd').onclick = async () => {
+  const kind = $('shKind').value, name = $('shName').value.trim(), price = Math.max(0, parseInt($('shPrice').value, 10) || 0);
+  if (!name){ toast('Give it a name', 'err'); return; }
+  let data = {};
+  if (kind === 'namecolor') data = $('shFade').checked ? { grad:[$('shC1').value, $('shC2').value], anim:$('shAnim').checked } : { color:$('shC1').value };
+  else if (kind === 'badge') data = { icon:$('shIcon').value.trim() || '⭐', title:$('shTitle').value.trim() || name };
+  else data = { style:$('shStyle').value };
+  const id = ({ namecolor:'nc', badge:'bd', frame:'fr', theme:'th' })[kind] + '_' + name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) + '-' + Math.random().toString(36).slice(2, 6);
+  const { error } = await sb.from('pm_shop_items').insert({ id, kind, name, price, data });
+  if (error){ toast(error.message, 'err'); return; }
+  $('shName').value = ''; toast('Added to the shop'); loadShopAdmin();
+};
+$('giveItemBtn').onclick = async () => {
+  if (!P) return;
+  const { data, error } = await sb.rpc('pm_admin_give_item', { p_profile:P.id, p_item:$('giveItem').value });
+  const res = error ? error.message : data;
+  toast(res === 'ok' ? 'Item given' : PM.reason(res), res === 'ok' ? '' : 'err');
+};
+
 /* ═══════════ LOGS ═══════════ */
 function evRow(e, profs){
   const p = profs ? (profs.get(e.profile_id) || {}) : null;
@@ -1138,7 +1799,10 @@ function evRow(e, profs){
   let txt = '';
   switch (e.kind){
     case 'answered': txt = `answered “${PM.esc(d.answer)}” to ${PM.esc(d.question || 'a question')}${d.source === 'chat' ? ' (chat)' : ''}`; break;
-    case 'answer_rejected': txt = `couldn't answer: ${PM.esc(PM.reason(d.reason))}${d.source === 'chat' ? ' (chat)' : ''}`; break;
+    case 'answer_rejected': txt = `couldn't answer${d.answer ? ' “' + PM.esc(d.answer) + '”' : ''}: ${PM.esc(PM.reason(d.reason))}${d.source === 'chat' ? ' (chat)' : ''}`; break;
+    case 'question_rejected': txt = `question “${PM.esc(d.text || '')}” rejected: ${PM.esc(PM.reason(d.reason))}`; break;
+    case 'sent': txt = `sent <span class="neg">${d.amount}</span> to ${PM.esc(d.to)}${d.note ? ': ' + PM.esc(d.note) : ''}`; break;
+    case 'received': txt = `got <span class="pos">+${d.amount}</span> from ${PM.esc(d.from)}${d.note ? ': ' + PM.esc(d.note) : ''}`; break;
     case 'question': txt = `asked “${PM.esc(d.text)}”${d.source === 'chat' ? ' (chat)' : ''}`; break;
     case 'joined': txt = `joined the session${d.via === 'chat' ? ' from chat' : ''}`; break;
     case 'profile_created': txt = `profile created${d.via === 'chat' ? ' from chat' : ''}`; break;
@@ -1147,6 +1811,10 @@ function evRow(e, profs){
     case 'ledger': txt = `<span class="${d.delta > 0 ? 'pos' : 'neg'}">${d.delta > 0 ? '+' : ''}${d.delta}</span> ${PM.esc(d.reason || '')}`; break;
     case 'access_added': txt = `${d.kind === 'block' ? 'blocked from' : 'whitelisted for'} ${d.scope === 'global' ? 'everything' : d.scope === 'game' ? d.scope_value : 'a session'}`; break;
     case 'access_removed': txt = `${d.kind === 'block' ? 'unblocked from' : 'removed from whitelist for'} ${d.scope === 'global' ? 'everything' : d.scope === 'game' ? d.scope_value : 'a session'}`; break;
+    case 'trivia_joined': txt = `joined a Trivia Ladder${d.buy_in ? ' (buy-in ' + d.buy_in + ')' : ''}${d.via === 'chat' ? ' from chat' : ''}`; break;
+    case 'trivia_won': txt = `survived the ladder and won <span class="pos">+${d.payout}</span> (${d.survivors} survivor${d.survivors === 1 ? '' : 's'})`; break;
+    case 'bought': txt = `bought <b>${PM.esc(d.name || d.item)}</b> for <span class="neg">${d.price}</span>`; break;
+    case 'item_gift': txt = `was given <b>${PM.esc(d.item)}</b> by you`; break;
     default: txt = PM.esc(e.kind);
   }
   return `<div class="ev"><span class="k">${PM.esc(e.kind.replace(/_/g, ' '))}</span><span class="d">${who}${txt}</span><span class="w">${PM.timeAgo(e.created_at)}</span></div>`;
@@ -1154,17 +1822,23 @@ function evRow(e, profs){
 async function loadLogs(){
   const kind = $('logKind').value;
   let rows = [];
-  if (kind === '' || kind === 'ledger'){
+  if (kind === 'ledger' || kind === ''){
     const { data } = await sb.from('pm_ledger').select('*').order('id', { ascending:false }).limit(200);
-    rows.push(...(data || []).filter(l => l.actor !== 'admin').map(l => ({ kind:'ledger', profile_id:l.profile_id, created_at:l.created_at, detail:{ delta:l.delta, reason:l.reason } })));
+    rows.push(...(data || []).filter(l => l.actor !== 'admin' && l.actor !== 'transfer').map(l => ({ kind:'ledger', profile_id:l.profile_id, created_at:l.created_at, detail:{ delta:l.delta, reason:l.reason } })));
   }
   if (kind !== 'ledger'){
     let q = sb.from('pm_events').select('*').order('id', { ascending:false }).limit(300);
+    if (kind === 'filtered') q = q.limit(500);
     if (kind === 'access') q = q.in('kind', ['access_added', 'access_removed']);
+    else if (kind === 'transfer') q = q.in('kind', ['sent', 'received']);
+    else if (kind === 'trivia') q = q.in('kind', ['trivia_joined', 'trivia_won']);
+    else if (kind === 'shop') q = q.in('kind', ['bought', 'item_gift']);
+    else if (kind === 'filtered') q = q.in('kind', ['answer_rejected', 'question_rejected']);
     else if (kind) q = q.eq('kind', kind);
     const { data } = await q;
     rows.push(...(data || []));
   }
+  if (kind === 'filtered') rows = rows.filter(r => r.detail && r.detail.reason === 'filtered');
   rows.sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
   const profs = await profilesById(rows.map(r => r.profile_id));
   const s = $('logSearch').value.trim().toLowerCase();

@@ -30,12 +30,56 @@ The old `/chatsays/` links redirect here.
 4. Pick a mode: **Host vs Chat** (you guess the board) or **Chat vs Chat** (you reveal; players race to match the crowd).
 5. Ask a question, or tick **Taking questions** and use one from chat.
 
+## Auto-survey (questions asked in chat ahead of time)
+
+1. Live game tab → **Connect moderation** (needs to be redone once after this update so it can *post* to chat).
+2. **Auto-survey in chat → Running.** Set **Ready after** (5 now, 10 later), **Post every** (minutes between chat posts), **Move on after**.
+3. The dashboard posts a bank question to chat. Viewers answer with `!a your answer` (auto-hidden) or on the site.
+4. When enough different people answer, it shows in **Ready to play** and the next question goes out.
+5. Click **Play** to put it straight on the board (no timer). People who answered earlier get paid when their tile pays out.
+6. Surveys pause while a live round is running. The dashboard has to be open (OBS dock) for posting to work.
+7. Add questions under **Question bank** (one per line), or click **Survey it** on a viewer-submitted question.
+   151 starter questions are loaded by `PICKME_SETUP.sql`.
+
 ## How Picks are earned
 
 - **Host vs Chat:** tiles you guess pay nobody. Every tile you miss (after 3 strikes or End round) pays each viewer who gave that answer, worth the tile's count.
 - **Chat vs Chat:** every revealed tile pays each viewer who gave that answer, worth the tile's count.
 - **Question used:** the asker gets the reward set in the dashboard (default 5).
 - **You:** give or take any amount from Players. Every change is in their history and the Logs tab.
+
+## Sending Picks
+
+Players can send Picks to each other from their profile (**Send Picks**) or from anyone's public profile.
+They can't send more than they have. Turn it off any time: dashboard → Players → *Players can send Picks to each other*.
+Every transfer shows in both players' history and in Logs → Picks sent between players.
+
+## Blocked words
+
+Dashboard → Access → **Blocked words**. Answers, questions and transfer notes containing a blocked word are refused,
+from the site and from chat. Default is whole-word (blocking `heck` doesn't block `checker`); tick
+*also inside longer words* to catch it anywhere. Rejections show in Logs → Blocked-word rejections.
+
+## Trivia Ladder
+
+Dashboard → **Trivia** tab.
+1. Pick category, difficulty, number of questions, seconds per question.
+2. Pot: **Prize** (free entry, you set the Picks) or **Buy-in** (players pay to enter, plus an optional bonus). Survivors split it.
+3. Optional: paste your own questions (mark the right answer with `*`). They're asked first.
+4. **Open lobby** → players join on the site or with `!join` in chat → **Ask question 1**.
+5. Players answer A–D on the site or with `!a B` / `!b` in chat. It reveals automatically when time runs out.
+   Wrong or no answer = out. If everyone misses, nobody is out (unless you untick that).
+6. **Next question** or **Finish & pay**. If nobody survives, buy-ins are refunded. **Cancel** refunds everyone.
+
+Questions come from Open Trivia DB (CC BY-SA 4.0; credited on the overlay). The answer key only lives in your dashboard
+browser until each reveal, so nobody can peek. Run the game from one dashboard (your OBS dock).
+
+## Pick Shop
+
+Viewers spend Picks on cosmetics: **name colors** (solid, fades, animated), **badges**, **avatar frames** and **card themes**.
+They show on profiles, the leaderboard (site + overlay) and the overlay's names lists. 31 starter items are loaded by the SQL.
+Dashboard → **Shop** tab: change prices, take items off sale, add your own (pick colors, an emoji, or a frame/theme style).
+Players tab → **Give a shop item** gifts one for free.
 
 ## Players and access
 

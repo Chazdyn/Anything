@@ -71,10 +71,48 @@
   .tile.rev.chat .n, .tile.rev.chat .c{ color:var(--chat); }
   .tile.rev.none{ background:#1d1832; border-color:#4a3f6e; color:#cfc6e8; }
   .tile.mine{ outline:3px solid var(--purple-hi); outline-offset:2px; }
+  .tile.also{ background:#0f0920; border-style:dashed; color:#cfc6e8; min-height:44px; }
+  .tile.also .n{ color:var(--faint); } .tile.also .c{ color:var(--muted); font-size:24px; }
   .you{ margin-top:14px; padding:12px 14px; border-radius:12px; background:rgba(139,77,255,.15); border:1px solid var(--line); font-weight:700; line-height:1.4; }
   .you b{ color:var(--lime); }
   .me{ display:flex; align-items:center; gap:14px; }
   .me img, .me .av{ width:58px; height:58px; border-radius:50%; background:var(--purple); object-fit:cover; flex:none; }
+  .me .cav{ --av:58px; } .me .cav img{ width:100%; height:100%; }
+  .r1 .cav{ --av:30px; } .r1 .cav img{ width:100%; height:100%; }
+  .me .nm{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:52vw; }
+  /* trivia */
+  .tq{ font-weight:800; font-size:22px; line-height:1.25; margin:10px 0 14px; }
+  .tchoices{ display:grid; gap:10px; }
+  .tch{ display:flex; align-items:center; gap:12px; text-align:left; width:100%; padding:14px; border-radius:14px; font-size:18px; font-weight:800;
+        background:#160a2e; color:var(--text); border:2px solid #4a2b85; }
+  .tch b{ flex:none; width:34px; height:34px; border-radius:10px; display:grid; place-items:center; background:var(--purple); color:#fff; font-family:var(--display); font-weight:400; font-size:24px; }
+  .tch.sel{ border-color:var(--lime); background:#1f2e0a; } .tch.sel b{ background:var(--lime); color:var(--ink); }
+  .tch.right{ border-color:var(--lime); background:linear-gradient(180deg, var(--lime-hi), var(--lime)); color:var(--ink); } .tch.right b{ background:var(--ink); color:var(--lime); }
+  .tch.wrong{ opacity:.45; } .tch.wrong.sel{ opacity:1; border-color:var(--red); background:#3a0b18; }
+  .tch .pct{ margin-left:auto; font-family:var(--display); font-weight:400; font-size:22px; opacity:.85; }
+  .tstat{ display:flex; gap:10px; margin-top:12px; }
+  .tstat div{ flex:1; text-align:center; border-radius:12px; border:1px solid var(--line); padding:8px 4px 6px; background:#0b0518; }
+  .tstat b{ display:flex; justify-content:center; align-items:center; gap:4px; font-family:var(--display); font-weight:400; font-size:32px; line-height:1; color:var(--lime); }
+  .tstat b .pick{ width:.7em; height:.7em; }
+  .tstat span{ font-size:10px; font-weight:800; letter-spacing:2px; color:var(--muted); }
+  .tbig{ font-family:var(--display); font-size:44px; line-height:1; text-align:center; margin:8px 0; }
+  .tbig.ok{ color:var(--lime); } .tbig.bad{ color:var(--red); }
+  /* shop */
+  .shoptabs{ display:flex; gap:6px; margin:12px 0; overflow-x:auto; }
+  .shoptabs button{ flex:none; font-size:14px; padding:8px 12px; border-radius:99px; background:#22134a; color:var(--text); border:1px solid var(--line); }
+  .shoptabs button.on{ background:var(--lime); color:var(--ink); border-color:var(--lime); }
+  .shopgrid{ display:grid; gap:8px; }
+  .sitem{ display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:14px; background:#0b0518; border:1px solid var(--line); }
+  .sitem .prev{ flex:1; min-width:0; display:flex; align-items:center; gap:10px; }
+  .sitem .prev .cav{ --av:38px; }
+  .sitem .lbl{ min-width:0; }
+  .sitem .lbl .t{ font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .sitem .lbl .p{ display:flex; align-items:center; gap:4px; font-size:13px; color:var(--muted); font-weight:700; }
+  .sitem .lbl .p .pick{ width:1em; height:1em; }
+  .sitem button{ flex:none; font-size:14px; padding:9px 12px; border-radius:10px; }
+  .sitem button.own{ background:#22134a; color:var(--text); border:1px solid var(--line); }
+  .sitem button.on{ background:transparent; color:var(--lime); border:1px solid var(--lime-deep); }
+  .sitem.theme-prev{ border-width:2px; }
   .me .nm{ font-weight:800; font-size:22px; }
   .me .rk{ color:var(--muted); font-size:14px; font-weight:700; }
   .me .bal{ margin-left:auto; text-align:right; }
@@ -149,16 +187,48 @@
 
   <main id="vGame" hidden>
     <!-- my profile -->
-    <section class="card">
+    <section class="card" id="meCard">
       <div class="me" id="meBox"></div>
       <div class="row" style="display:flex;gap:8px;margin-top:12px">
         <button class="soft" style="flex:1" id="histBtn">My history</button>
-        <button class="soft" style="flex:1" id="shareBtn">Share profile</button>
+        <button class="soft" style="flex:1" id="sendBtn">Send Picks</button>
+        <button class="soft" style="flex:1" id="shareBtn">Share</button>
       </div>
+      <button class="soft gap" style="width:100%" id="shopBtn">🛍️ Pick Shop</button>
+      <form id="sendBox" class="gap" hidden autocomplete="off">
+        <input id="sendTo" list="playerNames" placeholder="Twitch name" maxlength="40">
+        <datalist id="playerNames"></datalist>
+        <div style="display:flex;gap:8px">
+          <input id="sendAmt" type="number" min="1" step="1" placeholder="Picks" style="width:40%">
+          <input id="sendNote" placeholder="Note (optional)" maxlength="80" style="flex:1;font-size:16px">
+        </div>
+        <button type="submit" id="sendGo">Send</button>
+        <div class="err" id="sendErr"></div><div class="okmsg" id="sendOk"></div>
+      </form>
       <div class="rows" id="hist" hidden></div>
     </section>
 
     <div class="note gap" id="accessNote" hidden></div>
+
+    <!-- pick shop -->
+    <section class="card gap" id="cShop" hidden>
+      <div class="eyebrow">Pick Shop<span class="r" id="shopBal"></span></div>
+      <div class="shoptabs" id="shopTabs">
+        <button data-k="namecolor" class="on">Name colors</button><button data-k="badge">Badges</button><button data-k="frame">Frames</button><button data-k="theme">Themes</button>
+      </div>
+      <div class="shopgrid" id="shopGrid"></div>
+      <div class="err" id="shopErr" style="margin-top:8px"></div>
+      <p class="hint">Cosmetics show on your profile, the leaderboard and the stream overlay.</p>
+    </section>
+
+    <!-- trivia ladder -->
+    <section class="card gap" id="cTrivia" hidden>
+      <div class="eyebrow"><span class="pulse"></span>&nbsp;Trivia Ladder<span class="r modechip" id="tvTag"></span></div>
+      <div id="tvBody"></div>
+      <div class="tstat" id="tvStats"></div>
+      <div class="err" id="tvErr" style="margin-top:8px"></div>
+      <p class="hint" style="font-size:12px">Questions from <a href="https://opentdb.com" target="_blank" rel="noopener" style="color:var(--muted)">Open Trivia DB</a> (CC BY-SA 4.0).</p>
+    </section>
 
     <!-- live game -->
     <section class="card gap" id="cIdle">
@@ -191,10 +261,27 @@
       <div class="q" id="boardQ" style="font-size:20px;margin-bottom:6px"></div>
       <div class="tiles" id="tiles"></div>
       <div class="you" id="you" hidden></div>
+      <div id="alsoBox" hidden style="margin-top:14px">
+        <div class="eyebrow">Also said · no Picks</div>
+        <div class="tiles" id="alsoList"></div>
+      </div>
       <div class="scores" id="teamScores">
         <div class="h"><b><span data-pick></span><span id="sHost">0</span></b><span id="sHostName">CHAZDYN</span></div>
         <div class="c"><b><span data-pick></span><span id="sChat">0</span></b><span>CHAT</span></div>
       </div>
+    </section>
+
+    <!-- chat survey (asked ahead of time; answers pay when it's played) -->
+    <section class="card gap" id="cSurvey" hidden>
+      <div class="eyebrow"><span class="pulse"></span> Quick survey<span class="r modechip" id="svCount"></span></div>
+      <div class="q" id="svQ" style="font-size:22px"></div>
+      <form id="svForm" autocomplete="off">
+        <input id="svIn" maxlength="60" placeholder="Your answer" enterkeyhint="send">
+        <button id="svBtn" type="submit">Answer</button>
+        <div class="err" id="svErr"></div>
+      </form>
+      <div class="locked" id="svDone" hidden><div class="big" style="font-size:36px">ANSWERED</div><div class="mine" id="svMine"></div></div>
+      <p class="hint">This one gets played on stream later. If your answer makes the board, you get Picks then. You can also type <b>!a your answer</b> in chat.</p>
     </section>
 
     <!-- questions -->
@@ -248,15 +335,20 @@ $('games').innerHTML = Object.entries(PM.GAMES).map(([k, g]) => `<div class="gam
 const PUB = new URLSearchParams(location.search).get('u');
 async function showPublic(login){
   view('vPublic');
-  const { data:p } = await sb.from('pm_profiles').select('id, login, display_name, avatar_url, balance, created_at').eq('login', login.toLowerCase()).maybeSingle();
+  const { data:p } = await sb.from('pm_profiles').select('id, login, display_name, avatar_url, balance, created_at, cosmetics').eq('login', login.toLowerCase()).maybeSingle();
+  await PM.Shop.load();
   if (!p){ $('pubMe').innerHTML = '<div class="q">No player called ' + PM.esc(login) + ' yet.</div>'; return; }
   const [{ count:above }, { count:answers }] = await Promise.all([
     sb.from('pm_profiles').select('id', { count:'exact', head:true }).gt('balance', p.balance),
     sb.from('pm_answers').select('id', { count:'exact', head:true }).eq('profile_id', p.id),
   ]);
-  $('pubMe').innerHTML = `${avatar(p.avatar_url)}<div><div class="nm">${PM.esc(p.display_name || p.login)}</div><div class="rk">#${(above || 0) + 1} · joined ${new Date(p.created_at).toLocaleDateString()}</div></div>` +
+  $('vPublic').className = 'card ' + PM.Shop.themeClass(p);
+  $('pubMe').innerHTML = `${PM.Shop.avatar(p)}<div style="min-width:0"><div class="nm">${PM.Shop.name(p)}</div><div class="rk">#${(above || 0) + 1} · joined ${new Date(p.created_at).toLocaleDateString()}</div></div>` +
     `<div class="bal"><b>${PM.pickSVG('', true)}${p.balance}</b><span>PICKS</span></div>`;
-  $('pubStats').innerHTML = `<div class="r1"><span class="nm">Answers given</span><span class="v">${answers || 0}</span></div>` +
+  const { data:{ session:ps } } = await sb.auth.getSession();
+  const canSend = ps && PM.twitchIdentity(ps.user);
+  $('pubStats').innerHTML = (canSend ? `<a class="r1" style="text-decoration:none;color:var(--lime);font-weight:800;justify-content:center" href="?send=${encodeURIComponent(p.login)}">Send Picks to ${PM.esc(p.display_name || p.login)}</a>` : '') +
+    `<div class="r1"><span class="nm">Answers given</span><span class="v">${answers || 0}</span></div>` +
     `<div class="r1"><span class="nm">Twitch</span><a style="color:var(--lime);font-weight:700" href="https://twitch.tv/${PM.esc(p.login)}" target="_blank" rel="noopener">twitch.tv/${PM.esc(p.login)}</a></div>`;
 }
 
@@ -287,6 +379,7 @@ async function boot(){
   $('meName').textContent = ME.display_name || ME.login;
   view('vGame');
   renderMe();
+  { const sendTo = new URLSearchParams(location.search).get('send'); if (sendTo){ history.replaceState(null, '', location.pathname); openSend(sendTo); } }
   PM.syncClock().catch(() => {});
   if (!watching) watching = PM.watchState((s) => { S = s; onState(); }, 2000);
   startLeaders();
@@ -303,8 +396,11 @@ async function refreshMe(){
 }
 async function renderMe(){
   const { count:above } = await sb.from('pm_profiles').select('id', { count:'exact', head:true }).gt('balance', ME.balance);
-  $('meBox').innerHTML = `${avatar(ME.avatar_url)}<div><div class="nm">${PM.esc(ME.display_name || ME.login)}</div><div class="rk">Rank #${(above || 0) + 1}</div></div>` +
+  await PM.Shop.load();
+  $('meBox').innerHTML = `${PM.Shop.avatar(ME)}<div style="min-width:0"><div class="nm">${PM.Shop.name(ME)}</div><div class="rk">Rank #${(above || 0) + 1}</div></div>` +
     `<div class="bal"><b>${PM.pickSVG('', true)}${ME.balance}</b><span>PICKS</span></div>`;
+  $('meCard').className = 'card ' + PM.Shop.themeClass(ME);
+  if (!$('cShop').hidden) renderShop();
 }
 setInterval(refreshMe, 8000);
 $('histBtn').onclick = async () => {
@@ -321,13 +417,191 @@ $('shareBtn').onclick = async () => {
   catch (e) {}
 };
 
+/* send Picks */
+let players = [];
+async function loadPlayers(){
+  const { data } = await sb.from('pm_profiles').select('id, login, display_name').order('last_seen_at', { ascending:false }).limit(1000);
+  players = (data || []).filter(p => !ME || p.id !== ME.id);
+  $('playerNames').innerHTML = players.map(p => `<option value="${PM.esc(p.login || '')}">${PM.esc(p.display_name || '')}</option>`).join('');
+}
+function openSend(prefill){
+  $('sendBox').hidden = false; $('sendErr').textContent = ''; $('sendOk').textContent = '';
+  if (prefill) $('sendTo').value = prefill;
+  loadPlayers();
+  setTimeout(() => (prefill ? $('sendAmt') : $('sendTo')).focus(), 50);
+}
+$('sendBtn').onclick = () => { if ($('sendBox').hidden) openSend(); else $('sendBox').hidden = true; };
+$('sendBox').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  $('sendErr').textContent = ''; $('sendOk').textContent = '';
+  const who = $('sendTo').value.trim().replace(/^@/, '').toLowerCase();
+  const amt = parseInt($('sendAmt').value, 10);
+  if (!who){ $('sendErr').textContent = 'Who are you sending to?'; return; }
+  if (!Number.isFinite(amt) || amt < 1){ $('sendErr').textContent = PM.reason('bad_amount'); return; }
+  let to = players.find(p => (p.login || '') === who || (p.display_name || '').toLowerCase() === who);
+  if (!to){ const { data } = await sb.from('pm_profiles').select('id, login, display_name').eq('login', who).maybeSingle(); to = data; }
+  if (!to){ $('sendErr').textContent = `No player called ${who} yet. They need to sign in or answer once first.`; return; }
+  if (amt > ME.balance){ $('sendErr').textContent = PM.reason('not_enough'); return; }
+  if (!confirm(`Send ${PM.picks(amt)} to ${to.display_name || to.login}?`)) return;
+  $('sendGo').disabled = true;
+  const { data, error } = await sb.rpc('pm_send_picks', { p_to:to.id, p_amount:amt, p_note:$('sendNote').value.trim() || null });
+  const res = error ? error.message : data;
+  if (res === 'ok'){
+    $('sendOk').textContent = `Sent ${PM.picks(amt)} to ${to.display_name || to.login}.`;
+    $('sendAmt').value = ''; $('sendNote').value = '';
+    refreshMe();
+  } else $('sendErr').textContent = PM.reason(res);
+  $('sendGo').disabled = false;
+});
+
+/* ── Pick Shop ── */
+let shopKind = 'namecolor', owned = new Set();
+$('shopBtn').onclick = async () => {
+  const box = $('cShop');
+  box.hidden = !box.hidden;
+  if (!box.hidden){ await loadOwned(); renderShop(); box.scrollIntoView({ behavior:'smooth', block:'start' }); }
+};
+document.querySelectorAll('#shopTabs button').forEach(b => b.onclick = () => {
+  shopKind = b.dataset.k;
+  document.querySelectorAll('#shopTabs button').forEach(x => x.classList.toggle('on', x === b));
+  renderShop();
+});
+async function loadOwned(){
+  const { data } = await sb.from('pm_inventory').select('item_id').eq('profile_id', ME.id);
+  owned = new Set((data || []).map(r => r.item_id));
+}
+async function renderShop(){
+  await PM.Shop.load();
+  $('shopBal').innerHTML = `${PM.pickSVG('', true)} ${ME.balance}`;
+  const eq = (ME.cosmetics || {})[shopKind];
+  const list = [...PM.Shop.items().values()].filter(i => i.kind === shopKind && i.active);
+  const grid = $('shopGrid'); grid.innerHTML = '';
+  if (!list.length){ grid.innerHTML = '<div class="hint">Nothing here yet.</div>'; return; }
+  list.forEach(it => {
+    const preview = Object.assign({}, ME, { cosmetics: Object.assign({}, ME.cosmetics || {}, { [shopKind]: it.id }) });
+    const d = document.createElement('div');
+    d.className = 'sitem' + (shopKind === 'theme' ? ' theme-prev ' + PM.Shop.themeClass(preview) : '');
+    const prev = shopKind === 'frame' ? PM.Shop.avatar(preview)
+      : shopKind === 'badge' ? `<span style="font-size:26px">${PM.esc((it.data || {}).icon || '★')}</span>`
+      : shopKind === 'theme' ? PM.Shop.avatar(ME) : '';
+    const title = shopKind === 'namecolor' ? PM.Shop.name(preview, it.name, true) : PM.esc(it.name);
+    const isOwned = owned.has(it.id), isOn = eq === it.id;
+    d.innerHTML = `<div class="prev">${prev}<div class="lbl"><div class="t">${title}</div><div class="p">${isOwned ? 'Owned' : PM.pickSVG('', true) + it.price}</div></div></div>`;
+    const b = document.createElement('button');
+    if (isOn){ b.className = 'on'; b.textContent = 'Equipped ✓'; b.title = 'Tap to take off'; b.onclick = () => equip(null); }
+    else if (isOwned){ b.className = 'own'; b.textContent = 'Equip'; b.onclick = () => equip(it.id); }
+    else { b.textContent = 'Buy'; b.disabled = ME.balance < it.price; b.onclick = () => buy(it); }
+    d.appendChild(b); grid.appendChild(d);
+  });
+}
+async function buy(it){
+  $('shopErr').textContent = '';
+  if (!confirm(`Buy ${it.name} for ${PM.picks(it.price)}?`)) return;
+  const { data, error } = await sb.rpc('pm_shop_buy', { p_item:it.id });
+  const res = error ? error.message : data;
+  if (res !== 'ok'){ $('shopErr').textContent = PM.reason(res); return; }
+  await loadOwned(); await refreshMe(); loadLeaders();
+}
+async function equip(id){
+  $('shopErr').textContent = '';
+  const { data, error } = await sb.rpc('pm_shop_equip', { p_kind:shopKind, p_item:id });
+  const res = error ? error.message : data;
+  if (res !== 'ok'){ $('shopErr').textContent = PM.reason(res); return; }
+  await refreshMe(); loadLeaders();
+}
+
+/* ── Trivia Ladder ── */
+let TV = { gameId:null, entry:null, mine:{} };   // my entry + my answers by qno
+let tvBusy = false;
+async function loadTriviaMe(force){
+  const T = S.trivia;
+  if (!T.gameId || !ME) return;
+  if (TV.gameId !== T.gameId){ TV = { gameId:T.gameId, entry:null, mine:{} }; force = true; }
+  if (!force || tvBusy) return;
+  tvBusy = true;
+  try {
+    const [{ data:e }, { data:a }] = await Promise.all([
+      sb.from('pm_trivia_entries').select('*').eq('game_id', T.gameId).eq('profile_id', ME.id).maybeSingle(),
+      sb.from('pm_trivia_answers').select('qno, choice').eq('game_id', T.gameId).eq('profile_id', ME.id),
+    ]);
+    if (TV.gameId === T.gameId){ TV.entry = e || null; TV.mine = {}; (a || []).forEach(r => TV.mine[r.qno] = r.choice); }
+  } finally { tvBusy = false; }
+  renderTrivia();
+}
+async function tvJoin(){
+  $('tvErr').textContent = '';
+  const T = S.trivia;
+  if (T.buyIn > 0 && !confirm(`Join for ${PM.picks(T.buyIn)}? You get it back if the game is cancelled or nobody survives.`)) return;
+  const { data, error } = await sb.rpc('pm_trivia_join', { p_game:T.gameId });
+  const res = error ? error.message : data;
+  if (res !== 'ok' && res !== 'already') $('tvErr').textContent = PM.reason(res);
+  await loadTriviaMe(true); refreshMe();
+}
+async function tvAnswer(i){
+  $('tvErr').textContent = '';
+  const T = S.trivia;
+  TV.mine[T.qno] = i; renderTrivia();
+  const { data, error } = await sb.rpc('pm_trivia_answer', { p_game:T.gameId, p_qno:T.qno, p_choice:i });
+  const res = error ? error.message : data;
+  if (res !== 'ok' && res !== 'already'){ delete TV.mine[T.qno]; $('tvErr').textContent = PM.reason(res); }
+  if (res === 'already') loadTriviaMe(true);
+  renderTrivia();
+}
+let tvLastKey = '';
+function renderTrivia(){
+  const T = S.trivia, body = $('tvBody');
+  const L = 'ABCD';
+  const e = TV.gameId === T.gameId ? TV.entry : null;
+  const pk = PM.pickSVG('', true);
+  $('tvTag').textContent = T.phase === 'lobby' ? 'JOIN NOW' : T.phase === 'done' ? 'FINISHED' : `Q${T.qno} / ${T.total}`;
+  $('tvStats').innerHTML = `<div><b>${T.phase === 'lobby' ? T.entrants : T.alive}</b><span>${T.phase === 'lobby' ? 'JOINED' : 'ALIVE'}</span></div>` +
+    `<div><b>${pk}${T.pot}</b><span>POT</span></div>` + (T.buyIn ? `<div><b>${pk}${T.buyIn}</b><span>BUY-IN</span></div>` : '');
+  if (T.phase === 'lobby'){
+    body.innerHTML = e
+      ? `<div class="tbig ok">YOU'RE IN</div><p class="hint" style="text-align:center">Wait for question 1. One wrong answer and you're out.</p>`
+      : `<div class="tq">A trivia ladder is about to start.</div><p class="hint">${T.total} questions. Miss one and you're out. Whoever's left splits the pot.${T.buyIn ? ' Buy-in: ' + PM.picks(T.buyIn) + '.' : ' Free to enter.'}</p>` +
+        `<button id="tvJoinBtn" style="width:100%">${T.buyIn ? 'Join for ' + PM.picks(T.buyIn) : 'Join the ladder'}</button><p class="hint">Or type <b>!join</b> in chat.</p>`;
+    const jb = $('tvJoinBtn'); if (jb) jb.onclick = tvJoin;
+    return;
+  }
+  if (T.phase === 'done'){
+    const me = T.winners.find(w => ME && w.id === ME.id);
+    body.innerHTML = (T.refunded ? '<div class="tbig bad">NOBODY SURVIVED</div><p class="hint" style="text-align:center">Buy-ins were refunded.</p>'
+      : `<div class="tbig ok">${T.winners.length} SURVIVOR${T.winners.length === 1 ? '' : 'S'}</div>`) +
+      (me ? `<div class="you">You survived and won <b>${PM.picks(me.payout)}</b>!</div>` : e ? `<div class="you">You went out on question ${e.out_at || '?'}. Next time!</div>` : '') +
+      `<div class="rows">${T.winners.slice(0, 12).map(w => `<div class="r1"><span class="nm">${PM.esc(w.name)}</span><span class="v">+${pk}${w.payout}</span></div>`).join('')}</div>`;
+    return;
+  }
+  // question or reveal
+  const reveal = T.phase === 'reveal';
+  const my = TV.mine[T.qno];
+  const total = T.dist.reduce((a, b) => a + b, 0) || 1;
+  const canAnswer = T.phase === 'question' && e && e.alive && my == null;
+  let note = '';
+  if (!e) note = '<p class="hint">You\'re watching this one. Join the next ladder!</p>';
+  else if (!e.alive && !(reveal && e.out_at === T.qno)) note = `<p class="hint">You went out on question ${e.out_at}. Watch the rest!</p>`;
+  else if (reveal && my === T.correct) note = '<div class="tbig ok">CORRECT ✓</div>';
+  else if (reveal && T.revived) note = '<div class="tbig ok">EVERYONE MISSED, YOU\'RE SAVED</div>';
+  else if (reveal) note = '<div class="tbig bad">YOU\'RE OUT</div>';
+  else if (my != null) note = '<p class="hint" style="text-align:center">Locked in. Watch the stream.</p>';
+  body.innerHTML = `<div class="tq">${PM.esc(T.question)}</div><div class="tchoices">` +
+    T.choices.map((c, i) => {
+      const cls = ['tch', my === i ? 'sel' : '', reveal ? (i === T.correct ? 'right' : 'wrong') : ''].join(' ');
+      const pct = reveal ? `<span class="pct">${Math.round((T.dist[i] || 0) * 100 / total)}%</span>` : '';
+      return `<button class="${cls}" data-i="${i}" ${canAnswer ? '' : 'disabled'}><b>${L[i]}</b><span>${PM.esc(c)}</span>${pct}</button>`;
+    }).join('') + '</div>' + note;
+  body.querySelectorAll('.tch').forEach(b => b.onclick = () => { if (canAnswer) tvAnswer(+b.dataset.i); });
+}
+
 /* leaderboard */
 let lbTimer = 0;
 async function loadLeaders(){
-  const { data } = await sb.from('pm_profiles').select('id, login, display_name, avatar_url, balance').order('balance', { ascending:false }).limit(10);
+  const { data } = await sb.from('pm_profiles').select('id, login, display_name, avatar_url, balance, cosmetics').order('balance', { ascending:false }).limit(10);
+  await PM.Shop.load();
   $('lb').innerHTML = (data || []).map((p, i) =>
-    `<a class="r1${ME && p.id === ME.id ? ' mine' : ''}" style="text-decoration:none;color:inherit" href="?u=${encodeURIComponent(p.login || '')}"><span class="rk">${i + 1}</span>${avatar(p.avatar_url)}<span class="nm">${PM.esc(p.display_name || p.login)}</span><span class="v">${PM.pickSVG('', true)}${p.balance}</span></a>`).join('')
+    `<a class="r1 ${PM.Shop.themeClass(p)}${ME && p.id === ME.id ? ' mine' : ''}" style="text-decoration:none;color:inherit" href="?u=${encodeURIComponent(p.login || '')}"><span class="rk">${i + 1}</span>${PM.Shop.avatar(p)}<span class="nm">${PM.Shop.name(p)}</span><span class="v">${PM.pickSVG('', true)}${p.balance}</span></a>`).join('')
     || '<div class="hint">Nobody has Picks yet. Be first.</div>';
+  PM.marqueeAll($('lb'), '.nm');
 }
 function startLeaders(){ if (!lbTimer){ loadLeaders(); lbTimer = setInterval(loadLeaders, 15000); } }
 
@@ -382,9 +656,42 @@ $('qForm').addEventListener('submit', async (e) => {
   $('qBtn').disabled = false;
 });
 
+let svMine = { id:null, answer:null, loaded:false };
+async function loadSurveyMine(id){
+  if (!ME || !id || (svMine.id === id && svMine.loaded)) return;
+  svMine = { id, answer:null, loaded:false };
+  const { data } = await sb.from('pm_answers').select('answer').eq('round_id', id).eq('profile_id', ME.id).maybeSingle();
+  if (svMine.id !== id) return;
+  svMine.answer = data ? data.answer : null; svMine.loaded = true;
+  onState();
+}
+$('svForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const answer = $('svIn').value.trim();
+  if (!answer || !S || !S.auto.activeId) return;
+  $('svBtn').disabled = true; $('svErr').textContent = '';
+  const id = S.auto.activeId;
+  const { data, error } = await sb.rpc('pm_submit_answer', { p_round:id, p_answer:answer });
+  const res = error ? error.message : data;
+  if (res === 'ok'){ svMine = { id, answer, loaded:true }; $('svIn').value = ''; }
+  else if (res === 'already'){ svMine.loaded = false; await loadSurveyMine(id); }
+  else $('svErr').textContent = PM.reason(res);
+  $('svBtn').disabled = false;
+  onState();
+});
 let lastPhase = null;
 function onState(){
   if (!S || $('vGame').hidden) return;
+  const tvOn = S.game === 'trivia' && S.trivia.phase !== 'off';
+  $('cTrivia').hidden = !tvOn;
+  if (tvOn){
+    ['cIdle', 'cAsk', 'cBoard', 'cSurvey'].forEach(id => $(id).hidden = true);
+    const key = S.trivia.gameId + '|' + S.trivia.phase + '|' + S.trivia.qno;
+    if (key !== tvLastKey){ tvLastKey = key; loadTriviaMe(true); if (S.trivia.phase === 'done'){ refreshMe(); loadLeaders(); } }
+    renderTrivia();
+    $('cQuestions').hidden = !S.questionCall;
+    return;
+  }
   if (S.phase !== lastPhase){ if (S.phase === 'done' || S.phase === 'idle') { loadLeaders(); refreshMe(); } lastPhase = S.phase; }
   ensureJoined();
   const p = S.phase, crowd = S.mode === 'crowd';
@@ -392,6 +699,17 @@ function onState(){
   $('idleMode').textContent = S.sessionId ? (S.sessionTitle || 'Live session') + ' · ' + modeName : 'You\'re in · ' + modeName;
   $('askMode').textContent = $('boardMode').textContent = modeName.toUpperCase();
   $('cQuestions').hidden = !S.questionCall;
+  const liveNow = ['collecting', 'locking', 'board', 'reveal'].includes(S.phase);
+  const sv = S.auto && S.auto.on && S.auto.activeId && !liveNow;
+  $('cSurvey').hidden = !sv;
+  if (sv){
+    loadSurveyMine(S.auto.activeId);
+    $('svQ').textContent = S.auto.activeQ;
+    $('svCount').textContent = S.auto.count + ' ANSWERED';
+    const done = svMine.id === S.auto.activeId && svMine.answer;
+    $('svForm').hidden = !!done; $('svDone').hidden = !done;
+    $('svMine').textContent = done ? svMine.answer : '';
+  }
   if (S.roundId) loadMine(S.roundId);
 
   const ask = p === 'collecting' || p === 'locking';
@@ -427,6 +745,15 @@ function onState(){
       return `<div class="${cls}"><span class="n">${i + 1}</span><span class="l">${t.revealed ? PM.esc(t.label) : ''}</span>` +
              (t.revealed ? `<span class="c">${PM.pickSVG('', true)}${t.count}</span>` : '') + '</div>';
     }).join('');
+    PM.marqueeAll($('tiles'), '.l');
+    const showAlso = (p === 'done' || p === 'reveal') && S.overflow.length > 0;
+    $('alsoBox').hidden = !showAlso;
+    if (showAlso){
+      const myLabel = m && m.type === 'offboard' ? m.label : null;
+      $('alsoList').innerHTML = S.overflow.map((t, i) =>
+        `<div class="tile also${t.label === myLabel ? ' mine' : ''}"><span class="n">${S.board.length + i + 1}</span><span class="l">${PM.esc(t.label)}</span><span class="c">${t.count}</span></div>`).join('');
+      PM.marqueeAll($('alsoList'), '.l');
+    }
     const you = $('you');
     if (!m){ you.hidden = true; }
     else {

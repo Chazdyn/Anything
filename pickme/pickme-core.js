@@ -12,12 +12,13 @@ const CONFIG = {
   hostName: 'CHAZDYN',
   joinUrl: 'chazdyn.com/pickme',
   storageKey: 'pickme-auth',        // keeps game sign-in separate from Control.Dyn / SpaceDyn
-  modScopes: 'user:read:email moderator:manage:chat_messages',
+  modScopes: 'user:read:email moderator:manage:chat_messages user:write:chat',
 };
 
 /* Games on the site. Add new ones here; the hub and dashboard list them. */
 const GAMES = {
   chatsays: { name:'Chat Says', blurb:'Chat answers a survey, then the board gets revealed. Beat the host or beat each other.' },
+  trivia:   { name:'Trivia Ladder', blurb:'Multiple choice, one question at a time. Miss one and you\'re out. Survivors split the pot.' },
 };
 const MODES = {
   versus: { name:'Host vs Chat', short:'VS', blurb:'The host guesses the board. Every answer the host misses pays the viewers who said it.' },
@@ -36,6 +37,21 @@ const REASONS = {
   too_short:'That question is too short.',
   empty:'Type an answer first.',
   no_profile:'Sign in with Twitch first.',
+  filtered:'That has a word that isn\'t allowed here.',
+  not_enough:'You don\'t have that many Picks.',
+  bad_amount:'Pick an amount of at least 1.',
+  self:'You can\'t send Picks to yourself.',
+  no_player:'Couldn\'t find that player.',
+  transfers_off:'Sending Picks is turned off right now.',
+  trivia_closed:'That trivia game is over.',
+  trivia_started:'This ladder already started. Catch the next one!',
+  not_in_game:'You\'re not in this trivia game.',
+  out:'You\'re out of this ladder.',
+  bad_choice:'Pick one of the answers.',
+  owned:'You already own that.',
+  not_owned:'You don\'t own that yet.',
+  no_item:'That item isn\'t available.',
+  bad_kind:'That doesn\'t go in that slot.',
 };
 const reason = (code) => REASONS[code] || code;
 
@@ -74,19 +90,34 @@ async function syncClock(){
 const serverNow = () => Date.now() + clockOffset;
 
 /* ── State ── */
+function defaultAuto(){
+  // auto-survey: asks bank questions in chat until enough people answer
+  return { on:false, threshold:5, interval:180, timeout:900, activeId:null, activeQ:'', count:0, askedAt:0, postedAt:0 };
+}
+function defaultTrivia(){
+  return { phase:'off', gameId:null, qno:0, total:10, question:'', choices:[], closesAt:null, seconds:20,
+           correct:null, dist:[], answered:0, alive:0, entrants:0, out:0, revived:false,
+           pot:0, buyIn:0, prize:0, winners:[], each:0, refunded:false, category:'' };
+}
 function defaultState(){
   return { phase:'idle', game:'chatsays', mode:'versus', scene:'game', hidden:false,
            sessionId:null, sessionTitle:'', sessionStatus:null, questionCall:false, chatAnswers:true,
            roundNo:0, roundId:null, question:'', closesAt:null, seconds:45, topN:5,
            board:[], overflow:[], total:0, strikes:0,
            scores:{ host:0, chat:0 }, round:{ host:0, chat:0, paid:0 }, roundTop:[],
-           lastGuess:null, result:null, notice:null, hostName: CONFIG.hostName };
+           lastGuess:null, result:null, notice:null, hostName: CONFIG.hostName,
+           auto: defaultAuto(), game:'chatsays', trivia: defaultTrivia() };
 }
 function normalizeState(d){
   const s = Object.assign(defaultState(), d || {});
   s.scores = Object.assign({ host:0, chat:0 }, s.scores || {});
   s.round  = Object.assign({ host:0, chat:0, paid:0 }, s.round || {});
   s.roundTop = Array.isArray(s.roundTop) ? s.roundTop : [];
+  s.auto = Object.assign(defaultAuto(), s.auto || {});
+  s.trivia = Object.assign(defaultTrivia(), s.trivia || {});
+  if (!Array.isArray(s.trivia.choices)) s.trivia.choices = [];
+  if (!Array.isArray(s.trivia.dist)) s.trivia.dist = [];
+  if (!Array.isArray(s.trivia.winners)) s.trivia.winners = [];
   s.board = Array.isArray(s.board) ? s.board : [];
   s.overflow = Array.isArray(s.overflow) ? s.overflow : [];
   return s;
@@ -176,7 +207,7 @@ const containsWord = (hay, needle) => needle.length >= 4 && (' ' + hay + ' ').in
 
 function prettyLabel(raw){
   let s = String(raw || '').replace(/\s+/g, ' ').trim();
-  if (s.length > 30) s = s.slice(0, 29).trim() + '…';
+  if (s.length > 60) s = s.slice(0, 59).trim() + '…';   // full answer; long ones marquee on screen
   return s;
 }
 
@@ -402,12 +433,135 @@ const Twitch = {
     if (!r.ok) return null;
     return r.json();   // { client_id, login, user_id, scopes, expires_in }
   },
-  async helix(token, clientId, method, path){
-    return fetch('https://api.twitch.tv/helix/' + path, { method, headers:{ Authorization:'Bearer ' + token, 'Client-Id': clientId } });
+  async helix(token, clientId, method, path, body){
+    const headers = { Authorization:'Bearer ' + token, 'Client-Id': clientId };
+    if (body) headers['Content-Type'] = 'application/json';
+    return fetch('https://api.twitch.tv/helix/' + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
   },
 };
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+/* Scroll text that doesn't fit its box (back and forth). Call after the text is in the DOM.
+   The element needs overflow:hidden + white-space:nowrap (single line). */
+function marquee(el){
+  if (!el) return;
+  if (el.dataset.mqHtml == null){ el.dataset.mqHtml = el.innerHTML; el.dataset.mqText = el.textContent; }
+  const html = el.dataset.mqHtml;
+  el.classList.remove('mq');
+  el.innerHTML = html;
+  const over = el.scrollWidth - el.clientWidth;
+  if (over <= 2) return;
+  const dist = over + 16;
+  el.classList.add('mq');
+  el.innerHTML = `<span class="mq-in" style="--mq:-${dist}px;--mq-t:${Math.max(4, dist / 35 + 2.5).toFixed(1)}s">${html}</span>`;
+}
+function marqueeAll(root, sel){
+  const run = () => (root || document).querySelectorAll(sel).forEach(marquee);
+  run();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(run);
+}
+
+/* ── Open Trivia DB (opentdb.com, CC BY-SA 4.0) ── */
+const TRIVIA_CATEGORIES = [[0,'Any category'],[9,'General Knowledge'],[10,'Books'],[11,'Film'],[12,'Music'],[13,'Musicals & Theatres'],
+  [14,'Television'],[15,'Video Games'],[16,'Board Games'],[17,'Science & Nature'],[18,'Computers'],[19,'Mathematics'],[20,'Mythology'],
+  [21,'Sports'],[22,'Geography'],[23,'History'],[24,'Politics'],[25,'Art'],[26,'Celebrities'],[27,'Animals'],[28,'Vehicles'],
+  [29,'Comics'],[30,'Gadgets'],[31,'Japanese Anime & Manga'],[32,'Cartoon & Animations']];
+const OpenTrivia = {
+  async token(reset){
+    let t = null;
+    try { t = localStorage.getItem('pickme-otdb-token'); } catch (e) {}
+    if (t && reset){ try { await fetch('https://opentdb.com/api_token.php?command=reset&token=' + encodeURIComponent(t)); } catch (e) {} return t; }
+    if (t) return t;
+    const r = await fetch('https://opentdb.com/api_token.php?command=request');
+    const j = await r.json();
+    if (j.token){ try { localStorage.setItem('pickme-otdb-token', j.token); } catch (e) {} }
+    return j.token || null;
+  },
+  /* → [{question, choices:[4], correct:index, category, difficulty}] */
+  async fetch(amount, category, difficulty){
+    const build = (tok) => 'https://opentdb.com/api.php?type=multiple&encode=url3986&amount=' + Math.min(50, amount) +
+      (category ? '&category=' + category : '') + (difficulty ? '&difficulty=' + difficulty : '') + (tok ? '&token=' + encodeURIComponent(tok) : '');
+    let tok = null;
+    try { tok = await this.token(false); } catch (e) {}
+    for (let attempt = 0; attempt < 4; attempt++){
+      const r = await fetch(build(tok));
+      const j = await r.json();
+      if (j.response_code === 0) return j.results.map(q => {
+        const dec = (x) => decodeURIComponent(x);
+        const right = dec(q.correct_answer);
+        const choices = [right, ...q.incorrect_answers.map(dec)];
+        for (let i = choices.length - 1; i > 0; i--){ const k = Math.floor(Math.random() * (i + 1)); [choices[i], choices[k]] = [choices[k], choices[i]]; }
+        return { question:dec(q.question), choices, correct:choices.indexOf(right), category:dec(q.category), difficulty:dec(q.difficulty) };
+      });
+      if (j.response_code === 5){ await new Promise(r2 => setTimeout(r2, 5500)); continue; }               // rate limit: 1 call / 5 s
+      if (j.response_code === 4){ tok = await this.token(true); await new Promise(r2 => setTimeout(r2, 5500)); continue; } // seen them all
+      if (j.response_code === 3){ try { localStorage.removeItem('pickme-otdb-token'); } catch (e) {} tok = null; await new Promise(r2 => setTimeout(r2, 5500)); continue; }
+      if (j.response_code === 1) throw new Error('Not enough questions for that category/difficulty. Try fewer or "Any".');
+      throw new Error('Open Trivia DB error ' + j.response_code);
+    }
+    throw new Error('Open Trivia DB is busy. Try again in a few seconds.');
+  },
+};
+
+/* ── Pick Shop cosmetics ── */
+const Shop = (() => {
+  let items = new Map(), loaded = null;
+  const HEX = /^#[0-9a-f]{3,8}$/i;
+  const FRAMES = ['lime', 'neon', 'double', 'gold', 'pulse', 'prism'];
+  const THEMES = ['midnight', 'portal', 'nebula', 'terminal', 'synth', 'gold'];
+  async function load(force){
+    if (loaded && !force) return loaded;
+    loaded = (async () => {
+      const { data } = await client().from('pm_shop_items').select('*').order('kind').order('sort').order('price');
+      items = new Map((data || []).map(i => [i.id, i]));
+      return items;
+    })();
+    return loaded;
+  }
+  const item = (id) => id ? items.get(id) : null;
+  const cos = (p) => (p && p.cosmetics) || {};
+  function nameStyle(p){
+    const it = item(cos(p).namecolor); if (!it) return { cls:'', style:'' };
+    const d = it.data || {};
+    if (Array.isArray(d.grad)){
+      const cols = d.grad.filter(c => HEX.test(c)).slice(0, 6);
+      if (cols.length < 2) return { cls:'', style:'' };
+      return { cls:'cn-grad' + (d.anim ? ' cn-anim' : ''), style:`background-image:linear-gradient(90deg,${cols.join(',')}${d.anim ? ',' + cols[0] : ''})` };
+    }
+    return HEX.test(d.color || '') ? { cls:'', style:'color:' + d.color } : { cls:'', style:'' };
+  }
+  function badge(p){
+    const it = item(cos(p).badge); if (!it) return '';
+    const d = it.data || {};
+    return `<span class="cbadge" title="${esc(d.title || it.name)}">${esc(d.icon || '★')}</span>`;
+  }
+  // name with colour (+ badge after it unless noBadge)
+  function name(p, label, noBadge){
+    const n = nameStyle(p);
+    return `<span class="cn ${n.cls}" style="${n.style}">${esc(label != null ? label : (p.display_name || p.login || 'viewer'))}</span>` + (noBadge ? '' : badge(p));
+  }
+  function frameClass(p){ const it = item(cos(p).frame); const st = it && it.data && it.data.style; return FRAMES.includes(st) ? 'fr-' + st : ''; }
+  function themeClass(p){ const it = item(cos(p).theme); const st = it && it.data && it.data.style; return THEMES.includes(st) ? 'th-' + st : ''; }
+  function avatar(p, cls){
+    const url = p && (p.avatar_url || p.avatar);
+    const img = url ? `<img src="${esc(url)}" alt="">` : '<i></i>';
+    return `<span class="cav ${frameClass(p)} ${cls || ''}">${img}</span>`;
+  }
+  /* fetch cosmetics for profile ids (cached for a minute) */
+  const cache = new Map();
+  async function profiles(ids){
+    const now = Date.now(), want = [...new Set(ids.filter(Boolean))].filter(id => !cache.has(id) || now - cache.get(id).t > 60000);
+    for (let i = 0; i < want.length; i += 100){
+      const { data } = await client().from('pm_profiles').select('id, login, display_name, avatar_url, cosmetics').in('id', want.slice(i, i + 100));
+      (data || []).forEach(p => cache.set(p.id, { t:now, p }));
+    }
+    const out = new Map();
+    ids.forEach(id => { const c = cache.get(id); if (c) out.set(id, c.p); });
+    return out;
+  }
+  return { load, item, items:() => items, name, badge, avatar, frameClass, themeClass, nameStyle, profiles, FRAMES, THEMES, HEX };
+})();
 
 const timeAgo = (iso) => {
   const s = Math.max(0, (Date.now() - Date.parse(iso)) / 1000);
@@ -417,7 +571,7 @@ const timeAgo = (iso) => {
   return Math.floor(s / 86400) + 'd ago';
 };
 
-window.PM = { CONFIG, GAMES, MODES, REASONS, reason, client, syncClock, serverNow, defaultState, normalizeState, fetchState, watchState,
+window.PM = { CONFIG, defaultAuto, defaultTrivia, TRIVIA_CATEGORIES, OpenTrivia, Shop, GAMES, MODES, REASONS, reason, client, syncClock, serverNow, defaultState, normalizeState, fetchState, watchState,
               normalize, similar, cluster, matchGuess, twitchIdentity, displayName, avatarUrl,
-              signInTwitch, signInDiscord, Sound, Twitch, esc, pickSVG, picks, timeAgo };
+              signInTwitch, signInDiscord, Sound, Twitch, esc, pickSVG, picks, timeAgo, marquee, marqueeAll };
 })();
