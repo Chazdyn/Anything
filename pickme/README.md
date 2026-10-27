@@ -74,6 +74,26 @@ Dashboard → **Trivia** tab.
 Questions come from Open Trivia DB (CC BY-SA 4.0; credited on the overlay). The answer key only lives in your dashboard
 browser until each reveal, so nobody can peek. Run the game from one dashboard (your OBS dock).
 
+## The Picks Are Right
+
+Dashboard → **Picks Are Right** tab. Everyone plays a qualifier; the closest to the target **without going over** make the finals.
+
+| Qualifier | How it works | Chat |
+|---|---|---|
+| Dictation | A passage is read line by line. Type it; land on exactly the target number of correct words (count hidden). | `!t words` (adds to what you've typed) |
+| Donations | Everyone gives $500 to someone. Over the target busts, and so does everyone who gave to them. | `!give name` |
+| High Rollers | Everyone rolls 3 dice; push your extra die onto someone. Roll over the target and you bust. | `!give name` |
+| Math | +/− questions worth $25 each. Stop on the target; one too many busts. Wrong answers stun for 2 s. | site only |
+
+Then pick the main stage (set before you start):
+- **Showcase:** type what they're bidding on and the secret value (it stays in your dashboard until the reveal). Finalists bid
+  (site or `!bid 1234`), everyone else bets Picks on a finalist (site or `!bet name 50`). Closest bid without going over
+  wins the prize (doubled if within your %). Winning bettors split the whole bet pot; no winner = bets refunded.
+- **The Wheel:** finalists spin in order (worst qualifier first), up to twice, site or `!spin` / `!stay`.
+  Closest to 100 without going over wins; exactly 100 earns your bonus. You can spin/stay for anyone who's away.
+
+**Making the finals pays** gives every finalist a few Picks. Cancel refunds any bets.
+
 ## Pick Shop
 
 Viewers spend Picks on cosmetics: **name colors** (solid, fades, animated), **badges**, **avatar frames** and **card themes**.

@@ -134,6 +134,7 @@
       <button data-tab="logs">Logs</button>
       <button data-tab="access">Access</button>
       <button data-tab="trivia">Trivia</button>
+      <button data-tab="pir">Picks Are Right</button>
       <button data-tab="shop">Shop</button>
     </nav>
 
@@ -470,6 +471,81 @@
       <div class="tiny muted" style="text-align:center">Questions: <a href="https://opentdb.com" target="_blank" rel="noopener" style="color:var(--muted)">Open Trivia DB</a>, CC BY-SA 4.0.</div>
     </div>
 
+
+    <!-- ═══════════ THE PICKS ARE RIGHT ═══════════ -->
+    <div data-pane="pir" hidden>
+      <section class="card" id="prSetup">
+        <h2>The Picks Are Right</h2>
+        <div class="small muted" style="margin-bottom:10px">Everyone plays a qualifier. Closest to the target <b>without going over</b> makes the finals. Then run the Showcase or the Wheel.</div>
+        <div class="row">
+          <label class="small muted">Qualifier <select id="prQual"><option value="dictation">Dictation</option><option value="donations">Donations</option><option value="highrollers">High Rollers</option><option value="math">Math</option></select></label>
+          <label class="small muted">Target <input id="prTarget" type="number" min="1" style="width:90px"></label>
+          <label class="small muted">Play time <select id="prSecs"><option>20</option><option>30</option><option selected>45</option><option>60</option><option>90</option></select> s</label>
+        </div>
+        <div class="small muted" id="prHow" style="margin:8px 0"></div>
+        <div id="prDict">
+          <div class="row"><label class="small muted">Passage <select id="prPassage"></select></label><label class="small muted">Seconds per line <select id="prLineSecs"><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label></div>
+          <textarea id="prPassText" style="margin-top:6px" placeholder="Or write your own passage (one line per row)"></textarea>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="small muted">Main stage <select id="prStage"><option value="showcase">Showcase (bids + chat bets)</option><option value="wheel">The Wheel</option></select></label>
+          <label class="small muted">Finalists <select id="prFin"><option>2</option><option selected>3</option><option>4</option></select></label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="small muted">Stage prize <input id="prPrize" type="number" min="0" value="100" style="width:90px"></label>
+          <label class="small muted">Making the finals pays <input id="prReward" type="number" min="0" value="10" style="width:70px"></label>
+        </div>
+        <div class="row" style="margin-top:10px"><span class="grow"></span><button class="go" id="prStart">Start qualifier</button></div>
+      </section>
+
+      <section class="card" id="prPlay" hidden>
+        <h2 id="prPlayTitle">Qualifier</h2>
+        <div class="small muted" id="prPlayHow"></div>
+        <div id="prLine" style="font-weight:800;font-size:18px;margin:10px 0"></div>
+        <div class="stats">
+          <div class="stat h"><b id="prTime">0</b><span>seconds</span></div>
+          <div class="stat c"><b id="prCount">0</b><span id="prCountLbl">players</span></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="bad sm" id="prCancel1">Cancel</button><span class="grow"></span><button class="go" id="prCloseBtn">Close &amp; score now</button></div>
+      </section>
+
+      <section class="card" id="prResults" hidden>
+        <h2>Qualifier results <span class="r small muted" id="prResMeta"></span></h2>
+        <div class="list" id="prResList" style="max-height:260px;overflow:auto"></div>
+        <div id="prStageSetup" style="margin-top:12px">
+          <div id="prShowcaseSetup">
+            <div class="row"><input class="grow" id="prItem" placeholder="What are they bidding on? e.g. How many Picks are in circulation?" maxlength="200"></div>
+            <div class="row" style="margin-top:6px">
+              <label class="small muted">Secret value <input id="prSecret" type="number" min="0" style="width:120px"></label>
+              <label class="small muted">Double prize if within <input id="prBonusPct" type="number" min="0" max="50" value="5" style="width:60px">%</label>
+            </div>
+            <div class="tiny muted" style="margin-top:4px">The secret stays in this dashboard until you reveal it.</div>
+          </div>
+          <div id="prWheelSetup" class="row"><label class="small muted">Bonus for hitting exactly 100 <input id="prBonus100" type="number" min="0" value="25" style="width:80px"></label></div>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="bad sm" id="prCancel2">Cancel</button><button class="sm" id="prAgain">New qualifier instead</button><span class="grow"></span><button class="go" id="prStageBtn">Start the stage</button></div>
+      </section>
+
+      <section class="card" id="prStageCard" hidden>
+        <h2 id="prStageTitle">Stage</h2>
+        <div class="small muted" id="prStageItem"></div>
+        <div class="list" id="prFinList" style="margin-top:10px"></div>
+        <div class="small muted" id="prPools" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:10px">
+          <button class="bad sm" id="prCancel3">Cancel (refund bets)</button><span class="grow"></span>
+          <span id="prShowBtns"><button id="prLockBtn">Lock bids</button> <button class="go" id="prRevealBtn">Reveal</button></span>
+          <span id="prWheelBtns"><button class="sm" id="prSpinFor">Spin for them</button> <button class="sm" id="prStayFor">Stay for them</button> <button class="go" id="prFinishBtn">Finish &amp; pay</button></span>
+        </div>
+      </section>
+
+      <section class="card" id="prDone" hidden>
+        <h2>Finished</h2>
+        <div style="font-weight:800;font-size:18px" id="prDoneSum"></div>
+        <div class="list" id="prDoneList" style="margin-top:10px"></div>
+        <div class="row" style="margin-top:10px"><button class="sm" id="prAgain2">Play again</button><span class="grow"></span><button class="go" id="prBack">Back to Chat Says</button></div>
+      </section>
+    </div>
+
     <!-- ═══════════ SHOP ═══════════ -->
     <div data-pane="shop" hidden>
       <section class="card">
@@ -557,6 +633,7 @@ $$('#tabs button').forEach(b => b.onclick = () => {
   if (TAB === 'logs') loadLogs();
   if (TAB === 'access'){ loadAccess(); loadWords(); }
   if (TAB === 'shop') loadShopAdmin();
+  if (TAB === 'pir') renderPir();
   if (TAB === 'trivia') renderTrivia();
 });
 
@@ -661,6 +738,7 @@ $('hideBtn').onclick = () => save(n => { n.hidden = !n.hidden; });
 /* ── round flow ── */
 async function startRound(){
   if (triviaLive()){ toast('A Trivia Ladder is running. Finish or cancel it first.', 'err'); return; }
+  if (pirLive()){ toast('The Picks Are Right is running. Finish or cancel it first.', 'err'); return; }
   const q = $('qIn').value.trim();
   if (!q){ toast('Type a question first', 'err'); $('qIn').focus(); return; }
   const seconds = parseInt($('secIn').value, 10), topN = parseInt($('topIn').value, 10);
@@ -672,7 +750,7 @@ async function startRound(){
     const { data:r, error } = await sb.from('pm_rounds').insert(row).select().single();
     if (error) throw error;
     roundAnswers = [];
-    await save(n => Object.assign(n, { game:'chatsays', trivia:PM.defaultTrivia(),
+    await save(n => Object.assign(n, { game:'chatsays', trivia:PM.defaultTrivia(), pir:PM.defaultPir(),
       phase:'collecting', roundId:r.id, roundNo:(n.roundNo || 0) + 1, question:q, seconds,
       closesAt:r.closes_at, topN, board:[], overflow:[], total:0, strikes:0,
       round:{ host:0, chat:0, paid:0 }, roundTop:[], lastGuess:null, result:null, hidden:false, scene:'game',
@@ -966,6 +1044,30 @@ function startBridge(){
   });
 }
 async function onChat(m){
+  if (S.game === 'pir' && S.pir.showId && m.userId && pirLive()){
+    const X = S.pir, txt = (m.text || '').trim();
+    let action = null, arg = null, bet = null;
+    if (['reading', 'play'].includes(X.phase)){
+      if (/^!join\b/i.test(txt)) action = 'join';
+      else if (X.qual === 'dictation' && /^!t\s+/i.test(txt)){ action = 'type'; arg = txt.replace(/^!t\s+/i, ''); }
+      else if ((X.qual === 'donations' || X.qual === 'highrollers') && /^!give\s+@?\w+/i.test(txt)){ action = 'give'; arg = txt.split(/\s+/)[1]; }
+    } else if (X.phase === 'stage'){
+      let mm;
+      if (X.stage === 'showcase' && (mm = /^!bid\s+([\d,]+)/i.exec(txt))){ action = 'bid'; arg = mm[1]; }
+      else if (X.stage === 'showcase' && (mm = /^!bet\s+@?(\w+)\s+(\d+)/i.exec(txt))){ bet = { on:mm[1], amt:+mm[2] }; }
+      else if (X.stage === 'wheel' && /^!(spin|stay)\b/i.test(txt)){ action = txt.slice(1, 5).toLowerCase(); }
+    }
+    if (!action && !bet) return;
+    hideMessage(m);
+    const { data, error } = bet
+      ? await sb.rpc('pm_admin_pir_chat_bet', { p_show:X.showId, p_twitch_id:m.userId, p_login:m.login, p_display:m.display, p_on_login:bet.on, p_amount:bet.amt })
+      : await sb.rpc('pm_admin_pir_chat', { p_show:X.showId, p_twitch_id:m.userId, p_login:m.login, p_display:m.display, p_action:action, p_arg:arg });
+    const res = error ? error.message : data;
+    if (res !== 'ok' || action === 'join' || bet || action === 'spin' || action === 'stay')
+      feed(`<b>${PM.esc(m.display)}</b> ${PM.esc(bet ? 'bet ' + bet.amt + ' on ' + bet.on : action)} · ${res === 'ok' ? '<span class="pos">ok</span>' : '<span class="neg">' + PM.esc(PM.reason(res)) + '</span>'}`);
+    if (res === 'ok' && (action === 'spin' || action === 'stay')) prPollStage();
+    return;
+  }
   if (S.game === 'trivia' && S.trivia.gameId && m.userId){
     const T = S.trivia, txt = (m.text || '').trim();
     if (T.phase === 'lobby' && /^!join\b/i.test(txt)){
@@ -1066,7 +1168,8 @@ async function hideMessage(m){
 
 /* ── auto-survey ── */
 const triviaLive = () => S.game === 'trivia' && !['off', 'done'].includes(S.trivia.phase);
-const liveRound = () => ['collecting', 'locking', 'board', 'reveal'].includes(S.phase) || triviaLive();
+const pirLive = () => S.game === 'pir' && !['off', 'done'].includes(S.pir.phase);
+const liveRound = () => ['collecting', 'locking', 'board', 'reveal'].includes(S.phase) || triviaLive() || pirLive();
 const surveyMsg = (q, need) => `📋 SURVEY: ${q} Answer with !a your answer (or at ${PM.CONFIG.joinUrl})` + (need ? ` · ${need} more needed` : '');
 async function countAnswers(roundId){
   const { count } = await sb.from('pm_answers').select('id', { count:'exact', head:true }).eq('round_id', roundId);
@@ -1243,6 +1346,7 @@ function tileList(el, board, actions){
 }
 function render(){
   if (TAB === 'trivia') renderTrivia();
+  if (TAB === 'pir') renderPir();
   const p = S.phase, crowd = S.mode === 'crowd';
   $('phase').textContent = p;
   $('sessLine').textContent = S.sessionId ? `${S.sessionTitle || 'Session'} · ${S.sessionStatus || ''}` + (S.roundNo ? ` · Round ${S.roundNo}` : '') : 'No session (anyone can play, nothing grouped)';
@@ -1571,6 +1675,7 @@ function parseCustom(text){
 async function tvOpen(){
   if (S.phase !== 'idle' && S.phase !== 'done'){ toast('Finish the Chat Says round first', 'err'); return; }
   if (triviaLive()){ toast('A ladder is already running', 'err'); return; }
+  if (pirLive()){ toast('The Picks Are Right is running', 'err'); return; }
   const total = +$('tvTotal').value, seconds = +$('tvSecs').value;
   const buyIn = potMode === 'buyin' ? Math.max(1, parseInt($('tvBuy').value, 10) || 0) : 0;
   const prize = Math.max(0, parseInt($('tvPrize').value, 10) || 0);
@@ -1734,6 +1839,239 @@ function renderTrivia(){
   }
 }
 
+
+/* ═══════════ THE PICKS ARE RIGHT ═══════════ */
+const PASSAGES = [
+  ['The night shift at the guitar store was quiet', 'until a raccoon wandered in through the back door,', 'knocked over a stack of picks,', 'and played the loudest note anyone had ever heard.'],
+  ['Every streamer keeps a secret snack drawer', 'hidden somewhere just out of camera view,', 'and every chat knows exactly where it is', 'because the crunching gives it away.'],
+  ['The spaceship landed in the parking lot at midnight', 'and the alien asked for directions to the nearest taco stand,', 'then complained that the salsa', 'was not nearly spicy enough for its third stomach.'],
+  ['My amplifier only works when it is raining outside', 'and my cable only works when I hold it a certain way,', 'so every song I play', 'sounds like a weather report from a broken radio.'],
+  ['A wizard opened a coffee shop on the edge of town', 'where every latte came with a tiny prophecy', 'written in foam on top,', 'and most of them were about forgetting your umbrella.'],
+  ['The robot vacuum has learned to open the fridge', 'and now it only cleans the kitchen', 'after it finishes the leftover pizza,', 'which honestly seems like a fair trade.'],
+  ['Our band practiced for six months straight', 'to play one perfect song at the talent show,', 'and then the drummer sneezed', 'right before the big finish and we all forgot the words.'],
+  ['Somewhere in the woods there is a campsite', 'where the fire never goes out', 'and the marshmallows always turn golden', 'no matter how badly you try to burn them.'],
+  ['The museum guard swears the paintings move at night', 'but only when nobody is looking,', 'and on Fridays the knight in the corner', 'practices air guitar until the sun comes up.'],
+  ['Grandma signed up for an online game last week', 'and she is already the top player on the server,', 'mostly because she never sleeps', 'and treats every match like a bake sale she intends to win.'],
+];
+const PR_DEFAULT_TARGET = { dictation:20, donations:1000, highrollers:12, math:300 };
+$('prPassage').innerHTML = '<option value="-1">Random</option>' + PASSAGES.map((p, i) => `<option value="${i}">${PM.esc(p[0].slice(0, 40))}…</option>`).join('');
+function prHow(){
+  const q = $('prQual').value, t = parseInt($('prTarget').value, 10) || PR_DEFAULT_TARGET[q];
+  $('prHow').textContent = PM.PIR.quals[q].how(t, 500) + ' Chat: ' + PM.PIR.quals[q].chat + '.';
+  $('prDict').hidden = q !== 'dictation';
+}
+$('prQual').onchange = () => { $('prTarget').value = PR_DEFAULT_TARGET[$('prQual').value]; prHow(); };
+$('prTarget').oninput = prHow;
+$('prTarget').value = PR_DEFAULT_TARGET.dictation; prHow();
+
+async function prStart(){
+  if (S.phase !== 'idle' && S.phase !== 'done'){ toast('Finish the Chat Says round first', 'err'); return; }
+  if (triviaLive()){ toast('Finish the Trivia Ladder first', 'err'); return; }
+  const qual = $('prQual').value, stage = $('prStage').value;
+  let target = parseInt($('prTarget').value, 10) || PR_DEFAULT_TARGET[qual];
+  if (qual === 'math') target = Math.max(25, Math.round(target / 25) * 25);
+  const secs = +$('prSecs').value;
+  let lines = [];
+  if (qual === 'dictation'){
+    const own = $('prPassText').value.split('\n').map(x => x.trim()).filter(Boolean);
+    const pi = +$('prPassage').value;
+    lines = own.length ? own : PASSAGES[pi >= 0 ? pi : Math.floor(Math.random() * PASSAGES.length)];
+    const words = lines.join(' ').split(/\s+/).filter(Boolean).length;
+    if (target > words){ toast(`Target is more than the ${words} words in the passage`, 'err'); return; }
+  }
+  $('prStart').disabled = true;
+  try {
+    const { data:id, error } = await sb.rpc('pm_admin_pir_create', { p_session:S.sessionId || null, p_qual:qual, p_stage:stage, p_target:target,
+      p_finalists:+$('prFin').value, p_prize:Math.max(0, parseInt($('prPrize').value, 10) || 0), p_qual_reward:Math.max(0, parseInt($('prReward').value, 10) || 0),
+      p_passage:qual === 'dictation' ? lines.join(' ') : null, p_seconds:qual === 'dictation' ? null : secs });
+    if (error) throw error;
+    const { data:sh } = await sb.from('pm_pir_shows').select('closes_at').eq('id', id).maybeSingle();
+    await save(n => { n.game = 'pir'; n.hidden = false; n.scene = 'game';
+      n.pir = Object.assign(PM.defaultPir(), { showId:id, qual, stage, target, finalistsN:+$('prFin').value,
+        prize:Math.max(0, parseInt($('prPrize').value, 10) || 0), qualReward:Math.max(0, parseInt($('prReward').value, 10) || 0),
+        phase:qual === 'dictation' ? 'reading' : 'play', lines, lineIdx:-1, seconds:secs, lineSecs:+$('prLineSecs').value,
+        closesAt:sh ? sh.closes_at : null }); });
+    prLineAt = Date.now();
+  } catch (e) { toast(e.message || String(e), 'err'); }
+  $('prStart').disabled = false;
+}
+$('prStart').onclick = prStart;
+
+let prLineAt = 0, prBusy = false;
+setInterval(async () => {
+  if (!isAdmin || S.game !== 'pir' || prBusy) return;
+  const X = S.pir;
+  try {
+    prBusy = true;
+    if (X.phase === 'reading'){
+      if (Date.now() - prLineAt >= (X.lineSecs || 4) * 1000 || X.lineIdx < 0){
+        prLineAt = Date.now();
+        if (X.lineIdx + 1 < X.lines.length) await save(n => { n.pir.lineIdx = X.lineIdx + 1; });
+        else {
+          const { data:c, error } = await sb.rpc('pm_admin_pir_timer', { p_show:X.showId, p_seconds:X.seconds });
+          if (error) throw error;
+          await save(n => { n.pir.phase = 'play'; n.pir.closesAt = c; });
+        }
+      }
+    } else if (X.phase === 'play'){
+      const rem = ((Date.parse(X.closesAt) || 0) - PM.serverNow()) / 1000;
+      $('prTime').textContent = Math.max(0, Math.ceil(rem));
+      if (rem <= -2.3) await prClose();
+    }
+    if (X.phase === 'reading') $('prTime').textContent = '…';
+  } catch (e) { toast(e.message || String(e), 'err'); }
+  finally { prBusy = false; }
+}, 400);
+setInterval(async () => {
+  const X = S.pir;
+  if (!isAdmin || S.game !== 'pir' || !X.showId || !['reading', 'play', 'stage'].includes(X.phase)) return;
+  const { data } = await sb.rpc('pm_pir_progress', { p_show:X.showId });
+  if (!data) return;
+  prProgress = data;
+  if (X.phase !== 'stage'){
+    const n = X.qual === 'math' ? `${data.players} playing · ${data.locked} done` : X.qual === 'dictation' ? `${data.typed} typing` : `${data.players} in · ${data.gave} gave`;
+    $('prCount').textContent = data.players; $('prCountLbl').textContent = n;
+  } else prPollStage();
+}, 1500);
+let prProgress = { bids:[], pools:{}, bettors:0 };
+
+async function prClose(){
+  const X = S.pir;
+  if (X.phase !== 'play' && X.phase !== 'reading') return;
+  const { data:r, error } = await sb.rpc('pm_admin_pir_close', { p_show:X.showId });
+  if (error){ toast(error.message, 'err'); return; }
+  const { data:rows } = await sb.from('pm_pir_players').select('profile_id, display_name, avatar_url, score, busted, bust_reason, qualified, rank, rolls')
+    .eq('show_id', X.showId).order('score', { ascending:false }).limit(500);
+  const all = rows || [];
+  const fin = all.filter(p => p.qualified).sort((a, b) => a.rank - b.rank);
+  const others = all.filter(p => !p.qualified).sort((a, b) => (a.busted - b.busted) || (b.score || 0) - (a.score || 0));
+  const shape = (p) => ({ id:p.profile_id, name:p.display_name, avatar:p.avatar_url, score:p.score || 0, busted:p.busted, reason:p.bust_reason,
+    qualified:p.qualified, rank:p.rank, rolls:(p.rolls || []).slice(0, 8) });
+  await save(n => Object.assign(n.pir, { phase:'results', closesAt:null, standings:fin.concat(others).slice(0, 40).map(shape), finalists:fin.map(shape),
+    players:r.players, bustedN:r.busted }));
+}
+$('prCloseBtn').onclick = () => { if (confirm('Close the qualifier and score it now?')) prClose(); };
+
+async function prStage(){
+  const X = S.pir;
+  if (!X.finalists.length){ toast('Nobody qualified. Run another qualifier.', 'err'); return; }
+  let item = '';
+  if (X.stage === 'showcase'){
+    item = $('prItem').value.trim();
+    const secret = parseInt($('prSecret').value, 10);
+    if (!item){ toast('Say what they\'re bidding on', 'err'); return; }
+    if (!Number.isFinite(secret) || secret < 0){ toast('Enter the secret value', 'err'); return; }
+    try { localStorage.setItem('pickme-pir-secret-' + X.showId, String(secret)); } catch (e) {}
+  }
+  const { error } = await sb.rpc('pm_admin_pir_stage', { p_show:X.showId, p_item:item || null });
+  if (error){ toast(error.message, 'err'); return; }
+  await save(n => Object.assign(n.pir, { phase:'stage', item, bonusPct:Math.max(0, parseInt($('prBonusPct').value, 10) || 0),
+    bonus100:Math.max(0, parseInt($('prBonus100').value, 10) || 0) }));
+}
+$('prStageBtn').onclick = prStage;
+
+let prStageRows = [], prShow = null;
+async function prPollStage(){
+  const X = S.pir;
+  if (!X.showId) return;
+  const [{ data:sh }, { data:rows }] = await Promise.all([
+    sb.from('pm_pir_shows').select('phase, wheel_turn').eq('id', X.showId).maybeSingle(),
+    sb.from('pm_pir_players').select('profile_id, display_name, rank, spins, score, busted, wheel_done').eq('show_id', X.showId).eq('qualified', true).order('rank', { ascending:false }),
+  ]);
+  prShow = sh; prStageRows = rows || [];
+  if (TAB === 'pir') renderPir();
+}
+$('prLockBtn').onclick = async () => { await sb.rpc('pm_admin_pir_lock', { p_show:S.pir.showId }); toast('Bids locked'); prPollStage(); };
+$('prRevealBtn').onclick = async () => {
+  const X = S.pir;
+  let secret = null;
+  try { secret = localStorage.getItem('pickme-pir-secret-' + X.showId); } catch (e) {}
+  const v = prompt('Secret value to reveal', secret || '');
+  if (v == null) return;
+  const sv = parseInt(v.replace(/[^0-9]/g, ''), 10);
+  if (!Number.isFinite(sv)){ toast('Not a number', 'err'); return; }
+  const { data:r, error } = await sb.rpc('pm_admin_pir_reveal', { p_show:X.showId, p_secret:sv, p_bonus_pct:X.bonusPct });
+  if (error){ toast(error.message, 'err'); return; }
+  await save(n => Object.assign(n.pir, { phase:'done', secret:r.secret, bids:r.bids || {}, winner:r.winner, prizePaid:r.prize || 0, doubled:!!r.doubled,
+    betsRefunded:!!(r.bets && r.bets.refunded), betPot:(r.bets && r.bets.pot) || 0,
+    winners:r.winner ? X.finalists.filter(f => f.id === r.winner).map(f => ({ id:f.id, name:f.name, avatar:f.avatar, payout:r.prize })) : [] }));
+};
+async function prWheelFor(action){
+  const { data, error } = await sb.rpc('pm_admin_pir_wheel', { p_show:S.pir.showId, p_action:action });
+  if (error || (data && data.error)) toast(error ? error.message : PM.reason(data.error), 'err');
+  prPollStage();
+}
+$('prSpinFor').onclick = () => prWheelFor('spin');
+$('prStayFor').onclick = () => prWheelFor('stay');
+$('prFinishBtn').onclick = async () => {
+  const X = S.pir;
+  if (prShow && prShow.phase === 'stage' && !confirm('Not everyone has spun. Finish anyway?')) return;
+  const { data:r, error } = await sb.rpc('pm_admin_pir_wheel_finish', { p_show:X.showId, p_bonus:X.bonus100 });
+  if (error){ toast(error.message, 'err'); return; }
+  const { data:w } = await sb.from('pm_pir_players').select('profile_id, display_name, avatar_url, payout').eq('show_id', X.showId).gt('payout', 0);
+  await save(n => Object.assign(n.pir, { phase:'done', best:r.best == null ? null : r.best,
+    winners:(w || []).map(x => ({ id:x.profile_id, name:x.display_name, avatar:x.avatar_url, payout:x.payout })) }));
+};
+async function prCancel(){
+  if (!confirm('Cancel The Picks Are Right? Bets are refunded and nobody wins the stage.')) return;
+  const { data, error } = await sb.rpc('pm_admin_pir_cancel', { p_show:S.pir.showId });
+  if (error){ toast(error.message, 'err'); return; }
+  await save(n => { n.game = 'chatsays'; n.pir = PM.defaultPir(); n.notice = { seq:Date.now(), text:'SHOW CANCELLED' }; });
+  toast(data ? `Refunded ${data} bet${data === 1 ? '' : 's'}` : 'Cancelled');
+}
+$('prCancel1').onclick = prCancel; $('prCancel2').onclick = prCancel; $('prCancel3').onclick = prCancel;
+$('prAgain').onclick = async () => { await sb.rpc('pm_admin_pir_cancel', { p_show:S.pir.showId }); await save(n => { n.pir = PM.defaultPir(); n.game = 'pir'; }); renderPir(); };
+$('prAgain2').onclick = () => save(n => { n.pir = PM.defaultPir(); n.game = 'pir'; });
+$('prBack').onclick = () => save(n => { n.game = 'chatsays'; n.pir = PM.defaultPir(); });
+
+function renderPir(){
+  const X = S.pir, on = S.game === 'pir' && X.phase !== 'off';
+  $('prSetup').hidden = on;
+  $('prPlay').hidden = !(on && (X.phase === 'reading' || X.phase === 'play'));
+  $('prResults').hidden = !(on && X.phase === 'results');
+  $('prStageCard').hidden = !(on && X.phase === 'stage');
+  $('prDone').hidden = !(on && X.phase === 'done');
+  if (!on) return;
+  const Q = PM.PIR.quals[X.qual];
+  if (X.phase === 'reading' || X.phase === 'play'){
+    $('prPlayTitle').textContent = `${Q.name} · target ${X.target}`;
+    $('prPlayHow').textContent = Q.how(X.target, X.perGift) + ' Chat: ' + Q.chat + '.';
+    $('prLine').textContent = X.qual === 'dictation' ? (X.phase === 'reading' ? `Line ${X.lineIdx + 1}/${X.lines.length}: ${X.lines[X.lineIdx] || ''}` : 'Reading done. Typing time.') : '';
+  }
+  if (X.phase === 'results'){
+    $('prResMeta').textContent = `${X.finalists.length} finalist${X.finalists.length === 1 ? '' : 's'} · ${X.bustedN || 0} bust`;
+    $('prResList').innerHTML = X.standings.map(p => `<div class="item"><span class="nm">${p.qualified ? '⭐ ' : ''}${PM.esc(p.name)}</span><span class="sub" style="margin-left:auto">${p.busted ? (p.reason === 'donor' ? 'BUST (gave to a bust)' : 'BUST') : ''} ${p.score}${p.rolls && p.rolls.length ? ' 🎲' + p.rolls.join('+') : ''}</span></div>`).join('') || '<div class="small muted">Nobody played.</div>';
+    $('prShowcaseSetup').hidden = X.stage !== 'showcase';
+    $('prWheelSetup').hidden = X.stage !== 'wheel';
+    $('prStageBtn').textContent = X.finalists.length ? `Start the ${PM.PIR.stages[X.stage].name}` : 'Nobody qualified';
+    $('prStageBtn').disabled = !X.finalists.length;
+  }
+  if (X.phase === 'stage'){
+    const st = PM.PIR.stages[X.stage];
+    $('prStageTitle').textContent = st.name;
+    $('prStageItem').textContent = X.stage === 'showcase' ? 'Bidding on: ' + X.item : st.how;
+    $('prShowBtns').hidden = X.stage !== 'showcase'; $('prWheelBtns').hidden = X.stage !== 'wheel';
+    if (X.stage === 'showcase'){
+      const bids = new Set(prProgress.bids || []);
+      $('prFinList').innerHTML = X.finalists.map(f => `<div class="item"><span class="nm">${PM.esc(f.name)}</span><span class="sub" style="margin-left:auto">${bids.has(f.id) ? '<span class="pos">bid in ✓</span>' : 'waiting…'} · bets ${(prProgress.pools || {})[f.id] || 0}</span></div>`).join('');
+      $('prPools').textContent = `${prProgress.bettors || 0} bets. Chat: !bid 1234 (finalists), !bet name 50 (everyone else).`;
+      $('prLockBtn').disabled = !prShow || prShow.phase !== 'stage';
+    } else {
+      const cur = prShow && prShow.phase === 'stage' ? prStageRows[prShow.wheel_turn] : null;
+      $('prFinList').innerHTML = prStageRows.map(f => `<div class="item"${cur && cur.profile_id === f.profile_id ? ' style="border-color:var(--lime)"' : ''}><span class="nm">${cur && cur.profile_id === f.profile_id ? '▶ ' : ''}${PM.esc(f.display_name)}</span><span class="sub" style="margin-left:auto">${(f.spins || []).join(' + ') || '—'}${f.spins && f.spins.length ? ' = ' + f.score : ''}${f.busted ? ' BUST' : ''}</span></div>`).join('');
+      $('prPools').textContent = cur ? `${cur.display_name} is up. They spin on the site or with !spin / !stay.` : 'Everyone has spun. Finish & pay.';
+      $('prSpinFor').disabled = $('prStayFor').disabled = !cur;
+      $('prFinishBtn').className = cur ? '' : 'go';
+    }
+  }
+  if (X.phase === 'done'){
+    $('prDoneSum').textContent = X.stage === 'showcase'
+      ? (X.winner ? `Value was ${X.secret}. Winner gets ${PM.picks(X.prizePaid)}${X.doubled ? ' (doubled!)' : ''}.` : `Value was ${X.secret}. Everyone went over, no winner.`) + (X.betPot ? (X.betsRefunded ? ' Bets refunded.' : ` Bet pot ${X.betPot} paid out.`) : '')
+      : (X.best == null ? 'Everyone busted. No winner.' : `Best total ${X.best}.`);
+    $('prDoneList').innerHTML = X.winners.map(w => `<div class="item"><span class="nm">${PM.esc(w.name)}</span><span class="bal">+${PM.pickSVG('', true)}${w.payout}</span></div>`).join('');
+  }
+}
+
 /* ═══════════ SHOP (admin) ═══════════ */
 function shopPreview(it, sample){
   const p = { display_name:sample || 'Viewer', cosmetics:{ [it.kind]:it.id } };
@@ -1814,6 +2152,9 @@ function evRow(e, profs){
     case 'trivia_joined': txt = `joined a Trivia Ladder${d.buy_in ? ' (buy-in ' + d.buy_in + ')' : ''}${d.via === 'chat' ? ' from chat' : ''}`; break;
     case 'trivia_won': txt = `survived the ladder and won <span class="pos">+${d.payout}</span> (${d.survivors} survivor${d.survivors === 1 ? '' : 's'})`; break;
     case 'bought': txt = `bought <b>${PM.esc(d.name || d.item)}</b> for <span class="neg">${d.price}</span>`; break;
+    case 'pir_won': txt = `won The Picks Are Right ${PM.esc(d.stage || '')} <span class="pos">+${d.payout}</span>`; break;
+    case 'pir_bet': txt = `bet <span class="neg">${d.amount}</span> on the showcase`; break;
+    case 'pir_bet_won': txt = `won a showcase bet <span class="pos">+${d.payout}</span>`; break;
     case 'item_gift': txt = `was given <b>${PM.esc(d.item)}</b> by you`; break;
     default: txt = PM.esc(e.kind);
   }

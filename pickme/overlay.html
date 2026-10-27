@@ -192,6 +192,68 @@
   .lb .cav{ --av:64px; }
   .tk-item .cbadge, .lb .cbadge{ font-size:.85em; }
 
+  /* ── the picks are right ── */
+  #prPlayS{ display:grid; grid-template-columns: 400px 1fr 480px; gap:44px; align-items:stretch; }
+  #prPlayS .join{ align-self:center; }
+  .prmid{ display:flex; flex-direction:column; justify-content:center; gap:18px; min-width:0; }
+  .prlines{ display:flex; flex-direction:column; gap:12px; }
+  .prlines div{ font-weight:800; font-size:38px; line-height:1.2; color:var(--faint); }
+  .prlines div.now{ color:var(--text); font-size:46px; text-shadow:0 0 30px rgba(184,255,46,.25); }
+  .prbig{ font-family:var(--display); font-size:150px; line-height:.85; color:var(--lime); }
+  .prsub{ font-weight:800; letter-spacing:5px; font-size:22px; color:var(--muted); }
+  .prtimer{ font-family:var(--display); font-size:96px; line-height:1; font-variant-numeric:tabular-nums; }
+  .prtimer.hurry{ color:var(--red); }
+  .prhow{ font-weight:700; font-size:30px; color:var(--muted); line-height:1.3; }
+  .prhow b{ color:var(--lime); }
+  #prResS{ display:flex; flex-direction:column; gap:10px; }
+  .prrow{ position:relative; display:flex; align-items:center; gap:18px; height:64px; padding:0 22px; border-radius:16px; background:#140a2a; border:2px solid #3b2368; overflow:hidden; }
+  .prrow .bar{ position:absolute; left:0; top:0; bottom:0; background:rgba(139,77,255,.25); transition: width 1.2s cubic-bezier(.2,.9,.3,1); }
+  .prrow.fin{ border-color:var(--lime); } .prrow.fin .bar{ background:rgba(184,255,46,.22); }
+  .prrow.bust{ border-color:#7a1f33; } .prrow.bust .bar{ background:rgba(255,61,90,.22); }
+  .prrow > *:not(.bar){ position:relative; }
+  .prrow .rk{ font-family:var(--display); font-size:40px; width:40px; color:var(--lime); text-align:center; }
+  .prrow .cav{ --av:44px; }
+  .prrow .nm{ flex:1; min-width:0; font-weight:800; font-size:30px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prrow .dice{ font-size:28px; letter-spacing:2px; }
+  .prrow .sc{ font-family:var(--display); font-size:44px; min-width:110px; text-align:right; }
+  .prrow .bt{ font-weight:800; letter-spacing:3px; font-size:18px; color:var(--red); }
+  .prrow.fin .bt{ color:var(--lime); }
+  .prtarget{ font-weight:800; letter-spacing:5px; font-size:22px; color:var(--muted); }
+  .prtarget b{ color:var(--lime); font-family:var(--display); font-size:40px; letter-spacing:1px; font-weight:400; }
+  #prShowS{ display:grid; grid-template-rows:minmax(0,1fr) auto; gap:20px; }
+  .pritem{ font-weight:800; font-size:42px; line-height:1.2; }
+  .pritem small{ display:block; font-size:22px; letter-spacing:5px; color:var(--purple-hi); margin-bottom:6px; }
+  .prfins{ display:grid; grid-template-columns:repeat(var(--n, 3), 1fr); gap:24px; min-height:0; }
+  .prfin{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; border-radius:24px; background:linear-gradient(180deg, var(--panel2), var(--panel)); border:3px solid var(--line); padding:16px 20px; min-width:0; min-height:0; overflow:hidden; transition: transform .5s, border-color .5s; }
+  .prfin .cav{ --av:84px; }
+  .prfin .nm{ font-weight:800; font-size:36px; max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prfin .st{ font-weight:800; letter-spacing:4px; font-size:20px; color:var(--muted); }
+  .prfin .st.ok{ color:var(--lime); }
+  .prfin .bid{ font-family:var(--display); font-size:80px; line-height:1; }
+  .prfin .pool{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:22px; color:var(--chat); }
+  .prfin .pool .pick{ width:22px; height:22px; }
+  .prfin.champ{ border-color:var(--lime); transform:scale(1.04); box-shadow:0 0 50px rgba(184,255,46,.35); }
+  .prfin.over{ opacity:.5; border-color:#7a1f33; } .prfin.over .bid{ color:var(--red); text-decoration:line-through; }
+  .prsecret{ display:flex; align-items:baseline; justify-content:center; gap:24px; font-weight:800; letter-spacing:5px; font-size:24px; color:var(--muted); min-height:90px; }
+  .prsecret .val{ font-family:var(--display); font-weight:400; font-size:96px; letter-spacing:2px; line-height:1; color:var(--lime); }
+  .prsecret .cmd{ font-family:var(--display); font-weight:400; font-size:44px; letter-spacing:1px; }
+  #prWheelS{ display:grid; grid-template-columns: 560px 1fr; gap:60px; align-items:center; }
+  .wheelwrap{ position:relative; width:560px; height:560px; }
+  .wheelwrap svg{ width:100%; height:100%; transition: transform 4.2s cubic-bezier(.12,.75,.15,1); }
+  .wheelwrap .ptr{ position:absolute; left:50%; top:-14px; width:0; height:0; transform:translateX(-50%); border-left:26px solid transparent; border-right:26px solid transparent; border-top:44px solid var(--lime); filter:drop-shadow(0 0 12px rgba(184,255,46,.7)); z-index:2; }
+  .wrows{ display:flex; flex-direction:column; gap:16px; }
+  .wrow{ display:flex; align-items:center; gap:18px; padding:14px 22px; border-radius:18px; background:linear-gradient(180deg, var(--panel2), var(--panel)); border:3px solid var(--line); }
+  .wrow.now{ border-color:var(--lime); box-shadow:0 0 30px rgba(184,255,46,.3); }
+  .wrow.bust{ opacity:.5; border-color:#7a1f33; }
+  .wrow.champ{ border-color:var(--lime); background:linear-gradient(180deg, #2c4410, #142008); }
+  .wrow .cav{ --av:60px; }
+  .wrow .nm{ flex:1; min-width:0; font-weight:800; font-size:32px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wrow .sp{ font-family:var(--display); font-size:44px; color:var(--muted); }
+  .wrow .tot{ font-family:var(--display); font-size:64px; min-width:110px; text-align:right; color:var(--lime); }
+  .wrow.bust .tot{ color:var(--red); }
+  .wnote{ font-weight:800; letter-spacing:4px; font-size:22px; color:var(--muted); margin-top:8px; }
+  .wnote b{ color:var(--lime); }
+
   /* ── trivia ── */
   body.trivia .tvhide{ display:none !important; }
   .tvfoot{ display:none; }
@@ -341,6 +403,29 @@
     <div class="wins" id="tdWins"></div>
   </section>
 
+  <section class="scene" id="prPlayS">
+    <div class="join"><div class="qr" id="qrPir"></div><div class="url" data-url></div><div class="how" id="prJoinHow"><b>Play on the site</b></div></div>
+    <div class="prmid" id="prMid"></div>
+    <div class="tvlist"><div class="count" id="prPCount">0</div><div class="lbl" id="prPLbl">PLAYING</div>
+      <div class="ticker" id="prBox"><div class="tk-track" id="prTrack"></div></div></div>
+  </section>
+
+  <section class="scene" id="prResS">
+    <div class="prtarget" id="prTgt"></div>
+    <div id="prRows" style="display:flex;flex-direction:column;gap:10px"></div>
+  </section>
+
+  <section class="scene" id="prShowS">
+    <div class="pritem" id="prItemS" hidden></div>
+    <div class="prfins" id="prFins"></div>
+    <div class="prsecret" id="prSecretS"></div>
+  </section>
+
+  <section class="scene" id="prWheelS">
+    <div class="wheelwrap"><div class="ptr"></div><svg id="wheelSvg" viewBox="-110 -110 220 220"></svg></div>
+    <div><div class="wrows" id="wRows"></div><div class="wnote" id="wNote"></div></div>
+  </section>
+
   <section class="scene" id="leaders">
     <div class="lbhead">TOP PICKERS</div>
     <ol class="lb" id="lb"></ol>
@@ -413,7 +498,7 @@ function makeQR(el, size){
     new QRCode(el, { text:'https://' + JOIN + '/', width:size, height:size, colorDark:'#0e0720', colorLight:'#f4ffe0', correctLevel: QRCode.CorrectLevel.M });
   } catch (e) { el.style.display = 'none'; }
 }
-makeQR($('qrIdle'), 300); makeQR($('qrCollect'), 230); makeQR($('qrTriv'), 240);
+makeQR($('qrIdle'), 300); makeQR($('qrCollect'), 230); makeQR($('qrTriv'), 240); makeQR($('qrPir'), 240);
 
 document.querySelectorAll('[data-pick]').forEach(el => { const id = el.id; el.outerHTML = id ? PM.pickSVG().replace('<svg', `<svg id="${id}"`) : PM.pickSVG(); });
 
@@ -433,7 +518,7 @@ let S = null;                 // current state
 let lastStateAt = 0;
 PM.watchState((s) => { lastStateAt = Date.now(); const prev = S; S = s; apply(prev, s); }, 2000);
 setInterval(() => {
-  const ok = Date.now() - lastStateAt < 8000;
+  const ok = PM.stateAge() < 8000;
   $('conn').classList.toggle('ok', ok);
   $('conn').textContent = ok ? 'LIVE' : 'RECONNECTING';
 }, 1000);
@@ -484,6 +569,19 @@ function apply(prev, s){
   document.body.classList.toggle('is-hidden', !!s.hidden);
   document.body.classList.toggle('crowd', crowd);
   document.body.classList.toggle('qcall', !!s.questionCall);
+  const pr = s.game === 'pir' && s.pir.phase !== 'off' && s.scene !== 'leaderboard';
+  document.body.classList.toggle('pirgame', pr);
+  if (pr){
+    ['idle', 'collect', 'board', 'leaders', 'tlobby', 'tquest', 'tdone'].forEach(id => $(id).classList.remove('on'));
+    stopAnswerPoll(); stopLeaders(); tvStop();
+    document.body.classList.remove('alsoon', 'survey', 'trivia', 'tvreveal');
+    $('brandWord').textContent = 'THE PICKS ARE RIGHT';
+    $('brandTag').textContent = 'closest without going over';
+    renderPR(prev, s, first);
+    return;
+  }
+  ['prPlayS', 'prResS', 'prShowS', 'prWheelS'].forEach(id => $(id).classList.remove('on'));
+  prStop();
   const tv = s.game === 'trivia' && s.trivia.phase !== 'off' && s.scene !== 'leaderboard';
   document.body.classList.toggle('trivia', s.game === 'trivia' && s.trivia.phase !== 'off');
   $('brandWord').textContent = tv ? 'TRIVIA LADDER' : 'CHAT SAYS';
@@ -817,6 +915,214 @@ function renderTV(prev, s, first){
       else banner('NOBODY OUT!', 'ding');
     }
     else if (T.phase === 'done') banner(T.refunded ? 'NOBODY SURVIVED' : `${T.winners.length} SURVIVOR${T.winners.length === 1 ? '' : 'S'}!`, T.refunded ? 'buzz' : 'win');
+  }
+}
+
+/* ── the picks are right ── */
+const prScroll = makeScroller('prBox', 'prTrack');
+let prT = 0, prBusy = false, prSig = '', prRaf = 0, prRows = [], prShow = null, prProg = null, prLastSpinSig = '', wheelRot = 0, prTick = -1;
+function prStop(){ clearInterval(prT); prT = 0; cancelAnimationFrame(prRaf); prRaf = 0; prScroll.stop(); }
+function buildWheel(){
+  const W = PM.PIR.WHEEL, svg = $('wheelSvg');
+  if (svg.dataset.built) return;
+  svg.dataset.built = '1';
+  const cols = ['#24124a', '#3a1d73'];
+  let h = '';
+  W.forEach((v, i) => {
+    const a0 = (i * 18 - 99) * Math.PI / 180, a1 = ((i + 1) * 18 - 99) * Math.PI / 180;
+    const x0 = 100 * Math.cos(a0), y0 = 100 * Math.sin(a0), x1 = 100 * Math.cos(a1), y1 = 100 * Math.sin(a1);
+    const fill = v === 100 ? '#b8ff2e' : v === 5 || v === 15 ? '#34e2ff' : cols[i % 2];
+    const am = (i * 18 + 9 - 99), tx = 76 * Math.cos(am * Math.PI / 180), ty = 76 * Math.sin(am * Math.PI / 180);
+    h += `<path d="M0 0 L${x0.toFixed(2)} ${y0.toFixed(2)} A100 100 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${fill}" stroke="#0e0720" stroke-width="1"/>`;
+    h += `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${am + 90} ${tx.toFixed(2)} ${ty.toFixed(2)})" text-anchor="middle" dominant-baseline="middle" font-family="Bebas Neue, Impact, sans-serif" font-size="15" fill="${v === 100 || v === 5 || v === 15 ? '#081200' : '#f1f6e8'}">${v}</text>`;
+  });
+  h += '<circle r="100" fill="none" stroke="#b8ff2e" stroke-width="3"/><circle r="16" fill="#0e0720" stroke="#b8ff2e" stroke-width="3"/>';
+  svg.innerHTML = h;
+}
+function spinTo(v){
+  const i = PM.PIR.WHEEL.indexOf(v);
+  if (i < 0) return;
+  const want = -(i * 18);   // segment i is centred at the top before rotation
+  const cur = ((wheelRot % 360) + 360) % 360;
+  let delta = ((want - cur) % 360 + 360) % 360;
+  wheelRot += 360 * 4 + delta;
+  $('wheelSvg').style.transform = `rotate(${wheelRot}deg)`;
+}
+async function prPoll(){
+  if (prBusy || !S || S.game !== 'pir') return;
+  const X = S.pir;
+  prBusy = true;
+  try {
+    if (X.phase === 'reading' || X.phase === 'play'){
+      const [{ data:prog }, { data:rows }] = await Promise.all([
+        sb.rpc('pm_pir_progress', { p_show:X.showId }),
+        sb.from('pm_pir_players').select('profile_id, display_name, avatar_url, via, joined_at').eq('show_id', X.showId).order('joined_at', { ascending:false }).limit(500),
+      ]);
+      prProg = prog;
+      const list = rows || [];
+      $('prPCount').textContent = list.length;
+      $('prPLbl').textContent = X.qual === 'math' ? `PLAYING · ${(prog && prog.locked) || 0} DONE` : X.qual === 'dictation' ? 'TYPING' : `IN · ${(prog && prog.gave) || 0} GAVE`;
+      const sig = list.map(r => r.profile_id).join(',');
+      if (sig !== prSig){
+        prSig = sig;
+        await PM.Shop.load();
+        const ps = await PM.Shop.profiles(list.map(r => r.profile_id));
+        prScroll.set(list.map(r => { const p = ps.get(r.profile_id) || r;
+          return `<div class="tk-item ${PM.Shop.themeClass(p)}">${PM.Shop.avatar(p)}<span class="nm">${PM.Shop.name(p, r.display_name)}</span><span class="lk">${r.via === 'chat' ? 'VIA CHAT' : 'IN'}</span></div>`; }).join(''));
+      }
+    } else if (X.phase === 'stage' || X.phase === 'done'){
+      const [{ data:sh }, { data:rows }, { data:prog }] = await Promise.all([
+        sb.from('pm_pir_shows').select('phase, wheel_turn').eq('id', X.showId).maybeSingle(),
+        sb.from('pm_pir_players').select('profile_id, display_name, avatar_url, rank, spins, score, busted, wheel_done').eq('show_id', X.showId).eq('qualified', true).order('rank', { ascending:false }),
+        sb.rpc('pm_pir_progress', { p_show:X.showId }),
+      ]);
+      prShow = sh; prRows = rows || []; prProg = prog;
+      renderStage(S);
+    }
+  } catch (e) {}
+  prBusy = false;
+}
+function prTimer(){
+  cancelAnimationFrame(prRaf);
+  const loop = () => {
+    const X = S && S.pir;
+    if (!X || X.phase !== 'play'){ prRaf = 0; return; }
+    const rem = Math.max(0, ((Date.parse(X.closesAt) || 0) - PM.serverNow()) / 1000);
+    const el = document.querySelector('#prMid .prtimer');
+    if (el){ el.textContent = Math.ceil(rem); el.classList.toggle('hurry', rem <= 5); }
+    const sec = Math.ceil(rem);
+    if (sec <= 5 && sec > 0 && sec !== prTick){ prTick = sec; Sound.play('tick'); }
+    prRaf = requestAnimationFrame(loop);
+  };
+  prRaf = requestAnimationFrame(loop);
+}
+function renderStage(s){
+  const X = s.pir;
+  const fins = X.finalists;
+  if (X.stage === 'showcase'){
+    $('prItemS').innerHTML = '';
+    $('prFins').style.setProperty('--n', Math.max(1, fins.length));
+    const bids = new Set((prProg && prProg.bids) || []), pools = (prProg && prProg.pools) || {};
+    const done = X.phase === 'done';
+    (async () => {
+      await PM.Shop.load();
+      const ps = await PM.Shop.profiles(fins.map(f => f.id));
+      $('prFins').innerHTML = fins.map(f => {
+        const p = ps.get(f.id) || { display_name:f.name, avatar_url:f.avatar };
+        const b = X.bids[f.id];
+        const over = done && b != null && b > X.secret;
+        const cls = ['prfin', PM.Shop.themeClass(p), done && X.winner === f.id ? 'champ' : '', over ? 'over' : ''].join(' ');
+        const mid = done ? `<div class="bid">${b == null ? '—' : Number(b).toLocaleString()}</div><div class="st ${X.winner === f.id ? 'ok' : ''}">${X.winner === f.id ? 'WINNER +' + X.prizePaid : over ? 'OVER!' : b == null ? 'NO BID' : ''}</div>`
+          : `<div class="st ${bids.has(f.id) ? 'ok' : ''}">${bids.has(f.id) ? 'BID LOCKED ✓' : 'THINKING…'}</div>`;
+        return `<div class="${cls}">${PM.Shop.avatar(p)}<div class="nm">${PM.Shop.name(p, f.name)}</div>${mid}<div class="pool">${PM.pickSVG('', true)}${pools[f.id] || 0} bet</div></div>`;
+      }).join('');
+      PM.marqueeAll($('prFins'), '.nm');
+    })();
+    $('prSecretS').innerHTML = done ? `ACTUAL VALUE <span class="val">${Number(X.secret).toLocaleString()}</span>`
+      : 'FINALISTS <span class="cmd" style="color:var(--lime)">!bid 1234</span> · EVERYONE ELSE <span class="cmd" style="color:var(--chat)">!bet name 50</span>';
+  } else {
+    buildWheel();
+    const order = prRows;
+    const cur = prShow && prShow.phase === 'stage' ? order[prShow.wheel_turn] : null;
+    const best = Math.max(-1, ...order.filter(r => !r.busted && (r.spins || []).length).map(r => r.score));
+    (async () => {
+      await PM.Shop.load();
+      const ps = await PM.Shop.profiles(order.map(r => r.profile_id));
+      $('wRows').innerHTML = order.map(r => {
+        const p = ps.get(r.profile_id) || r;
+        const win = X.phase === 'done' && !r.busted && r.score === best && best > 0;
+        const cls = ['wrow', PM.Shop.themeClass(p), cur && cur.profile_id === r.profile_id ? 'now' : '', r.busted ? 'bust' : '', win ? 'champ' : ''].join(' ');
+        return `<div class="${cls}">${PM.Shop.avatar(p)}<span class="nm">${PM.Shop.name(p, r.display_name)}</span><span class="sp">${(r.spins || []).join(' + ')}</span><span class="tot">${r.busted ? 'BUST' : (r.spins || []).length ? r.score : '—'}</span></div>`;
+      }).join('');
+      PM.marqueeAll($('wRows'), '.nm');
+    })();
+    $('wNote').innerHTML = X.phase === 'done' ? (X.best == null ? 'EVERYONE BUSTED' : `WINNING TOTAL <b>${X.best}</b>`) : cur ? `<b>${PM.esc(cur.display_name)}</b> IS UP · !spin OR !stay` : 'ALL SPINS IN';
+    // animate the newest spin
+    const all = order.map(r => r.profile_id + ':' + (r.spins || []).join(',')).join('|');
+    if (all !== prLastSpinSig){
+      const prevSig = prLastSpinSig; prLastSpinSig = all;
+      if (prevSig){
+        const before = new Map(prevSig.split('|').map(x => [x.split(':')[0], (x.split(':')[1] || '').split(',').filter(Boolean).length]));
+        const changed = order.find(r => (r.spins || []).length > (before.get(r.profile_id) || 0));
+        if (changed){
+          const v = changed.spins[changed.spins.length - 1];
+          spinTo(v); Sound.play('open');
+          setTimeout(() => { banner(changed.score > 100 ? `${v}! BUST` : changed.score === 100 ? '100!!!' : String(v), changed.score > 100 ? 'buzz' : changed.score === 100 ? 'win' : 'ding'); }, 4300);
+        }
+      }
+    }
+  }
+}
+function renderPR(prev, s, first){
+  const X = s.pir, P = prev && prev.pir;
+  const Q = PM.PIR.quals[X.qual];
+  const playing = X.phase === 'reading' || X.phase === 'play';
+  const stageScene = X.stage === 'showcase' ? 'prShowS' : 'prWheelS';
+  const scene = playing ? 'prPlayS' : X.phase === 'results' ? 'prResS' : (X.phase === 'stage' || X.phase === 'done') ? stageScene : '';
+  ['prPlayS', 'prResS', 'prShowS', 'prWheelS'].forEach(id => $(id).classList.toggle('on', id === scene));
+  // plates
+  $('hostName').textContent = 'TARGET'; $('chatName').textContent = 'PRIZE';
+  $('hostPick').style.display = 'none'; $('vsLbl').textContent = '·';
+  const stageNow = X.phase === 'stage' || X.phase === 'done';
+  const tgt = stageNow ? (X.stage === 'wheel' ? 100 : (X.phase === 'done' && X.secret != null ? X.secret : '?')) : X.target;
+  $('hostPts').textContent = typeof tgt === 'number' ? (X.qual === 'math' && !stageNow ? '$' + tgt : tgt) : tgt;
+  $('chatPts').textContent = X.prize;
+  $('modePill').textContent = stageNow ? PM.PIR.stages[X.stage].name.toUpperCase() : Q.name.toUpperCase();
+  $('roundPill').textContent = '';
+  const qtxt = stageNow ? (X.stage === 'showcase' ? 'Showcase: ' + (X.item || '') : PM.PIR.stages[X.stage].how) : Q.how(X.target, X.perGift);
+  $('qbar').classList.toggle('off', !(playing || X.phase === 'results' || (stageNow && X.stage === 'showcase')));
+  $('qt').textContent = qtxt; sizeClass($('qt'), qtxt, 70, 110); $('qn').textContent = '🎯';
+
+  if (playing){
+    const how = X.qual === 'math' ? '<b>Play on the site</b><br>(math is site-only)' : X.qual === 'dictation' ? '<b>Type on the site</b><br>or <b>!t your words</b> in chat' : '<b>Play on the site</b><br>or <b>!give name</b> in chat';
+    $('prJoinHow').innerHTML = how;
+    let mid = '';
+    if (X.qual === 'dictation'){
+      const shown = X.lines.slice(0, X.lineIdx + 1).slice(-4);
+      mid = `<div class="prlines">${shown.map((l, i) => `<div class="${i === shown.length - 1 && X.phase === 'reading' ? 'now' : ''}">${PM.esc(l)}</div>`).join('')}</div>` +
+        (X.phase === 'play' ? `<div style="display:flex;align-items:baseline;gap:20px"><div class="prtimer">0</div><div class="prsub">SECONDS TO FINISH TYPING · TARGET <b style="color:var(--lime)">${X.target}</b> WORDS</div></div>` : '<div class="prsub">KEEP TYPING · COUNT IS HIDDEN</div>');
+    } else {
+      mid = `<div class="prsub">${Q.name.toUpperCase()}</div><div class="prbig">${X.qual === 'math' ? '$' + X.target : X.qual === 'donations' ? '$' + X.target : X.target}</div>` +
+        `<div class="prhow">${X.qual === 'donations' ? 'Give your <b>$' + X.perGift + '</b> to someone.<br>Over the line = bust (and their donors too).' : X.qual === 'highrollers' ? 'Push your extra die onto someone.<br>Roll over = bust.' : 'Stop on the number.<br>One answer too many = bust.'}</div>` +
+        `<div style="display:flex;align-items:baseline;gap:20px"><div class="prtimer">0</div><div class="prsub">SECONDS</div></div>`;
+    }
+    const sig = X.phase + '|' + X.lineIdx;
+    if ($('prMid').dataset.sig !== sig){ $('prMid').dataset.sig = sig; $('prMid').innerHTML = mid; }
+    if (X.phase === 'play') prTimer();
+    if (!prT){ prPoll(); prT = setInterval(prPoll, 1300); }
+  } else if (X.phase === 'results'){
+    clearInterval(prT); prT = 0; prSig = '';
+    $('prTgt').innerHTML = `TARGET <b>${X.qual === 'math' || X.qual === 'donations' ? '$' : ''}${X.target}</b> · ${X.finalists.length} MADE THE FINALS · ${X.bustedN || 0} WENT OVER`;
+    const rows = X.standings.slice(0, 9);
+    (async () => {
+      await PM.Shop.load();
+      const ps = await PM.Shop.profiles(rows.map(r => r.id));
+      $('prRows').innerHTML = rows.map(r => {
+        const p = ps.get(r.id) || { display_name:r.name, avatar_url:r.avatar };
+        const pct = Math.min(100, Math.round((r.score || 0) * 100 / Math.max(1, X.target)));
+        const dice = r.rolls && r.rolls.length ? `<span class="dice">${r.rolls.map(n => '⚀⚁⚂⚃⚄⚅'[n - 1]).join('')}</span>` : '';
+        return `<div class="prrow ${r.qualified ? 'fin' : ''} ${r.busted ? 'bust' : ''}"><div class="bar" style="width:${pct}%"></div><span class="rk">${r.qualified ? r.rank : ''}</span>${PM.Shop.avatar(p)}<span class="nm">${PM.Shop.name(p, r.name)}</span>${dice}<span class="bt">${r.qualified ? 'FINALIST' : r.busted ? (r.reason === 'donor' ? 'BUST (DONOR)' : 'BUST') : ''}</span><span class="sc">${r.score}</span></div>`;
+      }).join('') || '<div class="prsub">NOBODY PLAYED</div>';
+      PM.marqueeAll($('prRows'), '.nm');
+    })();
+  } else if (stageNow){
+    clearInterval(prT); prT = 0;
+    if (X.phase === 'stage'){ prPoll(); prT = setInterval(prPoll, 1200); }
+    else prPoll();
+    renderStage(s);
+  }
+
+  if (first || !P) return;
+  if (P.phase !== X.phase || P.showId !== X.showId){
+    if (X.phase === 'reading' || (X.phase === 'play' && P.phase !== 'reading')) banner(Q.name.toUpperCase(), 'open');
+    else if (X.phase === 'play') banner('KEEP TYPING!', 'lock');
+    else if (X.phase === 'results') banner(X.finalists.length ? `${X.finalists.length} MADE THE FINALS` : 'NOBODY QUALIFIED', X.finalists.length ? 'win' : 'buzz');
+    else if (X.phase === 'stage') banner(PM.PIR.stages[X.stage].name.toUpperCase(), 'open');
+    else if (X.phase === 'done'){
+      const w = X.winners[0];
+      banner(w ? `${String(w.name).toUpperCase()} WINS +${w.payout}` : 'NO WINNER', w ? 'win' : 'buzz',
+        w ? `${PM.esc(String(w.name).toUpperCase())} WINS +${w.payout}${PM.pickSVG('', true)}` : null);
+    }
   }
 }
 

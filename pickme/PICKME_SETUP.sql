@@ -842,6 +842,568 @@ begin
   return 'ok';
 end $$;
 
+
+-- ════════════════════════════════════════════════════════════
+--  THE PICKS ARE RIGHT — closest without going over
+--  Qualifier (everyone): dictation | donations | highrollers | math
+--  Main stage (finalists): showcase (bids + chat bets) | wheel (two spins, 100 max)
+-- ════════════════════════════════════════════════════════════
+create table if not exists public.pm_pir_shows (
+  id           uuid primary key default gen_random_uuid(),
+  session_id   uuid references public.pm_sessions(id) on delete set null,
+  qual         text not null check (qual in ('dictation','donations','highrollers','math')),
+  stage        text not null check (stage in ('showcase','wheel')),
+  target       int  not null check (target between 1 and 1000000),
+  finalists_n  int  not null default 3 check (finalists_n between 1 and 6),
+  prize        int  not null default 50 check (prize between 0 and 1000000),
+  qual_reward  int  not null default 0 check (qual_reward between 0 and 100000),
+  per_gift     int  not null default 500,
+  passage      text,
+  phase        text not null default 'qualifier' check (phase in ('qualifier','closed','results','stage','locked','done','cancelled')),
+  closes_at    timestamptz,
+  wheel_turn   int  not null default 0,
+  item         text,
+  secret       int,            -- showcase value, only stored at reveal
+  created_at   timestamptz not null default now(),
+  ended_at     timestamptz
+);
+create table if not exists public.pm_pir_players (
+  show_id       uuid not null references public.pm_pir_shows(id) on delete cascade,
+  profile_id    uuid not null references public.pm_profiles(id) on delete cascade,
+  display_name  text,
+  avatar_url    text,
+  via           text not null default 'app',
+  score         int,
+  busted        boolean not null default false,
+  bust_reason   text,
+  locked        boolean not null default false,
+  typed         text,
+  rolls         int[],
+  math_idx      int not null default 0,
+  stunned_until timestamptz,
+  qualified     boolean not null default false,
+  rank          int,
+  spins         int[] not null default '{}',
+  wheel_done    boolean not null default false,
+  payout        int not null default 0,
+  acted_at      timestamptz,
+  joined_at     timestamptz not null default now(),
+  primary key (show_id, profile_id)
+);
+-- secret moves: who you gave to (donations / high rollers) and finalist bids
+create table if not exists public.pm_pir_moves (
+  show_id    uuid not null references public.pm_pir_shows(id) on delete cascade,
+  profile_id uuid not null references public.pm_profiles(id) on delete cascade,
+  kind       text not null check (kind in ('give','bid')),
+  to_profile uuid references public.pm_profiles(id) on delete cascade,
+  amount     int,
+  updated_at timestamptz not null default now(),
+  primary key (show_id, profile_id, kind)
+);
+create table if not exists public.pm_pir_bets (
+  show_id    uuid not null references public.pm_pir_shows(id) on delete cascade,
+  profile_id uuid not null references public.pm_profiles(id) on delete cascade,
+  on_profile uuid not null references public.pm_profiles(id) on delete cascade,
+  amount     int  not null check (amount > 0),
+  payout     int  not null default 0,
+  created_at timestamptz not null default now(),
+  primary key (show_id, profile_id)
+);
+
+-- word-count helper for dictation: correct words, any order, each passage word counted at most as often as it appears
+create or replace function public.pm_pir_words(p_passage text, p_typed text)
+returns int language sql immutable set search_path = '' as $$
+  with p as (select w, count(*) c from regexp_split_to_table(btrim(regexp_replace(lower(coalesce(p_passage, '')), '[^a-z0-9'']+', ' ', 'g')), ' ') w where w <> '' group by w),
+       t as (select w, count(*) c from regexp_split_to_table(btrim(regexp_replace(lower(coalesce(p_typed, '')), '[^a-z0-9'']+', ' ', 'g')), ' ') w where w <> '' group by w)
+  select coalesce(sum(least(p.c, t.c)), 0)::int from p join t using (w);
+$$;
+
+-- math problem n for a player (deterministic): small +/- like the original, 4 choices
+create or replace function public.pm_pir_problem(p_show uuid, p_profile uuid, p_idx int)
+returns jsonb language plpgsql immutable set search_path = '' as $$
+declare h text := md5(p_show::text || p_profile::text || p_idx::text);
+  a int; b int; plus boolean; ans int; offs int[] := array[-10,-5,-4,-3,-2,-1,1,2,3,4,5,10]; ch int[]; o int; i int := 0; k int; tmp int;
+begin
+  a := ('x' || substr(h, 1, 2))::bit(8)::int % 19 + 1;
+  b := ('x' || substr(h, 3, 2))::bit(8)::int % 19 + 1;
+  plus := ('x' || substr(h, 5, 1))::bit(4)::int < 8;
+  ans := case when plus then a + b else a - b end;
+  ch := array[ans];
+  while array_length(ch, 1) < 4 loop
+    o := offs[(('x' || substr(h, 7 + (i % 20), 2))::bit(8)::int + i) % 12 + 1];
+    if not (ans + o = any(ch)) then ch := ch || (ans + o); end if;
+    i := i + 1;
+  end loop;
+  -- shuffle
+  for k in reverse 4..2 loop
+    i := ('x' || substr(h, 25 + k, 2))::bit(8)::int % k + 1;
+    tmp := ch[k]; ch[k] := ch[i]; ch[i] := tmp;
+  end loop;
+  return jsonb_build_object('a', a, 'b', b, 'op', case when plus then '+' else '-' end,
+    'choices', to_jsonb(ch), 'correct', array_position(ch, ans) - 1);
+end $$;
+
+create or replace function public.pm_pir_enter(p_profile uuid, p_show uuid, p_via text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; pr public.pm_profiles; r text;
+begin
+  select * into s from public.pm_pir_shows where id = p_show;
+  if not found or s.phase <> 'qualifier' then return 'round_closed'; end if;
+  if exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_profile) then return null; end if;
+  r := public.pm_enter(p_profile, s.session_id, p_via, 'pir');
+  if r is not null then return r; end if;
+  select * into pr from public.pm_profiles where id = p_profile;
+  insert into public.pm_pir_players (show_id, profile_id, display_name, avatar_url, via)
+  values (p_show, p_profile, coalesce(pr.display_name, pr.login), pr.avatar_url, p_via) on conflict do nothing;
+  return null;
+end $$;
+
+create or replace function public.pm_pir_open(p_show uuid)
+returns public.pm_pir_shows language sql stable security definer set search_path = '' as $$
+  select * from public.pm_pir_shows where id = p_show and phase = 'qualifier' and (closes_at is null or now() <= closes_at + interval '2 seconds');
+$$;
+
+-- ── qualifier actions (internal, by profile) ──
+create or replace function public.pm_pir_type_as(p_profile uuid, p_show uuid, p_text text, p_append boolean, p_via text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; r text; t text;
+begin
+  s := public.pm_pir_open(p_show);
+  if s.id is null or s.qual <> 'dictation' then return 'round_closed'; end if;
+  r := public.pm_pir_enter(p_profile, p_show, p_via); if r is not null then return r; end if;
+  select typed into t from public.pm_pir_players where show_id = p_show and profile_id = p_profile;
+  t := left(case when p_append then coalesce(t, '') || ' ' || coalesce(p_text, '') else coalesce(p_text, '') end, 4000);
+  update public.pm_pir_players set typed = t, score = public.pm_pir_words(s.passage, t), acted_at = now()
+   where show_id = p_show and profile_id = p_profile;
+  return 'ok';
+end $$;
+
+create or replace function public.pm_pir_give_as(p_profile uuid, p_show uuid, p_to uuid, p_via text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; r text;
+begin
+  s := public.pm_pir_open(p_show);
+  if s.id is null or s.qual not in ('donations','highrollers') then return 'round_closed'; end if;
+  if p_to is null or p_to = p_profile then return 'self'; end if;
+  if not exists (select 1 from public.pm_profiles where id = p_to) then return 'no_player'; end if;
+  r := public.pm_pir_enter(p_profile, p_show, p_via); if r is not null then return r; end if;
+  -- the receiver is in the game too (you can push dice/money onto anyone playing)
+  r := public.pm_pir_enter(p_to, p_show, 'app');
+  if r is not null and r <> 'round_closed' then return 'no_player'; end if;
+  insert into public.pm_pir_moves (show_id, profile_id, kind, to_profile) values (p_show, p_profile, 'give', p_to)
+  on conflict (show_id, profile_id, kind) do update set to_profile = excluded.to_profile, updated_at = now();
+  update public.pm_pir_players set acted_at = now() where show_id = p_show and profile_id = p_profile;
+  return 'ok';
+end $$;
+
+create or replace function public.pm_pir_join_as(p_profile uuid, p_show uuid, p_via text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare r text;
+begin
+  if public.pm_pir_open(p_show) is null then return 'round_closed'; end if;
+  r := public.pm_pir_enter(p_profile, p_show, p_via);
+  return coalesce(r, 'ok');
+end $$;
+
+-- ── players ──
+create or replace function public.pm_pir_join(p_show uuid)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return 'no_profile'; end if;
+  return public.pm_pir_join_as(pid, p_show, 'app');
+end $$;
+
+create or replace function public.pm_pir_type(p_show uuid, p_text text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return 'no_profile'; end if;
+  return public.pm_pir_type_as(pid, p_show, p_text, false, 'app');
+end $$;
+
+create or replace function public.pm_pir_give(p_show uuid, p_to uuid)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return 'no_profile'; end if;
+  return public.pm_pir_give_as(pid, p_show, p_to, 'app');
+end $$;
+
+-- Math: get the current problem (no answer included)
+create or replace function public.pm_pir_math_next(p_show uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile(); s public.pm_pir_shows; r text; pl public.pm_pir_players; pb jsonb;
+begin
+  if pid is null then return jsonb_build_object('error', 'no_profile'); end if;
+  s := public.pm_pir_open(p_show);
+  if s.id is null or s.qual <> 'math' then return jsonb_build_object('error', 'round_closed'); end if;
+  r := public.pm_pir_enter(pid, p_show, 'app'); if r is not null then return jsonb_build_object('error', r); end if;
+  select * into pl from public.pm_pir_players where show_id = p_show and profile_id = pid;
+  pb := public.pm_pir_problem(p_show, pid, pl.math_idx);
+  return jsonb_build_object('idx', pl.math_idx, 'a', pb->'a', 'b', pb->'b', 'op', pb->'op', 'choices', pb->'choices',
+    'score', coalesce(pl.score, 0), 'busted', pl.busted, 'locked', pl.locked, 'stunned_until', pl.stunned_until);
+end $$;
+
+create or replace function public.pm_pir_math_answer(p_show uuid, p_idx int, p_choice int)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile(); s public.pm_pir_shows; pl public.pm_pir_players; pb jsonb; ok boolean; sc int;
+begin
+  if pid is null then return jsonb_build_object('error', 'no_profile'); end if;
+  s := public.pm_pir_open(p_show);
+  if s.id is null or s.qual <> 'math' then return jsonb_build_object('error', 'round_closed'); end if;
+  select * into pl from public.pm_pir_players where show_id = p_show and profile_id = pid for update;
+  if not found then return jsonb_build_object('error', 'not_in_game'); end if;
+  if pl.busted or pl.locked then return public.pm_pir_math_next(p_show); end if;
+  if p_idx <> pl.math_idx then return public.pm_pir_math_next(p_show); end if;
+  if pl.stunned_until is not null and now() < pl.stunned_until then return jsonb_build_object('error', 'stunned', 'stunned_until', pl.stunned_until); end if;
+  pb := public.pm_pir_problem(p_show, pid, pl.math_idx);
+  ok := (pb->>'correct')::int = p_choice;
+  sc := coalesce(pl.score, 0) + case when ok then 25 else 0 end;
+  update public.pm_pir_players set math_idx = math_idx + 1, score = sc, acted_at = now(),
+    stunned_until = case when ok then null else now() + interval '2 seconds' end,
+    busted = sc > s.target, bust_reason = case when sc > s.target then 'over' else null end
+   where show_id = p_show and profile_id = pid;
+  return public.pm_pir_math_next(p_show) || jsonb_build_object('was_correct', ok);
+end $$;
+
+create or replace function public.pm_pir_lock(p_show uuid)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return 'no_profile'; end if;
+  if public.pm_pir_open(p_show) is null then return 'round_closed'; end if;
+  update public.pm_pir_players set locked = true, acted_at = now() where show_id = p_show and profile_id = pid;
+  return case when found then 'ok' else 'not_in_game' end;
+end $$;
+
+-- ── stage (internal, by profile) ──
+create or replace function public.pm_pir_bid_as(p_profile uuid, p_show uuid, p_amount int)
+returns text language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows;
+begin
+  select * into s from public.pm_pir_shows where id = p_show;
+  if not found or s.stage <> 'showcase' or s.phase <> 'stage' then return 'round_closed'; end if;
+  if not exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_profile and qualified) then return 'not_finalist'; end if;
+  if p_amount is null or p_amount < 0 or p_amount > 100000000 then return 'bad_amount'; end if;
+  insert into public.pm_pir_moves (show_id, profile_id, kind, amount) values (p_show, p_profile, 'bid', p_amount)
+  on conflict (show_id, profile_id, kind) do update set amount = excluded.amount, updated_at = now();
+  return 'ok';
+end $$;
+
+create or replace function public.pm_pir_bet_as(p_profile uuid, p_show uuid, p_on uuid, p_amount int)
+returns text language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; bal int; r text;
+begin
+  select * into s from public.pm_pir_shows where id = p_show;
+  if not found or s.stage <> 'showcase' or s.phase <> 'stage' then return 'round_closed'; end if;
+  if exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_profile and qualified) then return 'finalist_no_bet'; end if;
+  if not exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_on and qualified) then return 'not_finalist'; end if;
+  if p_amount is null or p_amount < 1 then return 'bad_amount'; end if;
+  if exists (select 1 from public.pm_pir_bets where show_id = p_show and profile_id = p_profile) then return 'already'; end if;
+  r := public.pm_check(p_profile, s.session_id, 'pir'); if r is not null then return r; end if;
+  select balance into bal from public.pm_profiles where id = p_profile for update;
+  if bal < p_amount then return 'not_enough'; end if;
+  insert into public.pm_ledger (profile_id, delta, reason, game, actor) values (p_profile, -p_amount, 'The Picks Are Right: bet', 'pir', 'pir');
+  insert into public.pm_pir_bets (show_id, profile_id, on_profile, amount) values (p_show, p_profile, p_on, p_amount);
+  perform public.pm_log(p_profile, 'pir_bet', jsonb_build_object('amount', p_amount), s.session_id);
+  return 'ok';
+end $$;
+
+-- wheel: only the current spinner can act; spin (max 2) or stay after 1
+create or replace function public.pm_pir_wheel_as(p_profile uuid, p_show uuid, p_action text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; cur uuid; pl public.pm_pir_players; v int; tot int; nxt boolean := false; n int;
+begin
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'wheel' or s.phase <> 'stage' then return jsonb_build_object('error', 'round_closed'); end if;
+  select profile_id into cur from public.pm_pir_players where show_id = p_show and qualified order by rank desc offset s.wheel_turn limit 1;
+  if cur is null or cur <> p_profile then return jsonb_build_object('error', 'not_your_turn'); end if;
+  select * into pl from public.pm_pir_players where show_id = p_show and profile_id = p_profile for update;
+  n := coalesce(array_length(pl.spins, 1), 0);
+  if p_action = 'spin' then
+    if n >= 2 then return jsonb_build_object('error', 'no_spins'); end if;
+    v := (floor(random() * 20)::int + 1) * 5;
+    pl.spins := pl.spins || v;
+    tot := (select sum(x) from unnest(pl.spins) x);
+    update public.pm_pir_players set spins = pl.spins, score = tot, busted = tot > 100, bust_reason = case when tot > 100 then 'over' end,
+      wheel_done = (tot > 100 or n + 1 >= 2) where show_id = p_show and profile_id = p_profile;
+    nxt := tot > 100 or n + 1 >= 2;
+  elsif p_action = 'stay' then
+    if n < 1 then return jsonb_build_object('error', 'spin_first'); end if;
+    update public.pm_pir_players set wheel_done = true where show_id = p_show and profile_id = p_profile;
+    tot := pl.score; nxt := true;
+  else return jsonb_build_object('error', 'bad_action'); end if;
+  if nxt then
+    update public.pm_pir_shows set wheel_turn = wheel_turn + 1,
+      phase = case when wheel_turn + 1 >= (select count(*) from public.pm_pir_players where show_id = p_show and qualified) then 'locked' else phase end
+     where id = p_show;
+  end if;
+  return jsonb_build_object('value', v, 'total', tot, 'spins', to_jsonb(pl.spins), 'busted', coalesce(tot, 0) > 100, 'next', nxt);
+end $$;
+
+create or replace function public.pm_pir_bid(p_show uuid, p_amount int)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return 'no_profile'; end if;
+  return public.pm_pir_bid_as(pid, p_show, p_amount);
+end $$;
+create or replace function public.pm_pir_bet(p_show uuid, p_on uuid, p_amount int)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return 'no_profile'; end if;
+  return public.pm_pir_bet_as(pid, p_show, p_on, p_amount);
+end $$;
+create or replace function public.pm_pir_wheel(p_show uuid, p_action text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return jsonb_build_object('error', 'no_profile'); end if;
+  return public.pm_pir_wheel_as(pid, p_show, p_action);
+end $$;
+
+-- public counts (no secrets)
+create or replace function public.pm_pir_progress(p_show uuid)
+returns jsonb language sql stable security definer set search_path = '' as $$
+  select jsonb_build_object(
+    'players', (select count(*) from public.pm_pir_players where show_id = p_show),
+    'gave',    (select count(*) from public.pm_pir_moves where show_id = p_show and kind = 'give'),
+    'locked',  (select count(*) from public.pm_pir_players where show_id = p_show and (locked or busted)),
+    'typed',   (select count(*) from public.pm_pir_players where show_id = p_show and typed is not null),
+    'bids',    (select coalesce(jsonb_agg(profile_id), '[]'::jsonb) from public.pm_pir_moves where show_id = p_show and kind = 'bid'),
+    'pools',   (select coalesce(jsonb_object_agg(on_profile, s), '{}'::jsonb) from (select on_profile, sum(amount) s from public.pm_pir_bets where show_id = p_show group by on_profile) x),
+    'bettors', (select count(*) from public.pm_pir_bets where show_id = p_show));
+$$;
+
+-- ── host ──
+create or replace function public.pm_admin_pir_create(p_session uuid, p_qual text, p_stage text, p_target int, p_finalists int,
+  p_prize int, p_qual_reward int, p_passage text, p_seconds int)
+returns uuid language plpgsql security definer set search_path = '' as $$
+declare sid uuid;
+begin
+  perform public.pm_require_admin();
+  update public.pm_pir_shows set phase = 'cancelled', ended_at = now() where phase not in ('done','cancelled');
+  insert into public.pm_pir_shows (session_id, qual, stage, target, finalists_n, prize, qual_reward, passage, closes_at)
+  values (p_session, p_qual, p_stage, p_target, coalesce(p_finalists, 3), coalesce(p_prize, 50), coalesce(p_qual_reward, 0), p_passage,
+          case when p_seconds is null then null else now() + make_interval(secs => p_seconds) end)
+  returning id into sid;
+  return sid;
+end $$;
+
+-- (re)start the qualifier timer, e.g. after the dictation passage finishes reading
+create or replace function public.pm_admin_pir_timer(p_show uuid, p_seconds int)
+returns timestamptz language plpgsql security definer set search_path = '' as $$
+declare c timestamptz;
+begin
+  perform public.pm_require_admin();
+  update public.pm_pir_shows set closes_at = case when p_seconds is null then null else now() + make_interval(secs => p_seconds) end
+   where id = p_show and phase = 'qualifier' returning closes_at into c;
+  return c;
+end $$;
+
+create or replace function public.pm_admin_pir_chat(p_show uuid, p_twitch_id text, p_login text, p_display text, p_action text, p_arg text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid; to_id uuid; r jsonb;
+begin
+  pid := public.pm_admin_chatter(p_twitch_id, p_login, p_display);   -- checks admin
+  if p_action = 'join' then return public.pm_pir_join_as(pid, p_show, 'chat');
+  elsif p_action = 'type' then return public.pm_pir_type_as(pid, p_show, p_arg, true, 'chat');
+  elsif p_action = 'give' then
+    select id into to_id from public.pm_profiles where login = lower(ltrim(btrim(p_arg), '@'));
+    if to_id is null then return 'no_player'; end if;
+    return public.pm_pir_give_as(pid, p_show, to_id, 'chat');
+  elsif p_action = 'bid' then return public.pm_pir_bid_as(pid, p_show, nullif(regexp_replace(p_arg, '[^0-9]', '', 'g'), '')::int);
+  elsif p_action in ('spin','stay') then
+    r := public.pm_pir_wheel_as(pid, p_show, p_action);
+    return coalesce(r->>'error', 'ok');
+  end if;
+  return 'bad_action';
+end $$;
+
+create or replace function public.pm_admin_pir_chat_bet(p_show uuid, p_twitch_id text, p_login text, p_display text, p_on_login text, p_amount int)
+returns text language plpgsql security definer set search_path = '' as $$
+declare pid uuid; on_id uuid;
+begin
+  pid := public.pm_admin_chatter(p_twitch_id, p_login, p_display);
+  select id into on_id from public.pm_profiles where login = lower(ltrim(btrim(p_on_login), '@'));
+  if on_id is null then return 'not_finalist'; end if;
+  return public.pm_pir_bet_as(pid, p_show, on_id, p_amount);
+end $$;
+
+-- Close the qualifier: score donations / high rollers, bust anyone over, pick finalists.
+create or replace function public.pm_admin_pir_close(p_show uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; e record; n int; dice int;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.phase <> 'qualifier' then raise exception 'qualifier is not running'; end if;
+  update public.pm_pir_shows set phase = 'closed', closes_at = least(coalesce(closes_at, now()), now()) where id = p_show;
+  if s.qual = 'donations' then
+    update public.pm_pir_players p set score = s.per_gift * (select count(*) from public.pm_pir_moves m where m.show_id = p_show and m.kind = 'give' and m.to_profile = p.profile_id)
+     where p.show_id = p_show;
+    update public.pm_pir_players set busted = true, bust_reason = 'over' where show_id = p_show and score > s.target;
+    -- donated to someone who went over? you bust too
+    update public.pm_pir_players p set busted = true, bust_reason = 'donor'
+     where p.show_id = p_show and not p.busted and exists (
+       select 1 from public.pm_pir_moves m join public.pm_pir_players q on q.show_id = m.show_id and q.profile_id = m.to_profile
+        where m.show_id = p_show and m.kind = 'give' and m.profile_id = p.profile_id and q.bust_reason = 'over');
+  elsif s.qual = 'highrollers' then
+    for e in select profile_id from public.pm_pir_players where show_id = p_show loop
+      select 3 + count(*) into dice from public.pm_pir_moves m where m.show_id = p_show and m.kind = 'give' and m.to_profile = e.profile_id;
+      update public.pm_pir_players set rolls = (select array_agg(floor(random() * 6)::int + 1) from generate_series(1, dice))
+       where show_id = p_show and profile_id = e.profile_id;
+    end loop;
+    update public.pm_pir_players set score = (select sum(x) from unnest(rolls) x) where show_id = p_show;
+    update public.pm_pir_players set busted = true, bust_reason = 'over' where show_id = p_show and score > s.target;
+  else
+    update public.pm_pir_players set busted = true, bust_reason = 'over' where show_id = p_show and coalesce(score, 0) > s.target and not busted;
+  end if;
+  -- finalists: closest without going over (highest score <= target), earliest to act wins ties
+  update public.pm_pir_players p set qualified = true, rank = x.rk
+    from (select profile_id, row_number() over (order by score desc, acted_at nulls last, joined_at) rk
+            from public.pm_pir_players where show_id = p_show and not busted and coalesce(score, 0) > 0) x
+   where p.show_id = p_show and p.profile_id = x.profile_id and x.rk <= s.finalists_n;
+  select count(*) into n from public.pm_pir_players where show_id = p_show and qualified;
+  if s.qual_reward > 0 then
+    insert into public.pm_ledger (profile_id, delta, reason, game, actor)
+    select profile_id, s.qual_reward, 'The Picks Are Right: made the finals', 'pir', 'pir' from public.pm_pir_players where show_id = p_show and qualified;
+  end if;
+  update public.pm_pir_shows set phase = 'results' where id = p_show;
+  return jsonb_build_object('finalists', n,
+    'players', (select count(*) from public.pm_pir_players where show_id = p_show),
+    'busted', (select count(*) from public.pm_pir_players where show_id = p_show and busted));
+end $$;
+
+create or replace function public.pm_admin_pir_stage(p_show uuid, p_item text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.pm_require_admin();
+  update public.pm_pir_shows set phase = 'stage', item = left(p_item, 200), wheel_turn = 0 where id = p_show and phase = 'results';
+  if not found then raise exception 'show the results first'; end if;
+end $$;
+
+create or replace function public.pm_admin_pir_lock(p_show uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  perform public.pm_require_admin();
+  update public.pm_pir_shows set phase = 'locked' where id = p_show and phase = 'stage';
+end $$;
+
+-- host acts for the current wheel spinner (if they're away)
+create or replace function public.pm_admin_pir_wheel(p_show uuid, p_action text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; cur uuid;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show;
+  select profile_id into cur from public.pm_pir_players where show_id = p_show and qualified order by rank desc offset s.wheel_turn limit 1;
+  if cur is null then return jsonb_build_object('error', 'no_spinner'); end if;
+  return public.pm_pir_wheel_as(cur, p_show, p_action);
+end $$;
+
+create or replace function public.pm_pir_pay_bets(p_show uuid, p_winners uuid[])
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare pot int; win_total int; b record; amt int; paid int := 0; first_id uuid;
+begin
+  select coalesce(sum(amount), 0) into pot from public.pm_pir_bets where show_id = p_show;
+  select coalesce(sum(amount), 0) into win_total from public.pm_pir_bets where show_id = p_show and on_profile = any(p_winners);
+  if pot = 0 then return jsonb_build_object('pot', 0); end if;
+  if win_total = 0 then
+    for b in select * from public.pm_pir_bets where show_id = p_show loop
+      insert into public.pm_ledger (profile_id, delta, reason, game, actor) values (b.profile_id, b.amount, 'The Picks Are Right: bet refunded', 'pir', 'pir');
+      update public.pm_pir_bets set payout = b.amount where show_id = p_show and profile_id = b.profile_id;
+    end loop;
+    return jsonb_build_object('pot', pot, 'refunded', true);
+  end if;
+  for b in select * from public.pm_pir_bets where show_id = p_show and on_profile = any(p_winners) order by amount desc, created_at loop
+    if first_id is null then first_id := b.profile_id; end if;
+    amt := (b.amount::bigint * pot / win_total)::int;
+    paid := paid + amt;
+    update public.pm_pir_bets set payout = amt where show_id = p_show and profile_id = b.profile_id;
+  end loop;
+  update public.pm_pir_bets set payout = payout + (pot - paid) where show_id = p_show and profile_id = first_id;
+  for b in select * from public.pm_pir_bets where show_id = p_show and payout > 0 loop
+    insert into public.pm_ledger (profile_id, delta, reason, game, actor) values (b.profile_id, b.payout, 'The Picks Are Right: bet won', 'pir', 'pir');
+    perform public.pm_log(b.profile_id, 'pir_bet_won', jsonb_build_object('bet', b.amount, 'payout', b.payout), null);
+  end loop;
+  return jsonb_build_object('pot', pot, 'winning_bets', win_total);
+end $$;
+
+-- Showcase reveal: closest bid without going over wins; within p_bonus_pct of the value = double prize
+create or replace function public.pm_admin_pir_reveal(p_show uuid, p_secret int, p_bonus_pct int)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; w record; prize int; bets jsonb; bids jsonb;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'showcase' or s.phase not in ('stage','locked') then raise exception 'showcase is not running'; end if;
+  update public.pm_pir_shows set phase = 'done', secret = p_secret, ended_at = now() where id = p_show;
+  select coalesce(jsonb_object_agg(profile_id, amount), '{}'::jsonb) into bids from public.pm_pir_moves where show_id = p_show and kind = 'bid';
+  update public.pm_pir_players p set score = m.amount, busted = m.amount > p_secret, bust_reason = case when m.amount > p_secret then 'over' end
+    from public.pm_pir_moves m where m.show_id = p_show and m.kind = 'bid' and m.profile_id = p.profile_id and p.show_id = p_show and p.qualified;
+  select m.profile_id, m.amount into w from public.pm_pir_moves m
+   join public.pm_pir_players p on p.show_id = m.show_id and p.profile_id = m.profile_id and p.qualified
+   where m.show_id = p_show and m.kind = 'bid' and m.amount <= p_secret order by m.amount desc, m.updated_at limit 1;
+  if w.profile_id is null then
+    bets := public.pm_pir_pay_bets(p_show, array[]::uuid[]);
+    return jsonb_build_object('winner', null, 'secret', p_secret, 'bids', bids, 'bets', bets);
+  end if;
+  prize := s.prize * case when p_secret - w.amount <= p_secret * coalesce(p_bonus_pct, 0) / 100 then 2 else 1 end;
+  if prize > 0 then
+    insert into public.pm_ledger (profile_id, delta, reason, game, actor) values (w.profile_id, prize, 'The Picks Are Right: won the showcase', 'pir', 'pir');
+  end if;
+  update public.pm_pir_players set payout = prize where show_id = p_show and profile_id = w.profile_id;
+  perform public.pm_log(w.profile_id, 'pir_won', jsonb_build_object('payout', prize, 'stage', 'showcase'), s.session_id);
+  bets := public.pm_pir_pay_bets(p_show, array[w.profile_id]);
+  return jsonb_build_object('winner', w.profile_id, 'bid', w.amount, 'secret', p_secret, 'prize', prize,
+    'doubled', prize > s.prize, 'bids', bids, 'bets', bets);
+end $$;
+
+-- Wheel finish: highest total <= 100 wins (ties split); exactly 100 earns the bonus
+create or replace function public.pm_admin_pir_wheel_finish(p_show uuid, p_bonus int)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; best int; n int; each int; rem int; i int := 0; e record; amt int; bets jsonb; ws uuid[];
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'wheel' or s.phase not in ('stage','locked') then raise exception 'wheel is not running'; end if;
+  update public.pm_pir_shows set phase = 'done', ended_at = now() where id = p_show;
+  select max(score) into best from public.pm_pir_players where show_id = p_show and qualified and not busted and coalesce(array_length(spins, 1), 0) > 0;
+  if best is null then return jsonb_build_object('winners', '[]'::jsonb, 'bets', public.pm_pir_pay_bets(p_show, array[]::uuid[])); end if;
+  select count(*), array_agg(profile_id) into n, ws from public.pm_pir_players where show_id = p_show and qualified and not busted and score = best;
+  each := s.prize / n; rem := s.prize % n;
+  for e in select profile_id from public.pm_pir_players where show_id = p_show and qualified and not busted and score = best order by rank loop
+    amt := each + case when i < rem then 1 else 0 end + case when best = 100 then coalesce(p_bonus, 0) else 0 end;
+    i := i + 1;
+    if amt > 0 then
+      insert into public.pm_ledger (profile_id, delta, reason, game, actor)
+      values (e.profile_id, amt, 'The Picks Are Right: won the wheel' || case when best = 100 then ' (hit 100!)' else '' end, 'pir', 'pir');
+    end if;
+    update public.pm_pir_players set payout = amt where show_id = p_show and profile_id = e.profile_id;
+    perform public.pm_log(e.profile_id, 'pir_won', jsonb_build_object('payout', amt, 'stage', 'wheel', 'total', best), s.session_id);
+  end loop;
+  bets := public.pm_pir_pay_bets(p_show, ws);
+  return jsonb_build_object('best', best, 'winners', to_jsonb(ws), 'bets', bets);
+end $$;
+
+create or replace function public.pm_admin_pir_cancel(p_show uuid)
+returns int language plpgsql security definer set search_path = '' as $$
+declare b record; n int := 0;
+begin
+  perform public.pm_require_admin();
+  update public.pm_pir_shows set phase = 'cancelled', ended_at = now() where id = p_show and phase not in ('done','cancelled');
+  if not found then return 0; end if;
+  for b in select * from public.pm_pir_bets where show_id = p_show and payout = 0 loop
+    insert into public.pm_ledger (profile_id, delta, reason, game, actor) values (b.profile_id, b.amount, 'The Picks Are Right: bet refunded', 'pir', 'pir');
+    update public.pm_pir_bets set payout = b.amount where show_id = p_show and profile_id = b.profile_id;
+    n := n + 1;
+  end loop;
+  return n;
+end $$;
+
 -- ── 6. Row level security ───────────────────────────────────
 alter table public.pm_profiles     enable row level security;
 alter table public.pm_sessions     enable row level security;
@@ -861,6 +1423,10 @@ alter table public.pm_trivia_questions enable row level security;
 alter table public.pm_trivia_answers   enable row level security;
 alter table public.pm_shop_items       enable row level security;
 alter table public.pm_inventory        enable row level security;
+alter table public.pm_pir_shows        enable row level security;
+alter table public.pm_pir_players      enable row level security;
+alter table public.pm_pir_moves        enable row level security;
+alter table public.pm_pir_bets         enable row level security;
 
 do $$
 declare t text;
@@ -900,6 +1466,10 @@ create policy "pm read trivia answers"   on public.pm_trivia_answers   for selec
 create policy "pm read shop"             on public.pm_shop_items       for select using (active or public.pm_is_admin());
 create policy "pm host shop"             on public.pm_shop_items       for all to authenticated using (public.pm_is_admin()) with check (public.pm_is_admin());
 create policy "pm read inventory"        on public.pm_inventory        for select using (public.pm_is_admin() or profile_id = public.pm_my_profile());
+create policy "pm read pir shows"   on public.pm_pir_shows   for select using (true);
+create policy "pm read pir players" on public.pm_pir_players for select using (true);
+create policy "pm read pir moves"   on public.pm_pir_moves   for select using (public.pm_is_admin() or profile_id = public.pm_my_profile());
+create policy "pm read pir bets"    on public.pm_pir_bets    for select using (public.pm_is_admin() or profile_id = public.pm_my_profile());
 create policy "pm host blocklist"    on public.pm_blocklist    for all to authenticated using (public.pm_is_admin()) with check (public.pm_is_admin());
 create policy "pm host bank"         on public.pm_bank         for all to authenticated using (public.pm_is_admin()) with check (public.pm_is_admin());
 
@@ -916,6 +1486,8 @@ grant select, insert, update, delete on public.pm_blocklist to authenticated;
 grant select on public.pm_trivia_games, public.pm_trivia_entries, public.pm_trivia_questions, public.pm_shop_items to anon, authenticated;
 grant select on public.pm_trivia_answers, public.pm_inventory to authenticated;
 grant insert, update, delete on public.pm_shop_items to authenticated;
+grant select on public.pm_pir_shows, public.pm_pir_players to anon, authenticated;
+grant select on public.pm_pir_moves, public.pm_pir_bets to authenticated;
 
 -- internal helpers: nobody calls these directly
 revoke execute on function public.pm_log(uuid, text, jsonb, uuid)          from public, anon, authenticated;
@@ -965,6 +1537,59 @@ revoke execute on function public.pm_admin_trivia_reveal(uuid, int, int)        
 revoke execute on function public.pm_admin_trivia_finish(uuid)                             from public, anon;
 revoke execute on function public.pm_admin_trivia_cancel(uuid)                             from public, anon;
 revoke execute on function public.pm_admin_give_item(uuid, text)                           from public, anon;
+-- The Picks Are Right
+revoke execute on function public.pm_pir_words(text, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_problem(uuid, uuid, int) from public, anon, authenticated;
+revoke execute on function public.pm_pir_enter(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_open(uuid) from public, anon, authenticated;
+revoke execute on function public.pm_pir_type_as(uuid, uuid, text, boolean, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_give_as(uuid, uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_join_as(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_bid_as(uuid, uuid, int) from public, anon, authenticated;
+revoke execute on function public.pm_pir_bet_as(uuid, uuid, uuid, int) from public, anon, authenticated;
+revoke execute on function public.pm_pir_wheel_as(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_pay_bets(uuid, uuid[]) from public, anon, authenticated;
+grant execute on function public.pm_pir_join(uuid) to authenticated;
+revoke execute on function public.pm_pir_join(uuid) from public, anon;
+grant execute on function public.pm_pir_type(uuid, text) to authenticated;
+revoke execute on function public.pm_pir_type(uuid, text) from public, anon;
+grant execute on function public.pm_pir_give(uuid, uuid) to authenticated;
+revoke execute on function public.pm_pir_give(uuid, uuid) from public, anon;
+grant execute on function public.pm_pir_math_next(uuid) to authenticated;
+revoke execute on function public.pm_pir_math_next(uuid) from public, anon;
+grant execute on function public.pm_pir_math_answer(uuid, int, int) to authenticated;
+revoke execute on function public.pm_pir_math_answer(uuid, int, int) from public, anon;
+grant execute on function public.pm_pir_lock(uuid) to authenticated;
+revoke execute on function public.pm_pir_lock(uuid) from public, anon;
+grant execute on function public.pm_pir_bid(uuid, int) to authenticated;
+revoke execute on function public.pm_pir_bid(uuid, int) from public, anon;
+grant execute on function public.pm_pir_bet(uuid, uuid, int) to authenticated;
+revoke execute on function public.pm_pir_bet(uuid, uuid, int) from public, anon;
+grant execute on function public.pm_pir_wheel(uuid, text) to authenticated;
+revoke execute on function public.pm_pir_wheel(uuid, text) from public, anon;
+grant execute on function public.pm_admin_pir_create(uuid, text, text, int, int, int, int, text, int) to authenticated;
+revoke execute on function public.pm_admin_pir_create(uuid, text, text, int, int, int, int, text, int) from public, anon;
+grant execute on function public.pm_admin_pir_timer(uuid, int) to authenticated;
+revoke execute on function public.pm_admin_pir_timer(uuid, int) from public, anon;
+grant execute on function public.pm_admin_pir_chat(uuid, text, text, text, text, text) to authenticated;
+revoke execute on function public.pm_admin_pir_chat(uuid, text, text, text, text, text) from public, anon;
+grant execute on function public.pm_admin_pir_chat_bet(uuid, text, text, text, text, int) to authenticated;
+revoke execute on function public.pm_admin_pir_chat_bet(uuid, text, text, text, text, int) from public, anon;
+grant execute on function public.pm_admin_pir_close(uuid) to authenticated;
+revoke execute on function public.pm_admin_pir_close(uuid) from public, anon;
+grant execute on function public.pm_admin_pir_stage(uuid, text) to authenticated;
+revoke execute on function public.pm_admin_pir_stage(uuid, text) from public, anon;
+grant execute on function public.pm_admin_pir_lock(uuid) to authenticated;
+revoke execute on function public.pm_admin_pir_lock(uuid) from public, anon;
+grant execute on function public.pm_admin_pir_wheel(uuid, text) to authenticated;
+revoke execute on function public.pm_admin_pir_wheel(uuid, text) from public, anon;
+grant execute on function public.pm_admin_pir_reveal(uuid, int, int) to authenticated;
+revoke execute on function public.pm_admin_pir_reveal(uuid, int, int) from public, anon;
+grant execute on function public.pm_admin_pir_wheel_finish(uuid, int) to authenticated;
+revoke execute on function public.pm_admin_pir_wheel_finish(uuid, int) from public, anon;
+grant execute on function public.pm_admin_pir_cancel(uuid) to authenticated;
+revoke execute on function public.pm_admin_pir_cancel(uuid) from public, anon;
+grant execute on function public.pm_pir_progress(uuid) to anon, authenticated;
 grant execute on function public.pm_admin_chatter(text, text, text)                    to authenticated;
 grant execute on function public.pm_admin_chat_answer(uuid, text, text, text, text)    to authenticated;
 grant execute on function public.pm_admin_chat_question(text, text, text, text)        to authenticated;

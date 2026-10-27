@@ -97,6 +97,24 @@
   .tstat span{ font-size:10px; font-weight:800; letter-spacing:2px; color:var(--muted); }
   .tbig{ font-family:var(--display); font-size:44px; line-height:1; text-align:center; margin:8px 0; }
   .tbig.ok{ color:var(--lime); } .tbig.bad{ color:var(--red); }
+  /* picks are right */
+  .prlines{ display:grid; gap:6px; margin:10px 0; }
+  .prlines div{ font-weight:700; color:var(--muted); line-height:1.35; }
+  .prlines div.now{ color:var(--text); }
+  .prq{ font-family:var(--display); font-size:60px; text-align:center; line-height:1; margin:10px 0; }
+  .prch{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .prch button{ font-size:26px; font-family:var(--display); font-weight:400; background:#22134a; color:var(--text); border:2px solid #4a2b85; }
+  .prch.stun button{ opacity:.35; }
+  .plist{ display:grid; gap:6px; max-height:320px; overflow:auto; margin-top:10px; }
+  .plist .r1 button{ margin-left:auto; padding:6px 12px; font-size:14px; border-radius:10px; }
+  .plist .r1.picked{ border-color:var(--lime); }
+  .prtimer{ font-family:var(--display); font-size:44px; color:var(--lime); line-height:1; }
+  .prtimer.hurry{ color:var(--red); }
+  .finrow{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; background:#0b0518; border:1px solid var(--line); }
+  .finrow.now{ border-color:var(--lime); }
+  .finrow .cav{ --av:34px; }
+  .finrow .nm{ flex:1; min-width:0; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .finrow .v{ font-family:var(--display); font-size:26px; color:var(--lime); }
   /* shop */
   .shoptabs{ display:flex; gap:6px; margin:12px 0; overflow-x:auto; }
   .shoptabs button{ flex:none; font-size:14px; padding:8px 12px; border-radius:99px; background:#22134a; color:var(--text); border:1px solid var(--line); }
@@ -219,6 +237,13 @@
       <div class="shopgrid" id="shopGrid"></div>
       <div class="err" id="shopErr" style="margin-top:8px"></div>
       <p class="hint">Cosmetics show on your profile, the leaderboard and the stream overlay.</p>
+    </section>
+
+    <!-- the picks are right -->
+    <section class="card gap" id="cPir" hidden>
+      <div class="eyebrow"><span class="pulse"></span>&nbsp;The Picks Are Right<span class="r modechip" id="prTag"></span></div>
+      <div id="prBody"></div>
+      <div class="err" id="prErr" style="margin-top:8px"></div>
     </section>
 
     <!-- trivia ladder -->
@@ -510,6 +535,158 @@ async function equip(id){
   await refreshMe(); loadLeaders();
 }
 
+
+/* ── The Picks Are Right ── */
+let PR = { showId:null, me:null, give:null, bid:null, bet:null, players:[], fins:[], show:null, problem:null };
+let prBusyV = false, prTypeT = 0, prBodyKey = '', prSent = '';
+async function prLoad(){
+  const X = S.pir;
+  if (!ME || !X.showId || prBusyV) return;
+  if (PR.showId !== X.showId){ prSent = ''; PR = { showId:X.showId, me:null, give:null, bid:null, bet:null, players:[], fins:[], show:null, problem:null }; prBodyKey = ''; }
+  prBusyV = true;
+  try {
+    const q = [
+      sb.from('pm_pir_players').select('*').eq('show_id', X.showId).eq('profile_id', ME.id).maybeSingle(),
+      sb.from('pm_pir_moves').select('kind, to_profile, amount').eq('show_id', X.showId).eq('profile_id', ME.id),
+      sb.from('pm_pir_shows').select('phase, wheel_turn').eq('id', X.showId).maybeSingle(),
+    ];
+    const wantList = (X.phase === 'play' || X.phase === 'reading') && (X.qual === 'donations' || X.qual === 'highrollers');
+    const wantFins = X.phase === 'stage' || X.phase === 'done';
+    if (wantList) q.push(sb.from('pm_pir_players').select('profile_id, display_name, avatar_url').eq('show_id', X.showId).order('joined_at').limit(500));
+    if (wantFins){
+      q.push(sb.from('pm_pir_players').select('profile_id, display_name, avatar_url, rank, spins, score, busted').eq('show_id', X.showId).eq('qualified', true).order('rank', { ascending:false }));
+      q.push(sb.from('pm_pir_bets').select('on_profile, amount, payout').eq('show_id', X.showId).eq('profile_id', ME.id).maybeSingle());
+    }
+    const r = await Promise.all(q);
+    if (PR.showId !== X.showId) return;
+    PR.me = r[0].data || null;
+    const mv = r[1].data || [];
+    PR.give = (mv.find(m => m.kind === 'give') || {}).to_profile || null;
+    const b = mv.find(m => m.kind === 'bid'); PR.bid = b ? b.amount : null;
+    PR.show = r[2].data;
+    if (wantList) PR.players = r[3].data || [];
+    if (wantFins){ PR.fins = r[3].data || []; PR.bet = r[4].data || null; }
+  } finally { prBusyV = false; }
+  renderPR();
+}
+async function prRpc(fn, args){
+  $('prErr').textContent = '';
+  const { data, error } = await sb.rpc(fn, args);
+  const res = error ? error.message : data;
+  if (typeof res === 'string' && res !== 'ok') $('prErr').textContent = PM.reason(res);
+  if (res && typeof res === 'object' && res.error) $('prErr').textContent = PM.reason(res.error);
+  return res;
+}
+async function prMath(res){
+  if (!res || res.error === 'round_closed'){ PR.problem = null; renderPR(); return; }
+  if (res.error === 'stunned'){ PR.problem = Object.assign({}, PR.problem, { stunned_until:res.stunned_until }); renderPR(); return; }
+  if (res.error){ return; }
+  PR.problem = res; renderPR();
+}
+function renderPR(){
+  const X = S.pir, body = $('prBody'), Q = PM.PIR.quals[X.qual];
+  const me = PR.me, pk = PM.pickSVG('', true);
+  const playing = X.phase === 'reading' || X.phase === 'play';
+  $('prTag').textContent = playing ? Q.name.toUpperCase() : X.phase === 'results' ? 'RESULTS' : PM.PIR.stages[X.stage].name.toUpperCase();
+  const key = [X.showId, X.phase, X.lineIdx, me ? [me.busted, me.locked, me.qualified].join() : '-', PR.give, PR.bid, PR.bet && PR.bet.amount,
+    PR.problem && PR.problem.idx, PR.problem && PR.problem.stunned_until, PR.players.length, JSON.stringify(PR.fins.map(f => [f.spins, f.busted])), PR.show && PR.show.wheel_turn, PR.show && PR.show.phase].join('|');
+  if (key === prBodyKey && body.childElementCount) return;
+  prBodyKey = key;
+  let h = `<p class="hint" style="margin-top:8px">${PM.esc(playing || X.phase === 'results' ? Q.how(X.target, X.perGift) : PM.PIR.stages[X.stage].how)}</p>`;
+  if (playing){
+    h += `<div style="display:flex;align-items:baseline;gap:10px"><span class="prtimer" id="prT">${X.phase === 'reading' ? '…' : ''}</span><span class="hint">${X.phase === 'reading' ? 'reading…' : 'seconds left'}</span></div>`;
+    if (X.qual === 'dictation'){
+      h += `<div class="prlines">${X.lines.slice(0, X.lineIdx + 1).map((l, i) => `<div class="${i === X.lineIdx ? 'now' : ''}">${PM.esc(l)}</div>`).join('')}</div>` +
+        `<textarea id="prType" placeholder="Type what you hear… target ${X.target} correct words" style="min-height:120px">${PM.esc((me && me.typed) || '')}</textarea><p class="hint">Saved as you type. Your count is hidden; ${X.target + 1} correct words is a bust.</p>`;
+    } else if (X.qual === 'math'){
+      if (me && me.busted) h += '<div class="tbig bad">BUST, you went over</div>';
+      else if (me && me.locked) h += '<div class="tbig ok">LOCKED IN</div><p class="hint" style="text-align:center">Waiting for the round to end.</p>';
+      else if (!PR.problem) h += `<button id="prGo" style="width:100%">Start</button>`;
+      else {
+        const p = PR.problem, stun = p.stunned_until && Date.parse(p.stunned_until) > PM.serverNow();
+        h += `<div class="prq">${p.a} ${p.op} ${p.b}</div><div class="prch ${stun ? 'stun' : ''}">${p.choices.map((c, i) => `<button data-c="${i}" ${stun ? 'disabled' : ''}>${c}</button>`).join('')}</div>` +
+          `<button class="soft gap" id="prLock" style="width:100%">I'm on $${X.target}. Lock me in</button>`;
+      }
+    } else {
+      const others = PR.players.filter(p => p.profile_id !== ME.id);
+      if (!me) h += `<button id="prJoin" style="width:100%">Join</button>`;
+      h += `<div class="eyebrow" style="margin-top:12px">${X.qual === 'donations' ? 'Give your $' + X.perGift + ' to' : 'Push your extra die onto'}</div>` +
+        `<div class="plist">${others.map(p => `<div class="r1 ${PR.give === p.profile_id ? 'picked' : ''}"><span class="nm">${PM.esc(p.display_name)}</span><button data-to="${p.profile_id}" class="${PR.give === p.profile_id ? 'soft' : ''}">${PR.give === p.profile_id ? 'Picked ✓' : X.qual === 'donations' ? 'Give' : 'Push'}</button></div>`).join('') || '<div class="hint">Waiting for other players…</div>'}</div>` +
+        `<p class="hint">You can change your pick until time runs out.</p>`;
+    }
+  } else if (X.phase === 'results'){
+    const r = X.standings.find(p => p.id === ME.id);
+    h += !r ? '<p class="hint">You didn\'t play this one.</p>'
+      : r.qualified ? `<div class="tbig ok">YOU MADE THE FINALS!</div><p class="hint" style="text-align:center">You scored ${r.score}. Stay here for the ${PM.PIR.stages[X.stage].name}.</p>`
+      : r.busted ? `<div class="tbig bad">BUST${r.reason === 'donor' ? ' (you gave to a bust)' : ''}</div><p class="hint" style="text-align:center">You scored ${r.score}, over ${X.target}.</p>`
+      : `<div class="tbig">SO CLOSE</div><p class="hint" style="text-align:center">You scored ${r.score}. Not close enough this time.</p>`;
+  } else {
+    const fins = PR.fins, iAmFin = X.finalists.some(f => f.id === ME.id);
+    if (X.stage === 'showcase'){
+      h += `<div class="tq">${PM.esc(X.item || '')}</div>`;
+      if (X.phase === 'done'){
+        const b = X.bids[ME.id];
+        h += `<div class="tbig ok">VALUE: ${Number(X.secret).toLocaleString()}</div>` +
+          `<div class="rows">${X.finalists.map(f => `<div class="r1"><span class="nm">${PM.esc(f.name)}</span><span class="v">${X.bids[f.id] == null ? '—' : Number(X.bids[f.id]).toLocaleString()}${X.winner === f.id ? ' 🏆' : X.bids[f.id] > X.secret ? ' ✕' : ''}</span></div>`).join('')}</div>` +
+          (PR.bet ? `<div class="you">Your bet of ${PM.picks(PR.bet.amount)} ${PR.bet.payout > PR.bet.amount ? 'won <b>' + PM.picks(PR.bet.payout) + '</b>!' : PR.bet.payout === PR.bet.amount ? 'was refunded.' : 'lost.'}</div>` : '') +
+          (iAmFin && X.winner === ME.id ? `<div class="you">You won <b>${PM.picks(X.prizePaid)}</b>!</div>` : '');
+      } else if (iAmFin){
+        h += PR.show && PR.show.phase === 'locked' ? `<div class="tbig ok">BIDS LOCKED</div><p class="hint" style="text-align:center">Your bid: ${PR.bid == null ? 'none' : Number(PR.bid).toLocaleString()}</p>`
+          : `<form id="prBidF" style="margin-top:10px"><input id="prBidIn" type="number" min="0" inputmode="numeric" placeholder="Your bid" value="${PR.bid == null ? '' : PR.bid}"><button type="submit">${PR.bid == null ? 'Lock in bid' : 'Change bid'}</button></form><p class="hint">Closest without going over wins. Bids are secret until the reveal.</p>`;
+      } else if (PR.bet){
+        const on = X.finalists.find(f => f.id === PR.bet.on_profile);
+        h += `<div class="you">You bet <b>${PM.picks(PR.bet.amount)}</b> on ${PM.esc(on ? on.name : '?')}.</div>`;
+      } else if (PR.show && PR.show.phase === 'stage'){
+        h += `<form id="prBetF" style="margin-top:10px"><select id="prBetOn" style="font:inherit;font-size:18px;padding:12px;border-radius:14px;background:#0b0518;color:var(--text);border:2px solid var(--line)">${X.finalists.map(f => `<option value="${f.id}">${PM.esc(f.name)}</option>`).join('')}</select>` +
+          `<input id="prBetAmt" type="number" min="1" placeholder="Picks to bet (you have ${ME.balance})"><button type="submit">Place bet</button></form><p class="hint">Winners split everything bet, by how much they put in. No winner = refunds.</p>`;
+      } else h += '<p class="hint">Bets are closed.</p>';
+    } else {
+      const cur = PR.show && PR.show.phase === 'stage' ? fins[PR.show.wheel_turn] : null;
+      h += `<div class="rows" style="margin-top:8px">${fins.map(f => `<div class="finrow ${cur && cur.profile_id === f.profile_id ? 'now' : ''}"><span class="nm">${cur && cur.profile_id === f.profile_id ? '▶ ' : ''}${PM.esc(f.display_name)}</span><span class="hint">${(f.spins || []).join(' + ')}</span><span class="v">${f.busted ? 'BUST' : (f.spins || []).length ? f.score : '—'}</span></div>`).join('')}</div>`;
+      if (X.phase === 'done') h += X.winners.find(w => w.id === ME.id) ? `<div class="you">You won <b>${PM.picks(X.winners.find(w => w.id === ME.id).payout)}</b>!</div>` : '';
+      else if (cur && cur.profile_id === ME.id){
+        const n = (cur.spins || []).length;
+        h += `<div class="tbig ok">YOUR SPIN!</div><div style="display:flex;gap:8px"><button id="prSpin" style="flex:1">${n ? 'Spin again' : 'Spin'}</button>${n ? '<button id="prStay" class="soft" style="flex:1">Stay on ' + cur.score + '</button>' : ''}</div>`;
+      }
+    }
+    if (X.phase === 'done' && X.winners.length && X.stage === 'wheel') h += `<div class="rows">${X.winners.map(w => `<div class="r1"><span class="nm">🏆 ${PM.esc(w.name)}</span><span class="v">+${pk}${w.payout}</span></div>`).join('')}</div>`;
+  }
+  const oldT = $('prType');
+  const keep = oldT ? { v:oldT.value, s:oldT.selectionStart, f:document.activeElement === oldT } : null;
+  body.innerHTML = h;
+  const t = $('prType');
+  if (t && keep){ t.value = keep.v; if (keep.f){ t.focus(); t.setSelectionRange(keep.s, keep.s); } }
+  if (t){
+    const send = () => { if (t.value === prSent) return; prSent = t.value; prRpc('pm_pir_type', { p_show:X.showId, p_text:t.value }).then(() => { if (!PR.me) prLoad(); }); };
+    if (me && me.typed != null && !prSent) prSent = me.typed;
+    t.oninput = () => { clearTimeout(prTypeT); prTypeT = setTimeout(send, 500); };
+    t.onblur = () => { clearTimeout(prTypeT); send(); };
+    if (!keep){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); }
+  }
+  const go = $('prGo'); if (go) go.onclick = async () => prMath(await prRpc('pm_pir_math_next', { p_show:X.showId }));
+  body.querySelectorAll('.prch button').forEach(b => b.onclick = async () => {
+    const p = PR.problem; if (!p) return;
+    prMath(await prRpc('pm_pir_math_answer', { p_show:X.showId, p_idx:p.idx, p_choice:+b.dataset.c }));
+    prLoad();
+  });
+  const lk = $('prLock'); if (lk) lk.onclick = async () => { if (confirm('Lock in? You can\'t answer more after this.')){ await prRpc('pm_pir_lock', { p_show:X.showId }); prLoad(); } };
+  const jn = $('prJoin'); if (jn) jn.onclick = async () => { await prRpc('pm_pir_join', { p_show:X.showId }); prLoad(); };
+  body.querySelectorAll('[data-to]').forEach(b => b.onclick = async () => { await prRpc('pm_pir_give', { p_show:X.showId, p_to:b.dataset.to }); prLoad(); });
+  const bf = $('prBidF'); if (bf) bf.onsubmit = async (e) => { e.preventDefault(); const a = parseInt($('prBidIn').value, 10); if (!Number.isFinite(a)) return; if ((await prRpc('pm_pir_bid', { p_show:X.showId, p_amount:a })) === 'ok') prLoad(); };
+  const tf = $('prBetF'); if (tf) tf.onsubmit = async (e) => { e.preventDefault(); const a = parseInt($('prBetAmt').value, 10); if (!Number.isFinite(a) || a < 1) return;
+    if (!confirm(`Bet ${PM.picks(a)}?`)) return; if ((await prRpc('pm_pir_bet', { p_show:X.showId, p_on:$('prBetOn').value, p_amount:a })) === 'ok'){ refreshMe(); prLoad(); } };
+  const sp = $('prSpin'); if (sp) sp.onclick = async () => { sp.disabled = true; await prRpc('pm_pir_wheel', { p_show:X.showId, p_action:'spin' }); prLoad(); };
+  const sy = $('prStay'); if (sy) sy.onclick = async () => { await prRpc('pm_pir_wheel', { p_show:X.showId, p_action:'stay' }); prLoad(); };
+}
+setInterval(() => {
+  if (!S || S.game !== 'pir' || S.pir.phase === 'off' || $('cPir').hidden) return;
+  const X = S.pir;
+  const el = $('prT');
+  if (el && X.phase === 'play'){ const rem = Math.max(0, ((Date.parse(X.closesAt) || 0) - PM.serverNow()) / 1000); el.textContent = Math.ceil(rem); el.classList.toggle('hurry', rem <= 5); }
+  if (PR.problem && PR.problem.stunned_until && Date.parse(PR.problem.stunned_until) <= PM.serverNow() && document.querySelector('.prch.stun')){ PR.problem.stunned_until = null; renderPR(); }
+}, 250);
+setInterval(() => { if (S && S.game === 'pir' && S.pir.phase !== 'off' && !$('cPir').hidden) prLoad(); }, 1500);
+
 /* ── Trivia Ladder ── */
 let TV = { gameId:null, entry:null, mine:{} };   // my entry + my answers by qno
 let tvBusy = false;
@@ -547,7 +724,7 @@ async function tvAnswer(i){
   if (res === 'already') loadTriviaMe(true);
   renderTrivia();
 }
-let tvLastKey = '';
+let tvLastKey = '', prLastKey = '';
 function renderTrivia(){
   const T = S.trivia, body = $('tvBody');
   const L = 'ABCD';
@@ -682,6 +859,16 @@ $('svForm').addEventListener('submit', async (e) => {
 let lastPhase = null;
 function onState(){
   if (!S || $('vGame').hidden) return;
+  const prOn = S.game === 'pir' && S.pir.phase !== 'off';
+  $('cPir').hidden = !prOn;
+  if (prOn){
+    ['cIdle', 'cAsk', 'cBoard', 'cSurvey', 'cTrivia'].forEach(id => $(id).hidden = true);
+    const key = S.pir.showId + '|' + S.pir.phase;
+    if (key !== prLastKey){ prLastKey = key; PR.problem = null; prLoad(); if (S.pir.phase === 'done'){ refreshMe(); loadLeaders(); } }
+    renderPR();
+    $('cQuestions').hidden = !S.questionCall;
+    return;
+  }
   const tvOn = S.game === 'trivia' && S.trivia.phase !== 'off';
   $('cTrivia').hidden = !tvOn;
   if (tvOn){

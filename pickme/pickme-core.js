@@ -18,6 +18,7 @@ const CONFIG = {
 /* Games on the site. Add new ones here; the hub and dashboard list them. */
 const GAMES = {
   chatsays: { name:'Chat Says', blurb:'Chat answers a survey, then the board gets revealed. Beat the host or beat each other.' },
+  pir:      { name:'The Picks Are Right', blurb:'Get as close as you can without going over to reach the finals. Then bid on the showcase or spin the wheel.' },
   trivia:   { name:'Trivia Ladder', blurb:'Multiple choice, one question at a time. Miss one and you\'re out. Survivors split the pot.' },
 };
 const MODES = {
@@ -52,6 +53,13 @@ const REASONS = {
   not_owned:'You don\'t own that yet.',
   no_item:'That item isn\'t available.',
   bad_kind:'That doesn\'t go in that slot.',
+  not_finalist:'Only finalists can do that.',
+  finalist_no_bet:'Finalists can\'t bet. Good luck!',
+  not_your_turn:'It\'s not your turn to spin.',
+  no_spins:'You\'ve used both spins.',
+  spin_first:'Spin at least once first.',
+  stunned:'Stunned! Wait a second.',
+  bad_action:'That didn\'t work.',
 };
 const reason = (code) => REASONS[code] || code;
 
@@ -94,6 +102,25 @@ function defaultAuto(){
   // auto-survey: asks bank questions in chat until enough people answer
   return { on:false, threshold:5, interval:180, timeout:900, activeId:null, activeQ:'', count:0, askedAt:0, postedAt:0 };
 }
+/* The Picks Are Right */
+const PIR = {
+  quals: {
+    dictation:   { name:'Dictation',    how:(t) => `Type the passage as it's read. Land on exactly ${t} correct words. Your count is hidden. Go over and you bust.`, chat:'!t your words' },
+    donations:   { name:'Donations',    how:(t, g) => `Give your $${g} to another player. Anyone who ends up over $${t} busts, and so does everyone who gave to them.`, chat:'!give name' },
+    highrollers: { name:'High Rollers', how:(t) => `Everyone rolls 3 dice. Push your extra die onto someone else. Roll over ${t} and you bust.`, chat:'!give name' },
+    math:        { name:'Math',         how:(t) => `Each right answer is $25. Stop on $${t}. One answer too many and you bust. Wrong answers stun you.`, chat:'site only' },
+  },
+  stages: {
+    showcase: { name:'Showcase', how:'Finalists bid on the showcase. Closest without going over wins. Chat bets on who takes it.' },
+    wheel:    { name:'The Wheel', how:'Finalists spin up to twice. Closest to 100 without going over wins. Hit 100 for a bonus.' },
+  },
+  WHEEL:[100, 15, 80, 35, 60, 20, 40, 75, 55, 95, 50, 85, 30, 65, 10, 45, 70, 25, 90, 5],
+};
+function defaultPir(){
+  return { phase:'off', showId:null, qual:'dictation', stage:'showcase', target:0, finalistsN:3, prize:50, qualReward:0, perGift:500,
+           closesAt:null, seconds:0, lines:[], lineIdx:-1, standings:[], finalists:[], item:'', secret:null, bonusPct:5, bonus100:25,
+           bids:{}, winner:null, prizePaid:0, doubled:false, winners:[], best:null, betsRefunded:false };
+}
 function defaultTrivia(){
   return { phase:'off', gameId:null, qno:0, total:10, question:'', choices:[], closesAt:null, seconds:20,
            correct:null, dist:[], answered:0, alive:0, entrants:0, out:0, revived:false,
@@ -106,7 +133,7 @@ function defaultState(){
            board:[], overflow:[], total:0, strikes:0,
            scores:{ host:0, chat:0 }, round:{ host:0, chat:0, paid:0 }, roundTop:[],
            lastGuess:null, result:null, notice:null, hostName: CONFIG.hostName,
-           auto: defaultAuto(), game:'chatsays', trivia: defaultTrivia() };
+           auto: defaultAuto(), game:'chatsays', trivia: defaultTrivia(), pir: defaultPir() };
 }
 function normalizeState(d){
   const s = Object.assign(defaultState(), d || {});
@@ -118,6 +145,9 @@ function normalizeState(d){
   if (!Array.isArray(s.trivia.choices)) s.trivia.choices = [];
   if (!Array.isArray(s.trivia.dist)) s.trivia.dist = [];
   if (!Array.isArray(s.trivia.winners)) s.trivia.winners = [];
+  s.pir = Object.assign(defaultPir(), s.pir || {});
+  ['lines', 'standings', 'finalists', 'winners'].forEach(k => { if (!Array.isArray(s.pir[k])) s.pir[k] = []; });
+  if (!s.pir.bids || typeof s.pir.bids !== 'object') s.pir.bids = {};
   s.board = Array.isArray(s.board) ? s.board : [];
   s.overflow = Array.isArray(s.overflow) ? s.overflow : [];
   return s;
@@ -128,6 +158,8 @@ async function fetchState(){
   return { state: normalizeState(data && data.data), updatedAt: data && data.updated_at };
 }
 /* Realtime + polling fallback. cb(state) fires only when the row changed. */
+let lastOk = 0;
+const stateAge = () => Date.now() - lastOk;   // ms since the last successful read
 function watchState(cb, pollMs){
   let last = '';
   const deliver = (row) => {
@@ -140,7 +172,8 @@ function watchState(cb, pollMs){
   };
   const poll = async () => {
     try {
-      const { data } = await client().from('pm_state').select('data, updated_at').eq('key', 'live').maybeSingle();
+      const { data, error } = await client().from('pm_state').select('data, updated_at').eq('key', 'live').maybeSingle();
+      if (!error && data) lastOk = Date.now();
       deliver(data);
     } catch (e) { /* offline blip; next poll retries */ }
   };
@@ -571,7 +604,7 @@ const timeAgo = (iso) => {
   return Math.floor(s / 86400) + 'd ago';
 };
 
-window.PM = { CONFIG, defaultAuto, defaultTrivia, TRIVIA_CATEGORIES, OpenTrivia, Shop, GAMES, MODES, REASONS, reason, client, syncClock, serverNow, defaultState, normalizeState, fetchState, watchState,
+window.PM = { stateAge, CONFIG, defaultAuto, defaultTrivia, defaultPir, PIR, TRIVIA_CATEGORIES, OpenTrivia, Shop, GAMES, MODES, REASONS, reason, client, syncClock, serverNow, defaultState, normalizeState, fetchState, watchState,
               normalize, similar, cluster, matchGuess, twitchIdentity, displayName, avatarUrl,
               signInTwitch, signInDiscord, Sound, Twitch, esc, pickSVG, picks, timeAgo, marquee, marqueeAll };
 })();
