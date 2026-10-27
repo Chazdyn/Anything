@@ -851,10 +851,10 @@ end $$;
 create table if not exists public.pm_pir_shows (
   id           uuid primary key default gen_random_uuid(),
   session_id   uuid references public.pm_sessions(id) on delete set null,
-  qual         text not null check (qual in ('dictation','donations','highrollers','math')),
-  stage        text not null check (stage in ('showcase','wheel')),
+  qual         text not null check (qual in ('dictation','donations','highrollers','math','none')),
+  stage        text not null check (stage in ('showcase','wheel','plinko','cliff','wof','jeopardy')),
   target       int  not null check (target between 1 and 1000000),
-  finalists_n  int  not null default 3 check (finalists_n between 1 and 6),
+  finalists_n  int  not null default 3 check (finalists_n between 0 and 500),
   prize        int  not null default 50 check (prize between 0 and 1000000),
   qual_reward  int  not null default 0 check (qual_reward between 0 and 100000),
   per_gift     int  not null default 500,
@@ -867,6 +867,15 @@ create table if not exists public.pm_pir_shows (
   created_at   timestamptz not null default now(),
   ended_at     timestamptz
 );
+-- v5: lobby mode (qual 'none' = everyone who joins plays), more finals games, public game board
+alter table public.pm_pir_shows add column if not exists opts  jsonb not null default '{}'::jsonb;
+alter table public.pm_pir_shows add column if not exists board jsonb not null default '{}'::jsonb;
+alter table public.pm_pir_shows drop constraint if exists pm_pir_shows_qual_check;
+alter table public.pm_pir_shows add constraint pm_pir_shows_qual_check check (qual in ('dictation','donations','highrollers','math','none'));
+alter table public.pm_pir_shows drop constraint if exists pm_pir_shows_stage_check;
+alter table public.pm_pir_shows add constraint pm_pir_shows_stage_check check (stage in ('showcase','wheel','plinko','cliff','wof','jeopardy'));
+alter table public.pm_pir_shows drop constraint if exists pm_pir_shows_finalists_n_check;
+alter table public.pm_pir_shows add constraint pm_pir_shows_finalists_n_check check (finalists_n between 0 and 500);
 create table if not exists public.pm_pir_players (
   show_id       uuid not null references public.pm_pir_shows(id) on delete cascade,
   profile_id    uuid not null references public.pm_profiles(id) on delete cascade,
@@ -889,6 +898,30 @@ create table if not exists public.pm_pir_players (
   acted_at      timestamptz,
   joined_at     timestamptz not null default now(),
   primary key (show_id, profile_id)
+);
+alter table public.pm_pir_players add column if not exists stage_score int not null default 0;   -- plinko total / cliff steps / wof bank / jeopardy score
+alter table public.pm_pir_players add column if not exists round_score int not null default 0;   -- wof: this puzzle
+alter table public.pm_pir_players add column if not exists chips int not null default 0;         -- plinko chips left
+alter table public.pm_pir_players add column if not exists drops jsonb not null default '[]'::jsonb;
+alter table public.pm_pir_players add column if not exists guess int;                             -- cliff: this round
+alter table public.pm_pir_players add column if not exists guess_at timestamptz;
+alter table public.pm_pir_players add column if not exists out boolean not null default false;    -- cliff: fell off
+-- answers the players must not see (cliff answers, puzzles, jeopardy key). Host-only.
+create table if not exists public.pm_pir_secrets (
+  show_id uuid primary key references public.pm_pir_shows(id) on delete cascade,
+  data    jsonb not null default '{}'::jsonb
+);
+-- question banks for Cliff Hangers (number answers) and Wheel of Fortune (puzzles). Host-only.
+create table if not exists public.pm_pir_bank (
+  id         bigserial primary key,
+  kind       text not null check (kind in ('cliff','wof')),
+  category   text,
+  text       text not null,
+  answer     text,
+  active     boolean not null default true,
+  used_at    timestamptz,
+  created_at timestamptz not null default now(),
+  unique (kind, text)
 );
 -- secret moves: who you gave to (donations / high rollers) and finalist bids
 create table if not exists public.pm_pir_moves (
@@ -1000,7 +1033,11 @@ create or replace function public.pm_pir_join_as(p_profile uuid, p_show uuid, p_
 returns text language plpgsql security definer set search_path = '' as $$
 declare r text;
 begin
-  if public.pm_pir_open(p_show) is null then return 'round_closed'; end if;
+  if public.pm_pir_open(p_show) is null then
+    -- everyone-plays games (Plinko / Jeopardy) also let people in after the lobby closed
+    r := public.pm_pir_late_as(p_profile, p_show, p_via);
+    return coalesce(r, 'ok');
+  end if;
   r := public.pm_pir_enter(p_profile, p_show, p_via);
   return coalesce(r, 'ok');
 end $$;
@@ -1096,7 +1133,7 @@ returns text language plpgsql security definer set search_path = '' as $$
 declare s public.pm_pir_shows; bal int; r text;
 begin
   select * into s from public.pm_pir_shows where id = p_show;
-  if not found or s.stage <> 'showcase' or s.phase <> 'stage' then return 'round_closed'; end if;
+  if not found or s.phase <> 'stage' or not (s.stage = 'showcase' or coalesce((s.board->>'bets_open')::boolean, false)) then return 'bets_closed'; end if;
   if exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_profile and qualified) then return 'finalist_no_bet'; end if;
   if not exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_on and qualified) then return 'not_finalist'; end if;
   if p_amount is null or p_amount < 1 then return 'bad_amount'; end if;
@@ -1125,6 +1162,7 @@ begin
     if n >= 2 then return jsonb_build_object('error', 'no_spins'); end if;
     v := (floor(random() * 20)::int + 1) * 5;
     pl.spins := pl.spins || v;
+    update public.pm_pir_shows set board = board || jsonb_build_object('bets_open', false, 'spin_seq', coalesce((board->>'spin_seq')::int, 0) + 1) where id = p_show;
     tot := (select sum(x) from unnest(pl.spins) x);
     update public.pm_pir_players set spins = pl.spins, score = tot, busted = tot > 100, bust_reason = case when tot > 100 then 'over' end,
       wheel_done = (tot > 100 or n + 1 >= 2) where show_id = p_show and profile_id = p_profile;
@@ -1215,8 +1253,11 @@ begin
     if to_id is null then return 'no_player'; end if;
     return public.pm_pir_give_as(pid, p_show, to_id, 'chat');
   elsif p_action = 'bid' then return public.pm_pir_bid_as(pid, p_show, nullif(regexp_replace(p_arg, '[^0-9]', '', 'g'), '')::int);
-  elsif p_action in ('spin','stay') then
+  elsif p_action in ('spin','stay') and (select stage from public.pm_pir_shows where id = p_show) = 'wheel' then
     r := public.pm_pir_wheel_as(pid, p_show, p_action);
+    return coalesce(r->>'error', 'ok');
+  elsif p_action in ('drop','guess','spin','letter','buy','solve','pick','answer') then
+    r := public.pm_pir_play_as(pid, p_show, p_action, p_arg, 'chat');
     return coalesce(r->>'error', 'ok');
   end if;
   return 'bad_action';
@@ -1258,14 +1299,22 @@ begin
     end loop;
     update public.pm_pir_players set score = (select sum(x) from unnest(rolls) x) where show_id = p_show;
     update public.pm_pir_players set busted = true, bust_reason = 'over' where show_id = p_show and score > s.target;
-  else
+  elsif s.qual <> 'none' then
     update public.pm_pir_players set busted = true, bust_reason = 'over' where show_id = p_show and coalesce(score, 0) > s.target and not busted;
   end if;
+  if s.qual = 'none' then
+    -- lobby: everyone who joined plays, or draw finalists_n contestants at random
+    update public.pm_pir_players p set qualified = true, rank = x.rk
+      from (select profile_id, row_number() over (order by case when s.finalists_n > 0 then random() else 0 end, joined_at) rk
+              from public.pm_pir_players where show_id = p_show) x
+     where p.show_id = p_show and p.profile_id = x.profile_id and (s.finalists_n = 0 or x.rk <= s.finalists_n);
+  else
   -- finalists: closest without going over (highest score <= target), earliest to act wins ties
   update public.pm_pir_players p set qualified = true, rank = x.rk
     from (select profile_id, row_number() over (order by score desc, acted_at nulls last, joined_at) rk
             from public.pm_pir_players where show_id = p_show and not busted and coalesce(score, 0) > 0) x
    where p.show_id = p_show and p.profile_id = x.profile_id and x.rk <= s.finalists_n;
+  end if;
   select count(*) into n from public.pm_pir_players where show_id = p_show and qualified;
   if s.qual_reward > 0 then
     insert into public.pm_ledger (profile_id, delta, reason, game, actor)
@@ -1280,9 +1329,7 @@ end $$;
 create or replace function public.pm_admin_pir_stage(p_show uuid, p_item text)
 returns void language plpgsql security definer set search_path = '' as $$
 begin
-  perform public.pm_require_admin();
-  update public.pm_pir_shows set phase = 'stage', item = left(p_item, 200), wheel_turn = 0 where id = p_show and phase = 'results';
-  if not found then raise exception 'show the results first'; end if;
+  perform public.pm_admin_pir_begin(p_show, p_item, '{}'::jsonb);
 end $$;
 
 create or replace function public.pm_admin_pir_lock(p_show uuid)
@@ -1404,6 +1451,545 @@ begin
   return n;
 end $$;
 
+-- ════════════════════════════════════════════════════════════
+--  FINALS GAMES: Plinko · Cliff Hangers · Wheel of Fortune · Jeopardy
+--  Played by the finalists, or by everyone in a lobby (qual = 'none').
+--  The public game board lives in pm_pir_shows.board; answers live in pm_pir_secrets (host only).
+-- ════════════════════════════════════════════════════════════
+create or replace function public.pm_pir_wof_wedges()
+returns text[] language sql immutable set search_path = '' as $$
+  select array['2500','600','700','600','650','500','700','BANKRUPT','600','550','500','600',
+               'LOSE','650','500','700','BANKRUPT','800','500','650','500','900','550','1000']::text[];
+$$;
+
+-- Plinko slot values: the middle slot is the stage prize
+create or replace function public.pm_pir_plinko_slots(p_prize int)
+returns jsonb language sql immutable set search_path = '' as $$
+  select to_jsonb(array[greatest(least(p_prize, 1), p_prize / 100), greatest(least(p_prize, 1), p_prize / 20), greatest(least(p_prize, 1), p_prize / 10), 0,
+                        greatest(p_prize, 0), 0, greatest(least(p_prize, 1), p_prize / 10), greatest(least(p_prize, 1), p_prize / 20), greatest(least(p_prize, 1), p_prize / 100)]);
+$$;
+
+-- Wheel of Fortune puzzle: uppercase, fits a 4 x 14 board. null = not usable
+create or replace function public.pm_pir_wof_clean(p text)
+returns text language plpgsql immutable set search_path = '' as $$
+declare t text := upper(btrim(regexp_replace(coalesce(p, ''), '\s+', ' ', 'g'))); w text; rows int := 1; cur int := 0;
+begin
+  t := translate(t, '’‘', '''''');
+  if t = '' or t !~ '[A-Z]' or t ~ '[^A-Z0-9 ''&?!.,:-]' or length(t) > 52 then return null; end if;
+  foreach w in array string_to_array(t, ' ') loop
+    if length(w) > 14 then return null; end if;
+    if cur = 0 then cur := length(w);
+    elsif cur + 1 + length(w) <= 14 then cur := cur + 1 + length(w);
+    else rows := rows + 1; cur := length(w); end if;
+  end loop;
+  return case when rows <= 4 then t end;
+end $$;
+
+create or replace function public.pm_pir_wof_mask(p_text text, p_used text)
+returns text language sql immutable set search_path = '' as $$
+  select coalesce(string_agg(case when c ~ '[A-Z]' and position(c in coalesce(p_used, '')) = 0 then '_' else c end, '' order by i), '')
+    from (select substr(p_text, i, 1) c, i from generate_series(1, length(coalesce(p_text, ''))) i) x;
+$$;
+
+-- late joiners: in an everyone-plays Plinko or Jeopardy you can jump in any time
+create or replace function public.pm_pir_late_as(p_profile uuid, p_show uuid, p_via text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; pr public.pm_profiles; r text; rk int;
+begin
+  select * into s from public.pm_pir_shows where id = p_show;
+  if not found or s.phase <> 'stage' or s.qual <> 'none' or s.finalists_n <> 0 or s.stage not in ('plinko','jeopardy') then return 'round_closed'; end if;
+  if exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_profile) then return null; end if;
+  r := public.pm_enter(p_profile, s.session_id, p_via, 'pir');
+  if r is not null then return r; end if;
+  select * into pr from public.pm_profiles where id = p_profile;
+  select coalesce(max(rank), 0) + 1 into rk from public.pm_pir_players where show_id = p_show;
+  insert into public.pm_pir_players (show_id, profile_id, display_name, avatar_url, via, qualified, rank, chips)
+  values (p_show, p_profile, coalesce(pr.display_name, pr.login), pr.avatar_url, p_via, true, rk,
+          case when s.stage = 'plinko' then coalesce((s.opts->>'chips')::int, 3) else 0 end)
+  on conflict do nothing;
+  return null;
+end $$;
+
+-- ── host: start the main stage (all stages) ──
+create or replace function public.pm_admin_pir_begin(p_show uuid, p_item text, p_opts jsonb)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; o jsonb := coalesce(p_opts, '{}'::jsonb); b jsonb; sec jsonb; n int; k int; q jsonb;
+  picked jsonb := '[]'::jsonb; e record; ord jsonb; t text;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.phase <> 'results' then raise exception 'show the results first'; end if;
+  select count(*) into n from public.pm_pir_players where show_id = p_show and qualified;
+  if n = 0 and not (s.qual = 'none' and s.finalists_n = 0 and s.stage in ('plinko','jeopardy')) then raise exception 'nobody is playing'; end if;
+  b := coalesce(s.board, '{}'::jsonb) || jsonb_build_object('bets_open', true);
+  sec := coalesce((select data from public.pm_pir_secrets where show_id = p_show), '{}'::jsonb);
+
+  if s.stage = 'plinko' then
+    k := least(10, greatest(1, coalesce((o->>'chips')::int, 3)));
+    o := o || jsonb_build_object('chips', k);
+    update public.pm_pir_players set chips = k, stage_score = 0, drops = '[]'::jsonb where show_id = p_show and qualified;
+    b := b || jsonb_build_object('slots', public.pm_pir_plinko_slots(s.prize), 'drops', 0);
+
+  elsif s.stage = 'cliff' then
+    k := least(5, greatest(1, coalesce((o->>'rounds')::int, 3)));
+    for q in select x from jsonb_array_elements(case when jsonb_typeof(o->'questions') = 'array' then o->'questions' else '[]'::jsonb end) x loop
+      if jsonb_array_length(picked) < k and coalesce(btrim(q->>'q'), '') <> '' and coalesce(q->>'a', '') ~ '^-?[0-9]{1,7}$' then
+        picked := picked || jsonb_build_array(jsonb_build_object('q', left(btrim(q->>'q'), 200), 'a', (q->>'a')::int));
+      end if;
+    end loop;
+    if jsonb_array_length(picked) < k then
+      for e in select id, text, answer from public.pm_pir_bank where kind = 'cliff' and active and answer ~ '^-?[0-9]{1,7}$'
+                order by used_at nulls first, random() limit k - jsonb_array_length(picked) loop
+        picked := picked || jsonb_build_array(jsonb_build_object('q', e.text, 'a', e.answer::int));
+        update public.pm_pir_bank set used_at = now() where id = e.id;
+      end loop;
+    end if;
+    k := jsonb_array_length(picked);
+    if k = 0 then raise exception 'no Cliff Hangers questions (add some in the dashboard)'; end if;
+    sec := sec || jsonb_build_object('qs', picked);
+    o := (o || jsonb_build_object('rounds', k)) - 'questions';
+    b := b || jsonb_build_object('round', 0, 'rounds', k, 'limit', least(100, greatest(5, coalesce((o->>'limit')::int, 25))),
+                                 'open', false, 'q', null, 'answer', null);
+    update public.pm_pir_players set stage_score = 0, out = false, guess = null, guess_at = null where show_id = p_show and qualified;
+
+  elsif s.stage = 'wof' then
+    k := least(3, greatest(1, coalesce((o->>'rounds')::int, 1)));
+    for q in select x from jsonb_array_elements(case when jsonb_typeof(o->'puzzles') = 'array' then o->'puzzles' else '[]'::jsonb end) x loop
+      t := public.pm_pir_wof_clean(q->>'text');
+      if jsonb_array_length(picked) < k and t is not null then
+        picked := picked || jsonb_build_array(jsonb_build_object('cat', upper(left(coalesce(nullif(btrim(q->>'cat'), ''), 'PHRASE'), 30)), 'text', t));
+      end if;
+    end loop;
+    if jsonb_array_length(picked) < k then
+      for e in select id, category, text from public.pm_pir_bank where kind = 'wof' and active and public.pm_pir_wof_clean(text) is not null
+                order by used_at nulls first, random() limit k - jsonb_array_length(picked) loop
+        picked := picked || jsonb_build_array(jsonb_build_object('cat', upper(coalesce(e.category, 'PHRASE')), 'text', public.pm_pir_wof_clean(e.text)));
+        update public.pm_pir_bank set used_at = now() where id = e.id;
+      end loop;
+    end if;
+    k := jsonb_array_length(picked);
+    if k = 0 then raise exception 'no Wheel of Fortune puzzles (add some in the dashboard)'; end if;
+    sec := sec || jsonb_build_object('puzzles', picked);
+    select jsonb_agg(profile_id::text order by rank) into ord from public.pm_pir_players where show_id = p_show and qualified;
+    o := (o || jsonb_build_object('rounds', k)) - 'puzzles';
+    b := b || jsonb_build_object('rounds', k, 'order', ord, 'turn_secs', least(90, greatest(10, coalesce((o->>'turn_secs')::int, 25))), 'spin_seq', 0);
+    update public.pm_pir_players set stage_score = 0, round_score = 0 where show_id = p_show and qualified;
+
+  elsif s.stage = 'jeopardy' then
+    if not (sec ? 'cells') then raise exception 'build the Jeopardy board first'; end if;
+    b := b || jsonb_build_object('secs', least(60, greatest(5, coalesce((o->>'secs')::int, 15))), 'control', null, 'cur', null,
+                                 'answered', '[]'::jsonb, 'wrong', '[]'::jsonb, 'seq', 0);
+    update public.pm_pir_players set stage_score = 0 where show_id = p_show and qualified;
+  end if;
+
+  insert into public.pm_pir_secrets (show_id, data) values (p_show, sec)
+  on conflict (show_id) do update set data = excluded.data;
+  update public.pm_pir_shows set phase = 'stage', item = left(p_item, 200), wheel_turn = 0, opts = o, board = b, closes_at = null where id = p_show;
+  if s.stage = 'wof' then perform public.pm_pir_wof_load(p_show, 0); end if;
+  return (select board from public.pm_pir_shows where id = p_show);
+end $$;
+
+-- ── Plinko ──
+create or replace function public.pm_pir_drop(p_profile uuid, p_show uuid, p_pos int)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; pl public.pm_pir_players; x int; path int[]; i int; slot int; v int; seq int;
+begin
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  select * into pl from public.pm_pir_players where show_id = p_show and profile_id = p_profile for update;
+  if pl.chips <= 0 then return jsonb_build_object('error', 'no_chips'); end if;
+  if p_pos is null or p_pos < 1 or p_pos > 9 then return jsonb_build_object('error', 'bad_slot'); end if;
+  -- 12 rows of pegs; the chip moves half a slot left or right at each peg and bounces off the walls
+  x := (p_pos - 1) * 2; path := array[x];
+  for i in 1..12 loop
+    if x = 0 then x := 1; elsif x = 16 then x := 15; else x := x + case when random() < .5 then -1 else 1 end; end if;
+    path := path || x;
+  end loop;
+  slot := x / 2;
+  v := coalesce((s.board->'slots'->>slot)::int, 0);
+  seq := coalesce((s.board->>'drops')::int, 0) + 1;
+  update public.pm_pir_players set chips = chips - 1, stage_score = stage_score + v, acted_at = now(),
+    drops = drops || jsonb_build_array(jsonb_build_object('pos', p_pos, 'path', to_jsonb(path), 'slot', slot, 'v', v, 'seq', seq))
+   where show_id = p_show and profile_id = p_profile;
+  update public.pm_pir_shows set board = board || jsonb_build_object('drops', seq, 'bets_open', false) where id = p_show;
+  return jsonb_build_object('path', to_jsonb(path), 'slot', slot, 'value', v, 'seq', seq, 'chips', pl.chips - 1);
+end $$;
+
+-- ── Cliff Hangers ──
+create or replace function public.pm_pir_cliff_guess(p_profile uuid, p_show uuid, p_arg text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; t text := regexp_replace(coalesce(p_arg, ''), '[^0-9-]', '', 'g');
+begin
+  select * into s from public.pm_pir_shows where id = p_show;
+  if not coalesce((s.board->>'open')::boolean, false) or now() > s.closes_at + interval '2 seconds' then return jsonb_build_object('error', 'round_closed'); end if;
+  if t !~ '^-?[0-9]{1,7}$' then return jsonb_build_object('error', 'bad_number'); end if;
+  update public.pm_pir_players set guess = t::int, guess_at = now(), acted_at = now()
+   where show_id = p_show and profile_id = p_profile and qualified and not out;
+  if not found then return jsonb_build_object('error', 'fell'); end if;
+  return jsonb_build_object('guess', t::int);
+end $$;
+
+create or replace function public.pm_admin_pir_cliff_ask(p_show uuid, p_seconds int)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; r int; q jsonb;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'cliff' or s.phase <> 'stage' then raise exception 'Cliff Hangers is not running'; end if;
+  if coalesce((s.board->>'open')::boolean, false) then raise exception 'a question is already open'; end if;
+  r := coalesce((s.board->>'round')::int, 0);
+  if r >= (s.board->>'rounds')::int then raise exception 'no more questions'; end if;
+  select data->'qs'->r into q from public.pm_pir_secrets where show_id = p_show;
+  update public.pm_pir_players set guess = null, guess_at = null where show_id = p_show and qualified;
+  update public.pm_pir_shows set board = board || jsonb_build_object('open', true, 'round', r + 1, 'q', q->>'q', 'answer', null, 'bets_open', false),
+    closes_at = now() + make_interval(secs => least(120, greatest(5, coalesce(p_seconds, 20))))
+   where id = p_show;
+  return jsonb_build_object('round', r + 1, 'q', q->>'q');
+end $$;
+
+-- reveal: everyone climbs by how far off they were (no guess = the full height). Past the top = fell off.
+create or replace function public.pm_admin_pir_cliff_settle(p_show uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; r int; a int; lim int; alive int;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'cliff' or s.phase <> 'stage' or not coalesce((s.board->>'open')::boolean, false) then raise exception 'no question is open'; end if;
+  r := (s.board->>'round')::int; lim := coalesce((s.board->>'limit')::int, 25);
+  select (data->'qs'->(r - 1)->>'a')::int into a from public.pm_pir_secrets where show_id = p_show;
+  -- (least() skips nulls, so no guess is handled explicitly)
+  update public.pm_pir_players set stage_score = least(1000000, stage_score + case when guess is null then lim else least(abs(guess::bigint - a), 1000000)::int end),
+    out = stage_score + case when guess is null then lim else least(abs(guess::bigint - a), 1000000)::int end > lim
+   where show_id = p_show and qualified and not out;
+  select count(*) into alive from public.pm_pir_players where show_id = p_show and qualified and not out;
+  update public.pm_pir_shows set board = board || jsonb_build_object('open', false, 'answer', a), closes_at = null,
+    phase = case when r >= (s.board->>'rounds')::int or alive = 0 then 'locked' else phase end
+   where id = p_show;
+  return jsonb_build_object('answer', a, 'alive', alive, 'last', r >= (s.board->>'rounds')::int or alive = 0);
+end $$;
+
+-- ── Wheel of Fortune ──
+create or replace function public.pm_pir_wof_turn(p_b jsonb)
+returns jsonb language plpgsql stable set search_path = '' as $$
+declare k int;
+begin
+  select i % jsonb_array_length(p_b->'order') into k from jsonb_array_elements_text(p_b->'order') with ordinality t(v, i) where v = p_b->>'turn';
+  return p_b || jsonb_build_object('turn', p_b->'order'->>coalesce(k, 0), 'sub', 'spin', 'value', null,
+    'turn_until', now() + make_interval(secs => coalesce((p_b->>'turn_secs')::int, 25)));
+end $$;
+
+create or replace function public.pm_pir_wof_load(p_show uuid, p_idx int)
+returns void language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; pz jsonb; ord jsonb;
+begin
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  select data->'puzzles'->p_idx into pz from public.pm_pir_secrets where show_id = p_show;
+  if pz is null then raise exception 'no more puzzles'; end if;
+  ord := s.board->'order';
+  update public.pm_pir_players set round_score = 0 where show_id = p_show and qualified;
+  update public.pm_pir_shows set board = board || jsonb_build_object('round', p_idx + 1, 'cat', pz->>'cat', 'mask', public.pm_pir_wof_mask(pz->>'text', ''),
+      'used', '', 'solved', false, 'winner', null, 'sub', 'spin', 'value', null, 'wedge', null, 'turn', ord->>(p_idx % jsonb_array_length(ord)),
+      'turn_until', now() + make_interval(secs => coalesce((s.board->>'turn_secs')::int, 25)),
+      'ev', jsonb_build_object('seq', coalesce((s.board->'ev'->>'seq')::int, 0) + 1, 'kind', 'puzzle', 'text', 'PUZZLE ' || (p_idx + 1), 'who', null))
+   where id = p_show;
+end $$;
+
+create or replace function public.pm_pir_wof_act(p_profile uuid, p_show uuid, p_action text, p_arg text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; b jsonb; txt text; used text; L text; n int; w int; val text; rs int; secs int;
+  ev text; kind text := 'info'; nxt boolean := false; solved boolean := false; mask text; ph text;
+begin
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  b := s.board; ph := s.phase;
+  if coalesce((b->>'solved')::boolean, false) then return jsonb_build_object('error', 'round_over'); end if;
+  if (b->>'turn') is distinct from p_profile::text then return jsonb_build_object('error', 'not_your_turn'); end if;
+  select data->'puzzles'->((b->>'round')::int - 1)->>'text' into txt from public.pm_pir_secrets where show_id = p_show;
+  used := coalesce(b->>'used', ''); secs := coalesce((b->>'turn_secs')::int, 25);
+  select round_score into rs from public.pm_pir_players where show_id = p_show and profile_id = p_profile for update;
+  L := upper(left(btrim(coalesce(p_arg, '')), 1));
+  if p_action = 'spin' then
+    if b->>'sub' <> 'spin' then return jsonb_build_object('error', 'call_letter'); end if;
+    if translate(regexp_replace(txt, '[^B-DF-HJ-NP-TV-Z]', '', 'g'), used, '') = '' then return jsonb_build_object('error', 'no_consonants'); end if;
+    w := floor(random() * 24)::int; val := (public.pm_pir_wof_wedges())[w + 1];
+    b := b || jsonb_build_object('wedge', w, 'spin_seq', coalesce((b->>'spin_seq')::int, 0) + 1, 'bets_open', false);
+    if val = 'BANKRUPT' then rs := 0; ev := 'BANKRUPT!'; kind := 'bad'; nxt := true;
+    elsif val = 'LOSE' then ev := 'LOSE A TURN'; kind := 'bad'; nxt := true;
+    else b := b || jsonb_build_object('sub', 'call', 'value', val::int, 'turn_until', now() + make_interval(secs => secs)); ev := '$' || val; kind := 'spin';
+    end if;
+  elsif p_action = 'letter' then
+    if b->>'sub' <> 'call' then return jsonb_build_object('error', 'spin_first'); end if;
+    if L !~ '^[A-Z]$' then return jsonb_build_object('error', 'bad_letter'); end if;
+    if L in ('A','E','I','O','U') then return jsonb_build_object('error', 'buy_vowels'); end if;
+    if position(L in used) > 0 then return jsonb_build_object('error', 'used_letter'); end if;
+    n := length(txt) - length(replace(txt, L, '')); used := used || L;
+    if n > 0 then
+      rs := rs + (b->>'value')::int * n; ev := n || ' ' || L || case when n > 1 then '''S' else '' end; kind := 'good';
+      b := b || jsonb_build_object('sub', 'spin', 'value', null, 'turn_until', now() + make_interval(secs => secs));
+    else ev := 'NO ' || L; kind := 'bad'; nxt := true; end if;
+  elsif p_action = 'buy' then
+    if b->>'sub' <> 'spin' then return jsonb_build_object('error', 'call_letter'); end if;
+    if L not in ('A','E','I','O','U') then return jsonb_build_object('error', 'not_vowel'); end if;
+    if position(L in used) > 0 then return jsonb_build_object('error', 'used_letter'); end if;
+    if rs < 250 then return jsonb_build_object('error', 'cant_afford'); end if;
+    rs := rs - 250; n := length(txt) - length(replace(txt, L, '')); used := used || L;
+    if n > 0 then ev := n || ' ' || L || case when n > 1 then '''S' else '' end; kind := 'good';
+      b := b || jsonb_build_object('turn_until', now() + make_interval(secs => secs));
+    else ev := 'NO ' || L; kind := 'bad'; nxt := true; end if;
+  elsif p_action = 'solve' then
+    if regexp_replace(upper(coalesce(p_arg, '')), '[^A-Z0-9]', '', 'g') = regexp_replace(txt, '[^A-Z0-9]', '', 'g') then solved := true;
+    else ev := 'WRONG: ' || left(upper(btrim(coalesce(p_arg, ''))), 40); kind := 'bad'; nxt := true; end if;
+  else return jsonb_build_object('error', 'bad_action');
+  end if;
+  mask := public.pm_pir_wof_mask(txt, used);
+  if not solved and position('_' in mask) = 0 then solved := true; end if;   -- last letter just went up
+  if solved then
+    rs := greatest(rs, 1000);   -- the house minimum for solving
+    update public.pm_pir_players set stage_score = stage_score + rs, round_score = rs, acted_at = now() where show_id = p_show and profile_id = p_profile;
+    mask := txt; ev := 'SOLVED! +$' || rs; kind := 'solve';
+    b := b || jsonb_build_object('solved', true, 'sub', null, 'value', null, 'turn_until', null, 'winner', p_profile);
+    if (b->>'round')::int >= (b->>'rounds')::int then ph := 'locked'; end if;
+  else
+    update public.pm_pir_players set round_score = rs, acted_at = now() where show_id = p_show and profile_id = p_profile;
+    if nxt then b := public.pm_pir_wof_turn(b); end if;
+  end if;
+  b := b || jsonb_build_object('used', used, 'mask', mask,
+    'ev', jsonb_build_object('seq', coalesce((b->'ev'->>'seq')::int, 0) + 1, 'kind', kind, 'text', ev, 'who', p_profile));
+  update public.pm_pir_shows set board = b, phase = ph where id = p_show;
+  return jsonb_build_object('event', ev, 'kind', kind);
+end $$;
+
+create or replace function public.pm_pir_wof_pass(p_show uuid, p_why text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; b jsonb;
+begin
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'wof' or s.phase <> 'stage' or coalesce((s.board->>'solved')::boolean, false) then return jsonb_build_object('error', 'round_closed'); end if;
+  b := public.pm_pir_wof_turn(s.board);
+  b := b || jsonb_build_object('ev', jsonb_build_object('seq', coalesce((s.board->'ev'->>'seq')::int, 0) + 1, 'kind', 'bad',
+    'text', case when p_why = 'time' then 'TIME''S UP' else 'PASS' end, 'who', s.board->>'turn'));
+  update public.pm_pir_shows set board = b where id = p_show;
+  return jsonb_build_object('turn', b->>'turn');
+end $$;
+
+create or replace function public.pm_admin_pir_wof_next(p_show uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; r int;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'wof' or s.phase <> 'stage' then raise exception 'Wheel of Fortune is not running'; end if;
+  if not coalesce((s.board->>'solved')::boolean, false) then raise exception 'solve this puzzle first'; end if;
+  r := (s.board->>'round')::int;
+  if r >= (s.board->>'rounds')::int then raise exception 'that was the last puzzle'; end if;
+  perform public.pm_pir_wof_load(p_show, r);
+  return jsonb_build_object('round', r + 1);
+end $$;
+
+-- ── Jeopardy ──
+-- host uploads the board (built in the dashboard from Open Trivia DB and/or their own clues)
+create or replace function public.pm_admin_pir_jboard(p_show uuid, p_cats jsonb, p_vals jsonb, p_cells jsonb)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; nc int; nr int; c int; r int; cell jsonb; used jsonb := '[]'::jsonb; col jsonb; cats jsonb := '[]'::jsonb; vals jsonb := '[]'::jsonb;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'jeopardy' or s.phase not in ('qualifier','closed','results') then raise exception 'set the board before Jeopardy starts'; end if;
+  nc := jsonb_array_length(p_cats); nr := jsonb_array_length(p_vals);
+  if nc not between 1 and 6 or nr not between 1 and 5 then raise exception 'the board needs 1-6 categories and 1-5 rows'; end if;
+  for r in 0..nr - 1 loop
+    if coalesce(p_vals->>r, '') !~ '^[0-9]{1,6}$' then raise exception 'row values must be numbers'; end if;
+    vals := vals || to_jsonb((p_vals->>r)::int);
+  end loop;
+  for c in 0..nc - 1 loop
+    cats := cats || to_jsonb(left(coalesce(p_cats->>c, ''), 40));
+    col := '[]'::jsonb;
+    for r in 0..nr - 1 loop
+      cell := p_cells->c->r;
+      if cell is null or coalesce(btrim(cell->>'q'), '') = '' or jsonb_typeof(cell->'choices') <> 'array' or jsonb_array_length(cell->'choices') <> 4
+         or coalesce(cell->>'correct', '') !~ '^[0-3]$' then
+        raise exception 'clue % in category % is incomplete', r + 1, c + 1;
+      end if;
+      col := col || 'false'::jsonb;
+    end loop;
+    used := used || jsonb_build_array(col);
+  end loop;
+  insert into public.pm_pir_secrets (show_id, data) values (p_show, jsonb_build_object('cells', p_cells))
+  on conflict (show_id) do update set data = public.pm_pir_secrets.data || jsonb_build_object('cells', p_cells);
+  update public.pm_pir_shows set board = board || jsonb_build_object('cats', cats, 'vals', vals, 'used', used) where id = p_show;
+  return jsonb_build_object('cats', cats, 'vals', vals);
+end $$;
+
+-- pick a clue: the player in control (last right answer), or the host (p_profile null). arg = "column value" e.g. "2 300"
+create or replace function public.pm_pir_jpick(p_profile uuid, p_show uuid, p_arg text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; b jsonb; parts text[]; c int; r int; v int; cell jsonb; nc int; nr int; i int;
+begin
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'jeopardy' or s.phase <> 'stage' then return jsonb_build_object('error', 'round_closed'); end if;
+  b := s.board;
+  if jsonb_typeof(b->'cur') = 'object' and coalesce((b->'cur'->>'open')::boolean, false) then return jsonb_build_object('error', 'clue_open'); end if;
+  if p_profile is not null and (b->>'control') is distinct from p_profile::text then return jsonb_build_object('error', 'not_your_pick'); end if;
+  parts := array_remove(regexp_split_to_array(btrim(coalesce(p_arg, '')), '[^0-9]+'), '');
+  if coalesce(array_length(parts, 1), 0) < 2 or length(parts[1]) > 2 or length(parts[2]) > 7 then return jsonb_build_object('error', 'bad_pick'); end if;
+  nc := jsonb_array_length(b->'cats'); nr := jsonb_array_length(b->'vals');
+  c := parts[1]::int - 1; v := parts[2]::int; r := null;
+  for i in 0..nr - 1 loop if (b->'vals'->>i)::int = v then r := i; exit; end if; end loop;
+  if r is null and v between 1 and nr then r := v - 1; end if;
+  if c < 0 or c >= nc or r is null then return jsonb_build_object('error', 'bad_pick'); end if;
+  if (b->'used'->c->>r)::boolean then return jsonb_build_object('error', 'used'); end if;
+  select data->'cells'->c->r into cell from public.pm_pir_secrets where show_id = p_show;
+  b := b || jsonb_build_object('cur', jsonb_build_object('c', c, 'r', r, 'q', cell->>'q', 'choices', cell->'choices', 'value', (b->'vals'->>r)::int,
+         'open', true, 'correct', null, 'winner', null, 'cat', b->'cats'->>c),
+       'seq', coalesce((b->>'seq')::int, 0) + 1, 'answered', '[]'::jsonb, 'wrong', '[]'::jsonb, 'bets_open', false);
+  update public.pm_pir_shows set board = b, closes_at = now() + make_interval(secs => coalesce((b->>'secs')::int, 15)) where id = p_show;
+  return jsonb_build_object('c', c, 'r', r);
+end $$;
+
+-- close the clue on the board: reveal the answer, mark it used, give control to the winner
+create or replace function public.pm_pir_jend(p_show uuid, p_b jsonb, p_winner uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare cur jsonb := p_b->'cur'; b jsonb; right_i int; left_n int;
+begin
+  select (data->'cells'->((cur->>'c')::int)->((cur->>'r')::int)->>'correct')::int into right_i from public.pm_pir_secrets where show_id = p_show;
+  b := jsonb_set(p_b, array['used', cur->>'c', cur->>'r'], 'true'::jsonb);
+  b := b || jsonb_build_object('cur', cur || jsonb_build_object('open', false, 'correct', right_i, 'winner', p_winner));
+  if p_winner is not null then b := b || jsonb_build_object('control', p_winner); end if;
+  select count(*) into left_n from jsonb_array_elements(b->'used') col, jsonb_array_elements(col) x where x = 'false'::jsonb;
+  update public.pm_pir_shows set board = b, closes_at = null, phase = case when left_n = 0 then 'locked' else phase end where id = p_show;
+  return b;
+end $$;
+
+-- answer A-D: first right answer takes the value and control; a wrong answer costs the value and locks you out of this clue
+create or replace function public.pm_pir_janswer(p_profile uuid, p_show uuid, p_arg text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; b jsonb; cur jsonb; t text := upper(btrim(coalesce(p_arg, ''))); ch int; right_i int; v int; n_pl int;
+begin
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  b := s.board; cur := b->'cur';
+  if jsonb_typeof(cur) <> 'object' or not coalesce((cur->>'open')::boolean, false) or now() > s.closes_at + interval '1 second' then
+    return jsonb_build_object('error', 'round_closed');
+  end if;
+  ch := case when t ~ '^[A-D]$' then ascii(t) - 65 when t ~ '^[1-4]$' then t::int - 1 end;
+  if ch is null then return jsonb_build_object('error', 'bad_choice'); end if;
+  if (b->'answered') ? p_profile::text then return jsonb_build_object('error', 'already'); end if;
+  select (data->'cells'->((cur->>'c')::int)->((cur->>'r')::int)->>'correct')::int into right_i from public.pm_pir_secrets where show_id = p_show;
+  v := (cur->>'value')::int;
+  b := jsonb_set(b, '{answered}', (b->'answered') || to_jsonb(p_profile::text));
+  if ch = right_i then
+    update public.pm_pir_players set stage_score = stage_score + v, acted_at = now() where show_id = p_show and profile_id = p_profile;
+    perform public.pm_pir_jend(p_show, b, p_profile);
+    return jsonb_build_object('result', 'right', 'value', v);
+  end if;
+  update public.pm_pir_players set stage_score = stage_score - v, acted_at = now() where show_id = p_show and profile_id = p_profile;
+  b := jsonb_set(b, '{wrong}', (b->'wrong') || to_jsonb(p_profile::text));
+  select count(*) into n_pl from public.pm_pir_players where show_id = p_show and qualified;
+  if jsonb_array_length(b->'answered') >= n_pl then perform public.pm_pir_jend(p_show, b, null);
+  else update public.pm_pir_shows set board = b where id = p_show; end if;
+  return jsonb_build_object('result', 'wrong', 'value', v);
+end $$;
+
+create or replace function public.pm_admin_pir_jclose(p_show uuid)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage <> 'jeopardy' or jsonb_typeof(s.board->'cur') <> 'object' or not coalesce((s.board->'cur'->>'open')::boolean, false) then
+    return jsonb_build_object('error', 'no_clue');
+  end if;
+  return public.pm_pir_jend(p_show, s.board, null)->'cur';
+end $$;
+
+-- ── one entry point for every new-stage move (site, chat via the dashboard, or the host acting for someone) ──
+create or replace function public.pm_pir_play_as(p_profile uuid, p_show uuid, p_action text, p_arg text, p_via text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; r text;
+begin
+  select * into s from public.pm_pir_shows where id = p_show;
+  if not found or s.phase <> 'stage' then return jsonb_build_object('error', 'round_closed'); end if;
+  if not exists (select 1 from public.pm_pir_players where show_id = p_show and profile_id = p_profile and qualified) then
+    r := public.pm_pir_late_as(p_profile, p_show, p_via);
+    if r is not null then return jsonb_build_object('error', case when r = 'round_closed' then 'not_finalist' else r end); end if;
+  end if;
+  if s.stage = 'plinko' and p_action = 'drop' then
+    return public.pm_pir_drop(p_profile, p_show, nullif(left(regexp_replace(coalesce(p_arg, ''), '[^0-9]', '', 'g'), 2), '')::int);
+  elsif s.stage = 'cliff' and p_action = 'guess' then return public.pm_pir_cliff_guess(p_profile, p_show, p_arg);
+  elsif s.stage = 'wof' and p_action in ('spin','letter','buy','solve') then return public.pm_pir_wof_act(p_profile, p_show, p_action, p_arg);
+  elsif s.stage = 'jeopardy' and p_action = 'pick' then return public.pm_pir_jpick(p_profile, p_show, p_arg);
+  elsif s.stage = 'jeopardy' and p_action = 'answer' then return public.pm_pir_janswer(p_profile, p_show, p_arg);
+  end if;
+  return jsonb_build_object('error', 'bad_action');
+end $$;
+
+create or replace function public.pm_pir_play(p_show uuid, p_action text, p_arg text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare pid uuid := public.pm_my_profile();
+begin
+  if pid is null then return jsonb_build_object('error', 'no_profile'); end if;
+  return public.pm_pir_play_as(pid, p_show, p_action, p_arg, 'app');
+end $$;
+
+-- host acts: pick a Jeopardy clue, pass a Wheel of Fortune turn, or move for a player (p_profile null = whoever's turn it is)
+create or replace function public.pm_admin_pir_play(p_show uuid, p_profile uuid, p_action text, p_arg text)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; pid uuid := p_profile;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show;
+  if not found then return jsonb_build_object('error', 'round_closed'); end if;
+  if p_action = 'pick' then return public.pm_pir_jpick(null, p_show, p_arg); end if;
+  if p_action in ('pass','timeout') then return public.pm_pir_wof_pass(p_show, case when p_action = 'timeout' then 'time' else 'pass' end); end if;
+  if pid is null and s.stage = 'wof' then pid := (s.board->>'turn')::uuid; end if;
+  if pid is null then return jsonb_build_object('error', 'no_player'); end if;
+  return public.pm_pir_play_as(pid, p_show, p_action, p_arg, 'host');
+end $$;
+
+-- finish Plinko / Cliff Hangers / Wheel of Fortune / Jeopardy and pay
+create or replace function public.pm_admin_pir_finish(p_show uuid, p_bonus int)
+returns jsonb language plpgsql security definer set search_path = '' as $$
+declare s public.pm_pir_shows; best int; ws uuid[]; n int; each int; rem int; i int := 0; e record; amt int; bets jsonb; lbl text;
+begin
+  perform public.pm_require_admin();
+  select * into s from public.pm_pir_shows where id = p_show for update;
+  if not found or s.stage not in ('plinko','cliff','wof','jeopardy') or s.phase not in ('stage','locked') then raise exception 'that game is not running'; end if;
+  update public.pm_pir_shows set phase = 'done', ended_at = now(), closes_at = null where id = p_show;
+  lbl := case s.stage when 'plinko' then 'Plinko' when 'cliff' then 'Cliff Hangers' when 'wof' then 'Wheel of Fortune' else 'Jeopardy' end;
+  if s.stage = 'plinko' then
+    -- everyone keeps what their chips landed on
+    for e in select profile_id, stage_score from public.pm_pir_players where show_id = p_show and qualified and stage_score > 0 loop
+      insert into public.pm_ledger (profile_id, delta, reason, game, actor) values (e.profile_id, e.stage_score, 'The Picks Are Right: Plinko', 'pir', 'pir');
+      update public.pm_pir_players set payout = e.stage_score where show_id = p_show and profile_id = e.profile_id;
+      perform public.pm_log(e.profile_id, 'pir_won', jsonb_build_object('payout', e.stage_score, 'stage', 'plinko'), s.session_id);
+    end loop;
+    select max(stage_score) into best from public.pm_pir_players where show_id = p_show and qualified;
+    if best <= 0 then best := null; end if;
+    select array_agg(profile_id) into ws from public.pm_pir_players where show_id = p_show and qualified and stage_score = best;
+  else
+    if s.stage = 'cliff' then
+      select min(stage_score) into best from public.pm_pir_players where show_id = p_show and qualified and not out;
+      select array_agg(profile_id) into ws from public.pm_pir_players where show_id = p_show and qualified and not out and stage_score = best;
+    else
+      select max(stage_score) into best from public.pm_pir_players where show_id = p_show and qualified;
+      if best <= 0 then best := null; end if;
+      select array_agg(profile_id) into ws from public.pm_pir_players where show_id = p_show and qualified and stage_score = best;
+    end if;
+    n := coalesce(array_length(ws, 1), 0);
+    if n > 0 then
+      each := s.prize / n; rem := s.prize % n;
+      for e in select profile_id from public.pm_pir_players where show_id = p_show and profile_id = any(ws) order by rank loop
+        amt := each + case when i < rem then 1 else 0 end + case when s.stage = 'cliff' and best = 0 then coalesce(p_bonus, 0) else 0 end;
+        i := i + 1;
+        if amt > 0 then
+          insert into public.pm_ledger (profile_id, delta, reason, game, actor) values (e.profile_id, amt, 'The Picks Are Right: won ' || lbl, 'pir', 'pir');
+        end if;
+        update public.pm_pir_players set payout = amt where show_id = p_show and profile_id = e.profile_id;
+        perform public.pm_log(e.profile_id, 'pir_won', jsonb_build_object('payout', amt, 'stage', s.stage, 'score', best), s.session_id);
+      end loop;
+    end if;
+  end if;
+  bets := public.pm_pir_pay_bets(p_show, coalesce(ws, array[]::uuid[]));
+  return jsonb_build_object('best', best, 'winners', to_jsonb(coalesce(ws, array[]::uuid[])), 'bets', bets);
+end $$;
+
 -- ── 6. Row level security ───────────────────────────────────
 alter table public.pm_profiles     enable row level security;
 alter table public.pm_sessions     enable row level security;
@@ -1427,6 +2013,8 @@ alter table public.pm_pir_shows        enable row level security;
 alter table public.pm_pir_players      enable row level security;
 alter table public.pm_pir_moves        enable row level security;
 alter table public.pm_pir_bets         enable row level security;
+alter table public.pm_pir_secrets      enable row level security;
+alter table public.pm_pir_bank         enable row level security;
 
 do $$
 declare t text;
@@ -1470,6 +2058,8 @@ create policy "pm read pir shows"   on public.pm_pir_shows   for select using (t
 create policy "pm read pir players" on public.pm_pir_players for select using (true);
 create policy "pm read pir moves"   on public.pm_pir_moves   for select using (public.pm_is_admin() or profile_id = public.pm_my_profile());
 create policy "pm read pir bets"    on public.pm_pir_bets    for select using (public.pm_is_admin() or profile_id = public.pm_my_profile());
+create policy "pm host pir secrets" on public.pm_pir_secrets for select to authenticated using (public.pm_is_admin());
+create policy "pm host pir bank"    on public.pm_pir_bank    for all to authenticated using (public.pm_is_admin()) with check (public.pm_is_admin());
 create policy "pm host blocklist"    on public.pm_blocklist    for all to authenticated using (public.pm_is_admin()) with check (public.pm_is_admin());
 create policy "pm host bank"         on public.pm_bank         for all to authenticated using (public.pm_is_admin()) with check (public.pm_is_admin());
 
@@ -1488,6 +2078,11 @@ grant select on public.pm_trivia_answers, public.pm_inventory to authenticated;
 grant insert, update, delete on public.pm_shop_items to authenticated;
 grant select on public.pm_pir_shows, public.pm_pir_players to anon, authenticated;
 grant select on public.pm_pir_moves, public.pm_pir_bets to authenticated;
+revoke all on public.pm_pir_secrets from anon, authenticated;
+grant select on public.pm_pir_secrets to authenticated;
+revoke all on public.pm_pir_bank from anon;
+grant select, insert, update, delete on public.pm_pir_bank to authenticated;
+grant usage on sequence public.pm_pir_bank_id_seq to authenticated;
 
 -- internal helpers: nobody calls these directly
 revoke execute on function public.pm_log(uuid, text, jsonb, uuid)          from public, anon, authenticated;
@@ -1590,6 +2185,37 @@ revoke execute on function public.pm_admin_pir_wheel_finish(uuid, int) from publ
 grant execute on function public.pm_admin_pir_cancel(uuid) to authenticated;
 revoke execute on function public.pm_admin_pir_cancel(uuid) from public, anon;
 grant execute on function public.pm_pir_progress(uuid) to anon, authenticated;
+-- finals games
+revoke execute on function public.pm_pir_late_as(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_drop(uuid, uuid, int) from public, anon, authenticated;
+revoke execute on function public.pm_pir_cliff_guess(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_wof_turn(jsonb) from public, anon, authenticated;
+revoke execute on function public.pm_pir_wof_load(uuid, int) from public, anon, authenticated;
+revoke execute on function public.pm_pir_wof_act(uuid, uuid, text, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_wof_pass(uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_jpick(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_jend(uuid, jsonb, uuid) from public, anon, authenticated;
+revoke execute on function public.pm_pir_janswer(uuid, uuid, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_play_as(uuid, uuid, text, text, text) from public, anon, authenticated;
+revoke execute on function public.pm_pir_wof_mask(text, text) from public, anon, authenticated;
+grant execute on function public.pm_pir_play(uuid, text, text) to authenticated;
+revoke execute on function public.pm_pir_play(uuid, text, text) from public, anon;
+grant execute on function public.pm_admin_pir_begin(uuid, text, jsonb) to authenticated;
+revoke execute on function public.pm_admin_pir_begin(uuid, text, jsonb) from public, anon;
+grant execute on function public.pm_admin_pir_cliff_ask(uuid, int) to authenticated;
+revoke execute on function public.pm_admin_pir_cliff_ask(uuid, int) from public, anon;
+grant execute on function public.pm_admin_pir_cliff_settle(uuid) to authenticated;
+revoke execute on function public.pm_admin_pir_cliff_settle(uuid) from public, anon;
+grant execute on function public.pm_admin_pir_wof_next(uuid) to authenticated;
+revoke execute on function public.pm_admin_pir_wof_next(uuid) from public, anon;
+grant execute on function public.pm_admin_pir_jboard(uuid, jsonb, jsonb, jsonb) to authenticated;
+revoke execute on function public.pm_admin_pir_jboard(uuid, jsonb, jsonb, jsonb) from public, anon;
+grant execute on function public.pm_admin_pir_jclose(uuid) to authenticated;
+revoke execute on function public.pm_admin_pir_jclose(uuid) from public, anon;
+grant execute on function public.pm_admin_pir_play(uuid, uuid, text, text) to authenticated;
+revoke execute on function public.pm_admin_pir_play(uuid, uuid, text, text) from public, anon;
+grant execute on function public.pm_admin_pir_finish(uuid, int) to authenticated;
+revoke execute on function public.pm_admin_pir_finish(uuid, int) from public, anon;
 grant execute on function public.pm_admin_chatter(text, text, text)                    to authenticated;
 grant execute on function public.pm_admin_chat_answer(uuid, text, text, text, text)    to authenticated;
 grant execute on function public.pm_admin_chat_question(text, text, text, text)        to authenticated;
@@ -1799,3 +2425,145 @@ insert into public.pm_shop_items (id, kind, name, price, data, sort) values
   ('th_synth','theme','Synthwave',150,'{"style":"synth"}'::jsonb,14),
   ('th_gold','theme','Gold Record',200,'{"style":"gold"}'::jsonb,20)
 on conflict (id) do nothing;
+
+-- ── 11. The Picks Are Right banks: Cliff Hangers questions + Wheel of Fortune puzzles (add more from the dashboard) ──
+insert into public.pm_pir_bank (kind, text, answer) values
+  ('cliff', 'How many keys are on a standard piano?', '88'),
+  ('cliff', 'How many black keys are on a standard piano?', '36'),
+  ('cliff', 'How many squares are on a chessboard?', '64'),
+  ('cliff', 'How many cards are in a standard deck, not counting jokers?', '52'),
+  ('cliff', 'How many teeth does an adult usually have, wisdom teeth included?', '32'),
+  ('cliff', 'How many dominoes are in a double-six set?', '28'),
+  ('cliff', 'How many spaces are on a Monopoly board?', '40'),
+  ('cliff', 'How many properties can you buy in Monopoly (streets, railroads and utilities)?', '28'),
+  ('cliff', 'How many tiles are in an English Scrabble set?', '100'),
+  ('cliff', 'How many points is the Q worth in English Scrabble?', '10'),
+  ('cliff', 'What''s the highest score you can get with a single dart?', '60'),
+  ('cliff', 'What''s a perfect score in ten-pin bowling?', '300'),
+  ('cliff', 'What''s the maximum break in snooker?', '147'),
+  ('cliff', 'How many numbers are on a European roulette wheel, zero included?', '37'),
+  ('cliff', 'How many minutes long is a regulation NBA game?', '48'),
+  ('cliff', 'How many minutes long is each period of an NHL game?', '20'),
+  ('cliff', 'How many players does each rugby union team have on the field?', '15'),
+  ('cliff', 'How many yards are there between the goal lines on an American football field?', '100'),
+  ('cliff', 'How many feet high is a regulation basketball hoop?', '10'),
+  ('cliff', 'How many miles is a marathon (rounded down)?', '26'),
+  ('cliff', 'How many holes are in a standard round of golf?', '18'),
+  ('cliff', 'How many hearts does an octopus have?', '3'),
+  ('cliff', 'How many legs does a lobster have?', '10'),
+  ('cliff', 'How many hexagons are on a classic soccer ball?', '20'),
+  ('cliff', 'How many faces does an icosahedron have?', '20'),
+  ('cliff', 'How old must you be to become President of the United States?', '35'),
+  ('cliff', 'How many stripes are on the United States flag?', '13'),
+  ('cliff', 'How many members are in the US Senate?', '100'),
+  ('cliff', 'How many US states border Canada?', '13'),
+  ('cliff', 'How many countries are in Africa?', '54'),
+  ('cliff', 'How many bones are in the human skull?', '22'),
+  ('cliff', 'How many hours are in a week?', '168'),
+  ('cliff', 'How many inches are in a yard?', '36'),
+  ('cliff', 'How many ounces are in a pound?', '16'),
+  ('cliff', 'How many cups are in a US gallon?', '16'),
+  ('cliff', 'At what temperature does water freeze, in Fahrenheit?', '32'),
+  ('cliff', 'At what temperature does water boil at sea level, in Fahrenheit?', '212'),
+  ('cliff', 'How many dalmatians are in the title of the Disney classic?', '101'),
+  ('cliff', 'How many letters are in "supercalifragilisticexpialidocious"?', '34'),
+  ('cliff', 'How many lines are in a sonnet?', '14'),
+  ('cliff', 'How many pieces does each player start with in chess?', '16'),
+  ('cliff', 'How many dots are on a standard six-sided die, all faces added up?', '21'),
+  ('cliff', 'How many colored stickers are on a standard 3x3 Rubik''s Cube?', '54'),
+  ('cliff', 'How many strings does a concert pedal harp have?', '47'),
+  ('cliff', 'How many levels can you play in the original Pac-Man before the glitched kill screen?', '255'),
+  ('cliff', 'What year did the first iPhone come out?', '2007'),
+  ('cliff', 'What year did Twitch launch?', '2011'),
+  ('cliff', 'What year did the original Game Boy come out in Japan?', '1989'),
+  ('cliff', 'What year was the Fender Stratocaster introduced?', '1954'),
+  ('cliff', 'What year did people first land on the Moon?', '1969'),
+  ('cliff', 'What year did YouTube launch?', '2005'),
+  ('cliff', 'What year did Pac-Man hit arcades?', '1980'),
+  ('cliff', 'What year did the Titanic sink?', '1912'),
+  ('cliff', 'What year did MTV launch?', '1981'),
+  ('cliff', 'What year did Super Mario Bros. come out in Japan?', '1985'),
+  ('cliff', 'What year did the first PlayStation come out in Japan?', '1994'),
+  ('cliff', 'What year did the Beatles first play The Ed Sullivan Show?', '1964')
+on conflict (kind, text) do nothing;
+insert into public.pm_pir_bank (kind, category, text) values
+  ('wof', 'PHRASE', 'BREAK A LEG'),
+  ('wof', 'PHRASE', 'ONCE IN A BLUE MOON'),
+  ('wof', 'PHRASE', 'THE BALL IS IN YOUR COURT'),
+  ('wof', 'PHRASE', 'HIT THE NAIL ON THE HEAD'),
+  ('wof', 'PHRASE', 'BETTER LATE THAN NEVER'),
+  ('wof', 'PHRASE', 'PIECE OF CAKE'),
+  ('wof', 'PHRASE', 'CALL IT A DAY'),
+  ('wof', 'PHRASE', 'SPILL THE BEANS'),
+  ('wof', 'PHRASE', 'UNDER THE WEATHER'),
+  ('wof', 'PHRASE', 'BITE THE BULLET'),
+  ('wof', 'PHRASE', 'THE BEST OF BOTH WORLDS'),
+  ('wof', 'PHRASE', 'ON CLOUD NINE'),
+  ('wof', 'PHRASE', 'BACK TO SQUARE ONE'),
+  ('wof', 'PHRASE', 'PRACTICE MAKES PERFECT'),
+  ('wof', 'PHRASE', 'NO PAIN NO GAIN'),
+  ('wof', 'WHAT ARE YOU DOING?', 'TUNING MY GUITAR'),
+  ('wof', 'WHAT ARE YOU DOING?', 'RAIDING THE FRIDGE'),
+  ('wof', 'WHAT ARE YOU DOING?', 'CHECKING THE CHAT'),
+  ('wof', 'WHAT ARE YOU DOING?', 'SPEEDRUNNING A VIDEO GAME'),
+  ('wof', 'WHAT ARE YOU DOING?', 'TAKING A POWER NAP'),
+  ('wof', 'WHAT ARE YOU DOING?', 'BINGE WATCHING A NEW SHOW'),
+  ('wof', 'WHAT ARE YOU DOING?', 'ORDERING TAKEOUT'),
+  ('wof', 'WHAT ARE YOU DOING?', 'WAITING FOR THE BUS'),
+  ('wof', 'THING', 'A HOT CUP OF COFFEE'),
+  ('wof', 'THING', 'GAMING HEADSET'),
+  ('wof', 'THING', 'MECHANICAL KEYBOARD'),
+  ('wof', 'THING', 'GUITAR PICK'),
+  ('wof', 'THING', 'REMOTE CONTROL'),
+  ('wof', 'THING', 'ROLLER SKATES'),
+  ('wof', 'THING', 'ELECTRIC GUITAR'),
+  ('wof', 'THING', 'WIRELESS MICROPHONE'),
+  ('wof', 'THING', 'COMFY RECLINER'),
+  ('wof', 'FOOD & DRINK', 'PEPPERONI PIZZA'),
+  ('wof', 'FOOD & DRINK', 'CHOCOLATE CHIP COOKIES'),
+  ('wof', 'FOOD & DRINK', 'GRILLED CHEESE SANDWICH'),
+  ('wof', 'FOOD & DRINK', 'BUTTERED POPCORN'),
+  ('wof', 'FOOD & DRINK', 'ICED CARAMEL LATTE'),
+  ('wof', 'FOOD & DRINK', 'SPICY CHICKEN WINGS'),
+  ('wof', 'FOOD & DRINK', 'STRAWBERRY MILKSHAKE'),
+  ('wof', 'FOOD & DRINK', 'FRENCH TOAST WITH SYRUP'),
+  ('wof', 'PLACE', 'HAUNTED HOUSE'),
+  ('wof', 'PLACE', 'MOVIE THEATER'),
+  ('wof', 'PLACE', 'BOWLING ALLEY'),
+  ('wof', 'PLACE', 'RECORDING STUDIO'),
+  ('wof', 'PLACE', 'VIDEO ARCADE'),
+  ('wof', 'PLACE', 'CAMPGROUND'),
+  ('wof', 'PLACE', 'TOY STORE'),
+  ('wof', 'PLACE', 'ROLLER RINK'),
+  ('wof', 'ON THE MAP', 'GRAND CANYON'),
+  ('wof', 'ON THE MAP', 'NIAGARA FALLS'),
+  ('wof', 'ON THE MAP', 'MOUNT EVEREST'),
+  ('wof', 'ON THE MAP', 'NEW YORK CITY'),
+  ('wof', 'ON THE MAP', 'LAS VEGAS NEVADA'),
+  ('wof', 'ON THE MAP', 'THE AMAZON RAINFOREST'),
+  ('wof', 'ON THE MAP', 'ROCKY MOUNTAINS'),
+  ('wof', 'EVENT', 'SURPRISE BIRTHDAY PARTY'),
+  ('wof', 'EVENT', 'FIREWORKS SHOW'),
+  ('wof', 'EVENT', 'MIDNIGHT MOVIE PREMIERE'),
+  ('wof', 'EVENT', 'ROCK CONCERT'),
+  ('wof', 'EVENT', 'TALENT SHOW'),
+  ('wof', 'EVENT', 'GAME NIGHT WITH FRIENDS'),
+  ('wof', 'OCCUPATION', 'ROCKET SCIENTIST'),
+  ('wof', 'OCCUPATION', 'PIZZA DELIVERY DRIVER'),
+  ('wof', 'OCCUPATION', 'MUSIC PRODUCER'),
+  ('wof', 'OCCUPATION', 'VIDEO GAME DESIGNER'),
+  ('wof', 'OCCUPATION', 'ZOOKEEPER'),
+  ('wof', 'OCCUPATION', 'SOUND ENGINEER'),
+  ('wof', 'LIVING THING', 'GIANT PANDA'),
+  ('wof', 'LIVING THING', 'RED-EYED TREE FROG'),
+  ('wof', 'LIVING THING', 'HUMPBACK WHALE'),
+  ('wof', 'LIVING THING', 'GOLDEN RETRIEVER'),
+  ('wof', 'LIVING THING', 'SUNFLOWER'),
+  ('wof', 'LIVING THING', 'VENUS FLYTRAP'),
+  ('wof', 'FUN & GAMES', 'HIDE AND SEEK'),
+  ('wof', 'FUN & GAMES', 'MUSICAL CHAIRS'),
+  ('wof', 'FUN & GAMES', 'THUMB WRESTLING'),
+  ('wof', 'FUN & GAMES', 'ROCK PAPER SCISSORS'),
+  ('wof', 'FUN & GAMES', 'PIN THE TAIL ON THE DONKEY'),
+  ('wof', 'FUN & GAMES', 'KARAOKE NIGHT')
+on conflict (kind, text) do nothing;

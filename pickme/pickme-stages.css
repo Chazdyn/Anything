@@ -1,0 +1,65 @@
+/* PICKME — game-board visuals (pickme-stages.js). Sizes follow the container's font-size. */
+
+/* wheels */
+.pms-wheel{ position:relative; aspect-ratio:1; width:100%; }
+.pms-wheel svg{ width:100%; height:100%; display:block; transition: transform 4.2s cubic-bezier(.12,.75,.15,1); }
+.pms-wheel .pms-ptr{ position:absolute; left:50%; top:calc(var(--ptr, 14px) * -.5); width:0; height:0; transform:translateX(-50%); z-index:2;
+  border-left:var(--ptr, 14px) solid transparent; border-right:var(--ptr, 14px) solid transparent; border-top:calc(var(--ptr, 14px) * 1.7) solid var(--lime);
+  filter:drop-shadow(0 0 10px rgba(184,255,46,.7)); }
+
+/* plinko */
+.pms-plinko svg{ width:100%; height:100%; display:block; }
+.pms-plinko .pk-bg{ fill:#120828; stroke:#3b2368; stroke-width:1.5; }
+.pms-plinko .pk-pos{ font:8px var(--display); fill:var(--muted); }
+.pms-plinko .pk-peg{ fill:#b691ff; }
+.pms-plinko .pk-wall{ stroke:#3b2368; stroke-width:1.2; }
+.pms-plinko .pk-slot{ fill:#1d1038; stroke:none; transition: fill .3s; }
+.pms-plinko .pk-slot.top{ fill:#2c4410; }
+.pms-plinko .pk-slot.zero{ fill:#2a0b18; }
+.pms-plinko .pk-slot.flash{ animation: pk-flash 1s ease-out; }
+@keyframes pk-flash{ 0%{ fill:#e6ff96; } 100%{ } }
+.pms-plinko .pk-val{ font-family:var(--display); fill:var(--text); }
+.pms-plinko .pk-val.top{ fill:var(--lime); }
+.pms-plinko .pk-val.zero{ fill:var(--red); }
+.pms-plinko .pk-chip{ stroke:#0b0518; stroke-width:1; filter:drop-shadow(0 0 3px rgba(0,0,0,.6)); }
+.pms-plinko .pk-chipt{ font:700 5.5px var(--body); fill:#0b0518; }
+.pms-plinko .landed{ opacity:.55; }
+
+/* cliff hangers */
+.pms-cliff svg{ width:100%; height:100%; display:block; overflow:visible; }
+.pms-cliff .cl-hill{ fill:#24124a; stroke:#6b44b8; stroke-width:1.2; }
+.pms-cliff .cl-edge{ fill:#3a1d73; }
+.pms-cliff .cl-tick{ stroke:#b691ff; stroke-width:.8; }
+.pms-cliff .cl-tick.big{ stroke:var(--lime); stroke-width:1.2; }
+.pms-cliff .cl-num{ font:7px var(--display); fill:var(--muted); }
+.pms-cliff .cl-warn{ font:9px var(--display); fill:var(--red); letter-spacing:.5px; }
+.pms-cliff .cl-man{ transition: transform 1.6s cubic-bezier(.3,.9,.3,1), opacity 1s; }
+.pms-cliff .cl-man circle{ stroke:#0b0518; stroke-width:1.2; }
+.pms-cliff .cl-man.me circle{ stroke:#fff; stroke-width:2; }
+.pms-cliff .cl-ini{ font:700 7px var(--body); fill:#0b0518; }
+.pms-cliff .cl-name{ font:700 5.5px var(--body); fill:var(--text); paint-order:stroke; stroke:#0b0518; stroke-width:2px; }
+.pms-cliff .cl-man.out{ opacity:.55; }
+.pms-cliff .cl-man.out .cl-name, .pms-cliff .cl-man.nolabel .cl-name{ display:none; }
+
+/* wheel of fortune board */
+.pms-wof{ display:flex; flex-direction:column; gap:.5em; }
+.pms-wof .wf-grid{ display:grid; grid-template-columns:repeat(14, 1fr); gap:.22em; padding:.45em; border-radius:.6em; background:#0b2a16; border:.18em solid #1f6b3a; }
+.pms-wof .wf-t{ aspect-ratio:3/4; border-radius:.18em; background:#14502b; display:grid; place-items:center;
+  font-family:var(--display); font-size:1.5em; line-height:1; color:#0b0518; }
+.pms-wof .wf-t.corner{ visibility:hidden; }
+.pms-wof .wf-t.on{ background:#f4f7f0; box-shadow:inset 0 -.12em 0 rgba(0,0,0,.18); }
+.pms-wof .wf-t.flash{ animation: wf-flash 1.2s ease-out; }
+@keyframes wf-flash{ 0%{ background:#34e2ff; transform:scale(1.12); } 100%{ } }
+.pms-wof .wf-cat{ text-align:center; font-weight:800; letter-spacing:.3em; font-size:.8em; color:var(--lime); background:#120828; border:1px solid var(--line); border-radius:.6em; padding:.35em; }
+
+/* jeopardy board */
+.pms-jb{ display:grid; grid-template-columns:repeat(var(--cols, 4), 1fr); gap:.3em; }
+.pms-jb .jb-cat{ display:grid; place-items:center; text-align:center; min-height:2.6em; padding:.3em; border-radius:.35em; background:#1b0f7a;
+  font-weight:800; font-size:.72em; line-height:1.15; letter-spacing:.04em; text-transform:uppercase; color:#fff; overflow:hidden; }
+.pms-jb .jb-cat span{ display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.pms-jb .jb-cell{ display:grid; place-items:center; min-height:2em; border-radius:.35em; background:#2a1bb0; color:#ffcf4a;
+  font-family:var(--display); font-size:1.5em; line-height:1; padding-top:.1em; }
+.pms-jb .jb-cell.used{ background:#120a3d; }
+.pms-jb .jb-cell.cur{ background:var(--lime); color:var(--ink); }
+.pms-jb.canpick .jb-cell:not(.used){ cursor:pointer; }
+.pms-jb.canpick .jb-cell:not(.used):hover{ outline:.12em solid var(--lime); }

@@ -3,6 +3,19 @@
 -- This lets the public computer create a short-lived QR login request,
 -- then lets only Chazdyn's authenticated Discord account approve it from a phone.
 
+-- Discord ID of the signed-in user, read from auth.identities (Supabase-owned).
+-- Never use auth.jwt() -> 'user_metadata' in policies: users can edit it.
+create or replace function public.dyn_discord_id()
+returns text
+language sql stable security definer
+set search_path = ''
+as $$
+  select i.provider_id from auth.identities i
+  where i.user_id = auth.uid() and i.provider = 'discord'
+  order by i.created_at limit 1;
+$$;
+grant execute on function public.dyn_discord_id() to anon, authenticated;
+
 create table if not exists public.control_dyn_qr_logins (
   id uuid primary key default gen_random_uuid(),
   code text not null unique,
@@ -47,7 +60,7 @@ to authenticated
 using (
   status = 'pending'
   and expires_at > now()
-  and coalesce(auth.jwt() -> 'user_metadata' ->> 'provider_id', '') = '562352729482067968'
+  and coalesce(public.dyn_discord_id(), '') = '562352729482067968'
 )
 with check (
   status in ('approved','consumed')

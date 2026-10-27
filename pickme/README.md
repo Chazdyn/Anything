@@ -91,8 +91,33 @@ Then pick the main stage (set before you start):
   wins the prize (doubled if within your %). Winning bettors split the whole bet pot; no winner = bets refunded.
 - **The Wheel:** finalists spin in order (worst qualifier first), up to twice, site or `!spin` / `!stay`.
   Closest to 100 without going over wins; exactly 100 earns your bonus. You can spin/stay for anyone who's away.
+  The wheel spins on the viewer page too.
 
 **Making the finals pays** gives every finalist a few Picks. Cancel refunds any bets.
+
+More finals games (pick one under **Game** before you start; set its options in the same card):
+
+| Game | How it works | Chat |
+|---|---|---|
+| Plinko | Each player gets chips (1–5). Drop from slot 1–9; whatever it lands on is theirs. The middle slot = the prize you set. | `!drop 5` |
+| Cliff Hangers | 1–5 number questions. Climbers go up one step per number they're off (no guess = the full height). Past the top = fall. Fewest steps wins; 0 steps earns the bonus. | `!g 42` |
+| Wheel of Fortune | Turns: spin + call a consonant, buy a vowel ($250), or solve. Bankrupt / Lose a Turn included. Solver banks at least $1000. Most banked wins. | `!spin` `!l R` `!buy E` `!solve …` |
+| Jeopardy | Board from Open Trivia DB (+ your own categories). Clues are A–D: first right answer adds the value and picks next; a wrong answer costs it. | `!a B` `!pick 2 300` |
+
+- Cliff Hangers questions and Wheel of Fortune puzzles come from a starter bank (57 + 79) loaded by the SQL. Paste your own in the setup card (`question | number`, `CATEGORY | PUZZLE`); they're used first and saved to the bank.
+- Jeopardy own clues: `Category | Question | *Right | Wrong | Wrong | Wrong`, one line per row, cheapest first.
+- The answers live in a host-only table. Heads-up: the starter bank is inside `PICKME_SETUP.sql`, which is public if it's in your repo. Use your own lines for anything you want truly secret.
+- The dashboard runs the timers (reveals Cliff Hangers, closes Jeopardy clues, skips Wheel of Fortune turns after the time limit), so keep it open.
+- Chat can bet on finalists (`!bet name 50`) in every game until the first move.
+
+**No qualifier (lobby):** choose *Qualifier → None*. People join on the site or with `!join`; **Close lobby & start** begins the game.
+Everyone who joined plays, or pick *Draw 2–6* to pick contestants at random (recommended for Wheel of Fortune). Plinko and Jeopardy
+let people jump in after it starts.
+
+## Watching on the same device
+
+The viewer page has **▶ Watch here** (top right). It opens the Twitch player on the page: beside the game on a computer, pinned
+to the top on a phone. It remembers the choice. Hiding it stops the audio.
 
 ## Pick Shop
 

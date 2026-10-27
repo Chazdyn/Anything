@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PickMe Overlay</title>
 <link rel="stylesheet" href="pickme.css">
+<link rel="stylesheet" href="pickme-stages.css">
 <style>
   html,body{ width:100%; height:100%; overflow:hidden; background:transparent; }
   body.solid{ background:var(--void); }
@@ -238,9 +239,44 @@
   .prsecret .val{ font-family:var(--display); font-weight:400; font-size:96px; letter-spacing:2px; line-height:1; color:var(--lime); }
   .prsecret .cmd{ font-family:var(--display); font-weight:400; font-size:44px; letter-spacing:1px; }
   #prWheelS{ display:grid; grid-template-columns: 560px 1fr; gap:60px; align-items:center; }
-  .wheelwrap{ position:relative; width:560px; height:560px; }
-  .wheelwrap svg{ width:100%; height:100%; transition: transform 4.2s cubic-bezier(.12,.75,.15,1); }
-  .wheelwrap .ptr{ position:absolute; left:50%; top:-14px; width:0; height:0; transform:translateX(-50%); border-left:26px solid transparent; border-right:26px solid transparent; border-top:44px solid var(--lime); filter:drop-shadow(0 0 12px rgba(184,255,46,.7)); z-index:2; }
+  .wheelwrap{ position:relative; width:560px; height:560px; --ptr:26px; }
+  /* finals games: plinko / cliff hangers / wheel of fortune / jeopardy */
+  [hidden]{ display:none !important; }
+  body.pgtall #prGameS{ top:236px; }
+  #prGameS{ display:grid; gap:48px; align-items:stretch; }
+  #prGameS.plinko{ grid-template-columns: 640px 1fr; }
+  #prGameS.cliff{ grid-template-columns: 1fr 560px; }
+  #prGameS.wof{ grid-template-columns: 1fr 470px; }
+  #prGameS.jeopardy{ grid-template-columns: 1fr 520px; }
+  .pgvis{ min-width:0; min-height:0; display:flex; flex-direction:column; gap:18px; justify-content:center; }
+  .pgvis .pms-plinko{ height:100%; }
+  .pgvis .pms-cliff{ flex:1; min-height:0; }
+  .pgvis .pms-wof{ font-size:44px; }
+  .pgvis .pms-jb{ font-size:40px; flex:1; grid-auto-rows:1fr; }
+  .pgside{ min-width:0; min-height:0; display:flex; flex-direction:column; gap:14px; }
+  .pgside .pms-wheel{ width:400px; align-self:center; --ptr:20px; }
+  .pgside .wrow{ padding:10px 18px; }
+  .pgside .wrow .cav{ --av:50px; }
+  .pgside .wrow .nm{ font-size:30px; }
+  .pgside .wrow .nmw{ flex:1; min-width:0; display:flex; flex-direction:column; }
+  .pgside .wrow .nmw .nm{ flex:none; }
+  .pgside .wrow .sp{ font-family:var(--body); font-weight:800; font-size:18px; letter-spacing:2px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pgside .wrow .sp:empty{ display:none; }
+  .pgside .wrow .tot{ font-size:52px; min-width:120px; }
+  .pgside .wrow.out{ opacity:.45; border-color:#7a1f33; } .pgside .wrow.out .tot{ color:var(--red); }
+  .pgnote{ font-weight:800; letter-spacing:3px; font-size:20px; color:var(--muted); line-height:1.35; }
+  .pgnote b{ color:var(--lime); letter-spacing:1px; }
+  .pgnote .tm{ font-family:var(--display); font-size:64px; letter-spacing:1px; color:var(--text); font-weight:400; vertical-align:-6px; margin-right:12px; }
+  .pgnote .tm.hurry{ color:var(--red); }
+  .pgev{ font-family:var(--display); font-size:64px; line-height:1; color:var(--lime); text-align:center; min-height:64px; }
+  .pgev.bad{ color:var(--red); } .pgev.spin{ color:#ffcf4a; }
+  .jclue{ flex:1; display:flex; flex-direction:column; gap:22px; padding:30px 36px; border-radius:26px; background:linear-gradient(180deg, #2a1bb0, #160d6e); border:3px solid #5b4ae0; }
+  .jclue .jc-top{ font-weight:800; letter-spacing:5px; font-size:24px; color:#ffcf4a; }
+  .jclue .jc-q{ font-weight:800; font-size:48px; line-height:1.15; color:#fff; flex:1; display:flex; align-items:center; }
+  .jclue .tchoices{ flex:none; grid-template-rows:auto auto; }
+  .jclue .tch{ min-height:96px; }
+  .jclue .tch .tx{ font-size:36px; }
+  .jclue .tch.gone{ opacity:.35; }
   .wrows{ display:flex; flex-direction:column; gap:16px; }
   .wrow{ display:flex; align-items:center; gap:18px; padding:14px 22px; border-radius:18px; background:linear-gradient(180deg, var(--panel2), var(--panel)); border:3px solid var(--line); }
   .wrow.now{ border-color:var(--lime); box-shadow:0 0 30px rgba(184,255,46,.3); }
@@ -422,8 +458,13 @@
   </section>
 
   <section class="scene" id="prWheelS">
-    <div class="wheelwrap"><div class="ptr"></div><svg id="wheelSvg" viewBox="-110 -110 220 220"></svg></div>
+    <div class="wheelwrap" id="pirWheel"></div>
     <div><div class="wrows" id="wRows"></div><div class="wnote" id="wNote"></div></div>
+  </section>
+
+  <section class="scene" id="prGameS">
+    <div class="pgvis" id="pgVis"></div>
+    <div class="pgside" id="pgSide"><div id="pgWheel" hidden></div><div class="pgev" id="pgEv"></div><div class="wrows" id="pgRows"></div><div class="pgnote" id="pgNote"></div></div>
   </section>
 
   <section class="scene" id="leaders">
@@ -452,6 +493,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="vendor/qrcode.min.js"></script>
 <script src="pickme-core.js"></script>
+<script src="pickme-stages.js"></script>
 <script>
 (() => {
 'use strict';
@@ -575,12 +617,13 @@ function apply(prev, s){
     ['idle', 'collect', 'board', 'leaders', 'tlobby', 'tquest', 'tdone'].forEach(id => $(id).classList.remove('on'));
     stopAnswerPoll(); stopLeaders(); tvStop();
     document.body.classList.remove('alsoon', 'survey', 'trivia', 'tvreveal');
-    $('brandWord').textContent = 'THE PICKS ARE RIGHT';
-    $('brandTag').textContent = 'closest without going over';
+    const solo = s.pir.qual === 'none';
+    $('brandWord').textContent = solo ? (PM.PIR.stages[s.pir.stage] || {}).name.toUpperCase() : 'THE PICKS ARE RIGHT';
+    $('brandTag').textContent = solo ? 'everyone can play' : 'closest without going over';
     renderPR(prev, s, first);
     return;
   }
-  ['prPlayS', 'prResS', 'prShowS', 'prWheelS'].forEach(id => $(id).classList.remove('on'));
+  PR_SCENES.forEach(id => $(id).classList.remove('on'));
   prStop();
   const tv = s.game === 'trivia' && s.trivia.phase !== 'off' && s.scene !== 'leaderboard';
   document.body.classList.toggle('trivia', s.game === 'trivia' && s.trivia.phase !== 'off');
@@ -920,40 +963,19 @@ function renderTV(prev, s, first){
 
 /* ── the picks are right ── */
 const prScroll = makeScroller('prBox', 'prTrack');
-let prT = 0, prBusy = false, prSig = '', prRaf = 0, prRows = [], prShow = null, prProg = null, prLastSpinSig = '', wheelRot = 0, prTick = -1;
-function prStop(){ clearInterval(prT); prT = 0; cancelAnimationFrame(prRaf); prRaf = 0; prScroll.stop(); }
-function buildWheel(){
-  const W = PM.PIR.WHEEL, svg = $('wheelSvg');
-  if (svg.dataset.built) return;
-  svg.dataset.built = '1';
-  const cols = ['#24124a', '#3a1d73'];
-  let h = '';
-  W.forEach((v, i) => {
-    const a0 = (i * 18 - 99) * Math.PI / 180, a1 = ((i + 1) * 18 - 99) * Math.PI / 180;
-    const x0 = 100 * Math.cos(a0), y0 = 100 * Math.sin(a0), x1 = 100 * Math.cos(a1), y1 = 100 * Math.sin(a1);
-    const fill = v === 100 ? '#b8ff2e' : v === 5 || v === 15 ? '#34e2ff' : cols[i % 2];
-    const am = (i * 18 + 9 - 99), tx = 76 * Math.cos(am * Math.PI / 180), ty = 76 * Math.sin(am * Math.PI / 180);
-    h += `<path d="M0 0 L${x0.toFixed(2)} ${y0.toFixed(2)} A100 100 0 0 1 ${x1.toFixed(2)} ${y1.toFixed(2)} Z" fill="${fill}" stroke="#0e0720" stroke-width="1"/>`;
-    h += `<text x="${tx.toFixed(2)}" y="${ty.toFixed(2)}" transform="rotate(${am + 90} ${tx.toFixed(2)} ${ty.toFixed(2)})" text-anchor="middle" dominant-baseline="middle" font-family="Bebas Neue, Impact, sans-serif" font-size="15" fill="${v === 100 || v === 5 || v === 15 ? '#081200' : '#f1f6e8'}">${v}</text>`;
-  });
-  h += '<circle r="100" fill="none" stroke="#b8ff2e" stroke-width="3"/><circle r="16" fill="#0e0720" stroke="#b8ff2e" stroke-width="3"/>';
-  svg.innerHTML = h;
-}
-function spinTo(v){
-  const i = PM.PIR.WHEEL.indexOf(v);
-  if (i < 0) return;
-  const want = -(i * 18);   // segment i is centred at the top before rotation
-  const cur = ((wheelRot % 360) + 360) % 360;
-  let delta = ((want - cur) % 360 + 360) % 360;
-  wheelRot += 360 * 4 + delta;
-  $('wheelSvg').style.transform = `rotate(${wheelRot}deg)`;
-}
+const PR_SCENES = ['prPlayS', 'prResS', 'prShowS', 'prWheelS', 'prGameS'];
+const NEW_STAGES = ['plinko', 'cliff', 'wof', 'jeopardy'];
+let prT = 0, prBusy = false, prSig = '', prRaf = 0, prRows = [], prShow = null, prProg = null, prLastSpinSig = '', prTick = -1;
+let pirWheel = null;
+function prStop(){ clearInterval(prT); prT = 0; cancelAnimationFrame(prRaf); prRaf = 0; prScroll.stop(); document.body.classList.remove('pgtall'); }
+function buildWheel(){ if (!pirWheel) pirWheel = PMS.wheel($('pirWheel'), PMS.pirSegs(PM.PIR.WHEEL)); }
+function spinTo(v){ buildWheel(); pirWheel.spinTo(PM.PIR.WHEEL.indexOf(v)); }
 async function prPoll(){
   if (prBusy || !S || S.game !== 'pir') return;
   const X = S.pir;
   prBusy = true;
   try {
-    if (X.phase === 'reading' || X.phase === 'play'){
+    if (X.phase === 'reading' || X.phase === 'play' || X.phase === 'lobby'){
       const [{ data:prog }, { data:rows }] = await Promise.all([
         sb.rpc('pm_pir_progress', { p_show:X.showId }),
         sb.from('pm_pir_players').select('profile_id, display_name, avatar_url, via, joined_at').eq('show_id', X.showId).order('joined_at', { ascending:false }).limit(500),
@@ -961,7 +983,7 @@ async function prPoll(){
       prProg = prog;
       const list = rows || [];
       $('prPCount').textContent = list.length;
-      $('prPLbl').textContent = X.qual === 'math' ? `PLAYING · ${(prog && prog.locked) || 0} DONE` : X.qual === 'dictation' ? 'TYPING' : `IN · ${(prog && prog.gave) || 0} GAVE`;
+      $('prPLbl').textContent = X.phase === 'lobby' ? 'IN THE LOBBY' : X.qual === 'math' ? `PLAYING · ${(prog && prog.locked) || 0} DONE` : X.qual === 'dictation' ? 'TYPING' : `IN · ${(prog && prog.gave) || 0} GAVE`;
       const sig = list.map(r => r.profile_id).join(',');
       if (sig !== prSig){
         prSig = sig;
@@ -971,33 +993,51 @@ async function prPoll(){
           return `<div class="tk-item ${PM.Shop.themeClass(p)}">${PM.Shop.avatar(p)}<span class="nm">${PM.Shop.name(p, r.display_name)}</span><span class="lk">${r.via === 'chat' ? 'VIA CHAT' : 'IN'}</span></div>`; }).join(''));
       }
     } else if (X.phase === 'stage' || X.phase === 'done'){
+      const ng = NEW_STAGES.includes(X.stage);
+      const cols = ng ? 'profile_id, display_name, avatar_url, rank, stage_score, round_score, chips, drops, guess, out, payout'
+                      : 'profile_id, display_name, avatar_url, rank, spins, score, busted, wheel_done';
       const [{ data:sh }, { data:rows }, { data:prog }] = await Promise.all([
-        sb.from('pm_pir_shows').select('phase, wheel_turn').eq('id', X.showId).maybeSingle(),
-        sb.from('pm_pir_players').select('profile_id, display_name, avatar_url, rank, spins, score, busted, wheel_done').eq('show_id', X.showId).eq('qualified', true).order('rank', { ascending:false }),
+        sb.from('pm_pir_shows').select('phase, wheel_turn, board, closes_at').eq('id', X.showId).maybeSingle(),
+        sb.from('pm_pir_players').select(cols).eq('show_id', X.showId).eq('qualified', true).order('rank', { ascending:ng }).limit(300),
         sb.rpc('pm_pir_progress', { p_show:X.showId }),
       ]);
+      if (!S || S.pir.showId !== X.showId) return;
       prShow = sh; prRows = rows || []; prProg = prog;
       renderStage(S);
     }
-  } catch (e) {}
-  prBusy = false;
+  } catch (e) { console.warn(e); }
+  finally { prBusy = false; }
 }
 function prTimer(){
   cancelAnimationFrame(prRaf);
   const loop = () => {
     const X = S && S.pir;
-    if (!X || X.phase !== 'play'){ prRaf = 0; return; }
-    const rem = Math.max(0, ((Date.parse(X.closesAt) || 0) - PM.serverNow()) / 1000);
-    const el = document.querySelector('#prMid .prtimer');
-    if (el){ el.textContent = Math.ceil(rem); el.classList.toggle('hurry', rem <= 5); }
-    const sec = Math.ceil(rem);
-    if (sec <= 5 && sec > 0 && sec !== prTick){ prTick = sec; Sound.play('tick'); }
+    if (!X || !(X.phase === 'play' || (X.phase === 'stage' && NEW_STAGES.includes(X.stage)))){ prRaf = 0; return; }
+    if (X.phase === 'play'){
+      const rem = Math.max(0, ((Date.parse(X.closesAt) || 0) - PM.serverNow()) / 1000);
+      const el = document.querySelector('#prMid .prtimer');
+      if (el){ el.textContent = Math.ceil(rem); el.classList.toggle('hurry', rem <= 5); }
+      const sec = Math.ceil(rem);
+      if (sec <= 5 && sec > 0 && sec !== prTick){ prTick = sec; Sound.play('tick'); }
+    } else {
+      const b = (prShow && prShow.board) || {};
+      const until = X.stage === 'wof' ? b.turn_until : prShow && prShow.closes_at;
+      const el = document.querySelector('#pgNote .tm');
+      if (el){
+        const rem = Math.max(0, ((Date.parse(until) || 0) - PM.serverNow()) / 1000);
+        el.textContent = until ? Math.ceil(rem) : '';
+        el.classList.toggle('hurry', !!until && rem <= 5);
+        const sec = Math.ceil(rem);
+        if (until && X.stage !== 'wof' && sec <= 3 && sec > 0 && sec !== prTick){ prTick = sec; Sound.play('tick'); }
+      }
+    }
     prRaf = requestAnimationFrame(loop);
   };
   prRaf = requestAnimationFrame(loop);
 }
 function renderStage(s){
   const X = s.pir;
+  if (NEW_STAGES.includes(X.stage)){ renderGame(s); return; }
   const fins = X.finalists;
   if (X.stage === 'showcase'){
     $('prItemS').innerHTML = '';
@@ -1049,35 +1089,204 @@ function renderStage(s){
           spinTo(v); Sound.play('open');
           setTimeout(() => { banner(changed.score > 100 ? `${v}! BUST` : changed.score === 100 ? '100!!!' : String(v), changed.score > 100 ? 'buzz' : changed.score === 100 ? 'win' : 'ding'); }, 4300);
         }
+      } else {
+        // first look: park the wheel on the latest spin
+        const last = order.filter(r => (r.spins || []).length).pop();
+        if (last){ buildWheel(); pirWheel.spinTo(PM.PIR.WHEEL.indexOf(last.spins[last.spins.length - 1]), true); }
       }
     }
   }
 }
+
+/* ── finals games: Plinko · Cliff Hangers · Wheel of Fortune · Jeopardy ── */
+const G = { key:'', vis:null, wheel:null, jb:null, seen:new Set(), primed:false, queue:[], dropping:false, evSeq:null, spinSeq:null, ans:null, curSeq:null, curOpen:false, closedAt:0, rowSig:'' };
+function gameReset(X){
+  G.key = X.showId + X.stage; G.seen = new Set(); G.primed = false; G.queue = []; G.evSeq = null; G.spinSeq = null; G.ans = null; G.curSeq = null; G.curOpen = false; G.closedAt = 0; G.rowSig = '';
+  const vis = $('pgVis'); vis.innerHTML = '';
+  $('pgWheel').hidden = true; $('pgWheel').innerHTML = ''; G.wheel = null; $('pgEv').textContent = '';
+  NEW_STAGES.forEach(k => $('prGameS').classList.toggle(k, k === X.stage));
+  if (X.stage === 'plinko'){ const d = document.createElement('div'); vis.appendChild(d); G.vis = PMS.plinko(d); }
+  else if (X.stage === 'cliff'){ const d = document.createElement('div'); vis.appendChild(d); G.vis = PMS.cliff(d); }
+  else if (X.stage === 'wof'){
+    const d = document.createElement('div'); vis.appendChild(d); G.vis = PMS.wofBoard(d);
+    const u = document.createElement('div'); u.className = 'pgnote'; u.id = 'pgUsed'; u.style.textAlign = 'center'; vis.appendChild(u);
+    $('pgWheel').hidden = false; G.wheel = PMS.wheel($('pgWheel'), PMS.wofSegs(), { radial:true });
+  } else if (X.stage === 'jeopardy'){
+    const d = document.createElement('div'); vis.appendChild(d); G.jb = PMS.jboard(d); G.vis = d;
+    const c = document.createElement('div'); c.className = 'jclue'; c.id = 'pgClue'; c.hidden = true; vis.appendChild(c);
+  }
+}
+function nameOf(id){ const r = prRows.find(x => x.profile_id === id); return r ? r.display_name : ''; }
+async function gameRows(list, fn){
+  const sig = JSON.stringify(list.map(r => [r.profile_id, fn(r)]));
+  if (sig === G.rowSig) return;
+  G.rowSig = sig;
+  await PM.Shop.load();
+  const ps = await PM.Shop.profiles(list.map(r => r.profile_id));
+  $('pgRows').innerHTML = list.map(r => {
+    const p = ps.get(r.profile_id) || r, o = fn(r);
+    return `<div class="wrow ${PM.Shop.themeClass(p)} ${o.cls || ''}">${PM.Shop.avatar(p)}<div class="nmw"><span class="nm">${PM.Shop.name(p, r.display_name)}</span><span class="sp">${o.sub || ''}</span></div><span class="tot">${o.tot}</span></div>`;
+  }).join('');
+  PM.marqueeAll($('pgRows'), '.nm');
+}
+function money(n){ return (n < 0 ? '-$' : '$') + Math.abs(n || 0).toLocaleString(); }
+async function playDrops(){
+  if (G.dropping) return;
+  G.dropping = true;
+  while (G.queue.length){
+    const d = G.queue.shift();
+    Sound.play('open');
+    const k = await G.vis.drop(d.path, { color:d.color, label:d.name, fast:G.queue.length > 2 });
+    const v = d.v;
+    $('pgEv').textContent = `${String(d.name).toUpperCase()} +${v}`;
+    $('pgEv').className = 'pgev ' + (v === 0 ? 'bad' : '');
+    if (k === 4 && v > 0) banner(`${String(d.name).toUpperCase()} HIT THE TOP!`, 'win'); else Sound.play(v ? 'ding' : 'buzz');
+  }
+  G.dropping = false;
+}
+function renderGame(s){
+  const X = s.pir, b = (prShow && prShow.board) || {}, done = X.phase === 'done';
+  if (G.key !== X.showId + X.stage) gameReset(X);
+  document.body.classList.toggle('pgtall', X.stage !== 'cliff');
+  const rows = prRows.slice();
+  const champs = new Set((X.winners || []).map(w => w.id));
+  let note = '';
+  if (X.stage === 'plinko'){
+    G.vis.setSlots(b.slots || []);
+    for (const r of rows) for (const d of (r.drops || [])){
+      if (G.seen.has(d.seq)) continue;
+      G.seen.add(d.seq);
+      if (G.primed) G.queue.push({ path:d.path, v:d.v, name:r.display_name, color:PMS.colorFor(r.profile_id) });
+    }
+    G.primed = true; playDrops();
+    rows.sort((a, c) => c.stage_score - a.stage_score);
+    gameRows(rows.slice(0, 7), r => ({ sub: done ? '' : '●'.repeat(Math.min(10, r.chips || 0)), tot:r.stage_score, cls: done && champs.has(r.profile_id) ? 'champ' : '' }));
+    const left = rows.reduce((n, r) => n + (r.chips || 0), 0);
+    note = done ? 'FINAL TOTALS' : `TYPE <b>!drop 1-9</b> · ${left} CHIP${left === 1 ? '' : 'S'} LEFT${rows.length > 7 ? ' · ' + rows.length + ' PLAYING' : ''}`;
+  } else if (X.stage === 'cliff'){
+    G.vis.set(b.limit || 25, rows.map(r => ({ id:r.profile_id, name:r.display_name, steps:r.stage_score, out:r.out, color:PMS.colorFor(r.profile_id) })));
+    if (b.answer != null && G.ans !== b.round + ':' + b.answer){
+      if (G.ans !== null) banner(`ANSWER: ${b.answer}`, 'ding');
+      G.ans = b.round + ':' + b.answer;
+    }
+    if (b.open && G.ans !== 'open' + b.round){ G.ans = 'open' + b.round; Sound.play('open'); }
+    rows.sort((a, c) => (a.out - c.out) || (a.stage_score - c.stage_score));
+    gameRows(rows.slice(0, 7), r => ({
+      sub: b.answer != null && !b.open && r.guess != null ? `GUESSED ${r.guess} · OFF ${Math.abs(r.guess - b.answer)}` : b.open ? (r.guess != null ? 'LOCKED IN' : '…') : '',
+      tot: r.out ? 'FELL' : r.stage_score, cls: (r.out ? 'out' : '') + (done && champs.has(r.profile_id) ? ' champ' : '') }));
+    $('qt').textContent = b.q || 'Get ready to guess…'; sizeClass($('qt'), b.q || '', 70, 110); $('qn').textContent = b.round ? 'Q' + b.round : '⛰';
+    $('qbar').classList.toggle('off', !(b.q && !done));
+    note = done ? 'FINAL' : b.open ? `<span class="tm"></span>TYPE <b>!g YOUR NUMBER</b> · OFF BY 1 = 1 STEP · ${b.limit} STEPS TO THE TOP`
+      : b.answer != null ? `ANSWER <b>${b.answer}</b> · ROUND ${b.round} OF ${b.rounds}` : `${b.rounds || 0} QUESTIONS · DON'T GO PAST ${b.limit || 25} STEPS`;
+  } else if (X.stage === 'wof'){
+    G.vis.set(b.mask || '', b.cat || '');
+    const used = String(b.used || '');
+    if ($('pgUsed')) $('pgUsed').innerHTML = used ? 'CALLED: <b>' + used.split('').join(' ') + '</b>' : '';
+    const spun = b.spin_seq !== G.spinSeq;
+    if (G.spinSeq === null){ if (b.wedge != null) G.wheel.spinTo(b.wedge, true); }
+    else if (spun && b.wedge != null){ G.wheel.spinTo(b.wedge); Sound.play('open'); }
+    G.spinSeq = b.spin_seq;
+    const ev = b.ev || {};
+    if (ev.seq != null && ev.seq !== G.evSeq){
+      const first = G.evSeq === null; G.evSeq = ev.seq;
+      const who = ev.who ? nameOf(ev.who) : '';
+      const show = () => {
+        $('pgEv').textContent = ev.text || ''; $('pgEv').className = 'pgev ' + (ev.kind || '');
+        if (first) return;
+        if (ev.kind === 'solve') banner(`${String(who).toUpperCase()} SOLVED IT!`, 'win');
+        else if (ev.text === 'BANKRUPT!') banner('BANKRUPT!', 'buzz');
+        else if (ev.kind === 'puzzle') banner(ev.text, 'open');
+        else Sound.play(ev.kind === 'bad' ? 'buzz' : 'ding');
+      };
+      if (spun && !first) setTimeout(show, 4300); else show();
+    }
+    const order = (b.order || []).map(id => rows.find(r => r.profile_id === id)).filter(Boolean);
+    gameRows(order, r => ({ sub: money(r.round_score) + ' THIS ROUND', tot: money(r.stage_score),
+      cls: (!done && b.turn === r.profile_id ? 'now' : '') + (done && champs.has(r.profile_id) ? ' champ' : '') }));
+    const t = nameOf(b.turn);
+    note = done ? 'FINAL BANKS' : b.solved ? (b.round < b.rounds ? 'NEXT PUZZLE COMING UP' : 'ALL PUZZLES SOLVED')
+      : `<span class="tm"></span><b>${PM.esc(t)}</b> · ${b.sub === 'call' ? 'CALL A CONSONANT <b>!l R</b>' : '<b>!spin</b> · <b>!buy E</b> · <b>!solve …</b>'}`;
+  } else if (X.stage === 'jeopardy'){
+    const cur = b.cur && typeof b.cur === 'object' ? b.cur : null;
+    const ctl = b.control || null;
+    if (cur && b.seq !== G.curSeq){ G.curSeq = b.seq; G.curOpen = false; }
+    if (cur && cur.open && !G.curOpen){ G.curOpen = true; Sound.play('open'); }
+    if (cur && !cur.open && G.curOpen){
+      G.curOpen = false; G.closedAt = Date.now();
+      const w = cur.winner ? nameOf(cur.winner) : null;
+      if (w) banner(`${String(w).toUpperCase()} +$${cur.value}`, 'win'); else banner(`NOBODY! IT WAS ${'ABCD'[cur.correct]}`, 'buzz');
+      setTimeout(() => { if (S) renderStage(S); }, 5200);
+    }
+    const showClue = cur && (cur.open || Date.now() - G.closedAt < 5000) && !done;
+    G.jb.set(b, {});
+    G.vis.hidden = !!showClue;
+    const clue = $('pgClue'); clue.hidden = !showClue;
+    if (showClue){
+      const ck = JSON.stringify([b.seq, cur.open, cur.correct, (b.wrong || []).length]);
+      if (clue.dataset.k !== ck){
+        clue.dataset.k = ck;
+        clue.innerHTML = `<div class="jc-top">${PM.esc(cur.cat || '')} · $${cur.value}</div><div class="jc-q">${PM.esc(cur.q)}</div>` +
+          `<div class="tchoices">${(cur.choices || []).map((c, i) => `<div class="tch ${!cur.open ? (i === cur.correct ? 'right' : 'gone') : ''}"><div class="lt">${'ABCD'[i]}</div><div class="tx">${PM.esc(c)}</div></div>`).join('')}</div>`;
+        PM.marqueeAll(clue, '.tx');
+      }
+    }
+    rows.sort((a, c) => c.stage_score - a.stage_score);
+    const wrong = new Set(b.wrong || []);
+    gameRows(rows.slice(0, 8), r => ({ sub: cur && cur.open && wrong.has(r.profile_id) ? 'WRONG' : ctl === r.profile_id && !done ? 'PICKS NEXT' : '',
+      tot: money(r.stage_score), cls: (ctl === r.profile_id && !done ? 'now' : '') + (r.stage_score < 0 ? ' out' : '') + (done && champs.has(r.profile_id) ? ' champ' : '') }));
+    note = done ? 'FINAL SCORES' : cur && cur.open ? `<span class="tm"></span>TYPE <b>!a A</b>-<b>D</b> · RIGHT +$${cur.value} · WRONG -$${cur.value}`
+      : ctl ? `<b>${PM.esc(nameOf(ctl))}</b> PICKS THE NEXT CLUE · <b>!pick 2 ${(b.vals || [])[0] || 100}</b>` : 'THE HOST PICKS THE FIRST CLUE';
+  }
+  if ($('pgNote').dataset.h !== note){ $('pgNote').dataset.h = note; $('pgNote').innerHTML = note; }
+  if (!done) prTimer();
+  prPlates(X);
+}
+function prPlates(X){
+  const stageNow = X.phase === 'stage' || X.phase === 'done';
+  const b = (prShow && prShow.board && G.key === X.showId + X.stage) ? prShow.board : {};
+  let l = 'TARGET', lv = X.target, r = 'PRIZE', rv = X.prize;
+  if (X.qual === 'none' && !stageNow){ l = 'PLAYERS'; lv = $('prPCount').textContent || 0; }
+  if (stageNow){
+    if (X.stage === 'wheel') lv = 100;
+    else if (X.stage === 'showcase') lv = X.phase === 'done' && X.secret != null ? X.secret : '?';
+    else if (X.stage === 'plinko'){ l = 'CHIPS LEFT'; lv = prRows.reduce((n, x) => n + (x.chips || 0), 0); r = 'TOP SLOT'; }
+    else if (X.stage === 'cliff'){ l = 'ROUND'; lv = `${b.round || 0}/${b.rounds || 0}`; }
+    else if (X.stage === 'wof'){ l = 'PUZZLE'; lv = `${b.round || 0}/${b.rounds || 0}`; }
+    else if (X.stage === 'jeopardy'){ l = 'CLUES LEFT'; lv = (Array.isArray(b.used) ? b.used : []).reduce((n, c) => n + (Array.isArray(c) ? c.filter(x => !x).length : 0), 0); }
+  } else if (X.qual === 'math' || X.qual === 'donations') lv = '$' + lv;
+  $('hostName').textContent = l; $('chatName').textContent = r;
+  $('hostPts').textContent = lv; $('chatPts').textContent = rv;
+}
+let prShowFor = null;
 function renderPR(prev, s, first){
   const X = s.pir, P = prev && prev.pir;
-  const Q = PM.PIR.quals[X.qual];
-  const playing = X.phase === 'reading' || X.phase === 'play';
-  const stageScene = X.stage === 'showcase' ? 'prShowS' : 'prWheelS';
+  if (prShowFor !== X.showId){ prShowFor = X.showId; prShow = null; prRows = []; prProg = null; }
+  const Q = PM.PIR.quals[X.qual] || PM.PIR.quals.none, ST = PM.PIR.stages[X.stage] || PM.PIR.stages.showcase;
+  const playing = X.phase === 'reading' || X.phase === 'play' || X.phase === 'lobby';
+  const stageScene = X.stage === 'showcase' ? 'prShowS' : X.stage === 'wheel' ? 'prWheelS' : 'prGameS';
   const scene = playing ? 'prPlayS' : X.phase === 'results' ? 'prResS' : (X.phase === 'stage' || X.phase === 'done') ? stageScene : '';
-  ['prPlayS', 'prResS', 'prShowS', 'prWheelS'].forEach(id => $(id).classList.toggle('on', id === scene));
-  // plates
-  $('hostName').textContent = 'TARGET'; $('chatName').textContent = 'PRIZE';
+  PR_SCENES.forEach(id => $(id).classList.toggle('on', id === scene));
+  if (scene !== 'prGameS') document.body.classList.remove('pgtall');
   $('hostPick').style.display = 'none'; $('vsLbl').textContent = '·';
   const stageNow = X.phase === 'stage' || X.phase === 'done';
-  const tgt = stageNow ? (X.stage === 'wheel' ? 100 : (X.phase === 'done' && X.secret != null ? X.secret : '?')) : X.target;
-  $('hostPts').textContent = typeof tgt === 'number' ? (X.qual === 'math' && !stageNow ? '$' + tgt : tgt) : tgt;
-  $('chatPts').textContent = X.prize;
-  $('modePill').textContent = stageNow ? PM.PIR.stages[X.stage].name.toUpperCase() : Q.name.toUpperCase();
+  prPlates(X);
+  $('modePill').textContent = stageNow || X.phase === 'lobby' ? ST.name.toUpperCase() : Q.name.toUpperCase();
   $('roundPill').textContent = '';
-  const qtxt = stageNow ? (X.stage === 'showcase' ? 'Showcase: ' + (X.item || '') : PM.PIR.stages[X.stage].how) : Q.how(X.target, X.perGift);
-  $('qbar').classList.toggle('off', !(playing || X.phase === 'results' || (stageNow && X.stage === 'showcase')));
-  $('qt').textContent = qtxt; sizeClass($('qt'), qtxt, 70, 110); $('qn').textContent = '🎯';
+  const qtxt = stageNow ? (X.stage === 'showcase' ? 'Showcase: ' + (X.item || '') : ST.how) : X.phase === 'lobby' ? ST.how : Q.how(X.target, X.perGift);
+  if (!(stageNow && X.stage === 'cliff')){
+    $('qbar').classList.toggle('off', !(playing || X.phase === 'results' || (stageNow && X.stage === 'showcase')));
+    $('qt').textContent = qtxt; sizeClass($('qt'), qtxt, 70, 110); $('qn').textContent = '🎯';
+  }
 
   if (playing){
-    const how = X.qual === 'math' ? '<b>Play on the site</b><br>(math is site-only)' : X.qual === 'dictation' ? '<b>Type on the site</b><br>or <b>!t your words</b> in chat' : '<b>Play on the site</b><br>or <b>!give name</b> in chat';
+    const how = X.phase === 'lobby' ? '<b>Join on the site</b><br>or type <b>!join</b> in chat'
+      : X.qual === 'math' ? '<b>Play on the site</b><br>(math is site-only)' : X.qual === 'dictation' ? '<b>Type on the site</b><br>or <b>!t your words</b> in chat' : '<b>Play on the site</b><br>or <b>!give name</b> in chat';
     $('prJoinHow').innerHTML = how;
     let mid = '';
-    if (X.qual === 'dictation'){
+    if (X.phase === 'lobby'){
+      mid = `<div class="prsub">UP NEXT · ${X.finalistsN ? X.finalistsN + ' CONTESTANTS DRAWN AT RANDOM' : 'EVERYONE PLAYS'}</div><div class="prbig" style="font-size:120px">${PM.esc(ST.name.toUpperCase())}</div>` +
+        `<div class="prhow">${PM.esc(ST.how)}</div><div class="prhow">Chat: <b>${PM.esc(ST.chat)}</b></div>`;
+    } else if (X.qual === 'dictation'){
       const shown = X.lines.slice(0, X.lineIdx + 1).slice(-4);
       mid = `<div class="prlines">${shown.map((l, i) => `<div class="${i === shown.length - 1 && X.phase === 'reading' ? 'now' : ''}">${PM.esc(l)}</div>`).join('')}</div>` +
         (X.phase === 'play' ? `<div style="display:flex;align-items:baseline;gap:20px"><div class="prtimer">0</div><div class="prsub">SECONDS TO FINISH TYPING · TARGET <b style="color:var(--lime)">${X.target}</b> WORDS</div></div>` : '<div class="prsub">KEEP TYPING · COUNT IS HIDDEN</div>');
@@ -1086,42 +1295,45 @@ function renderPR(prev, s, first){
         `<div class="prhow">${X.qual === 'donations' ? 'Give your <b>$' + X.perGift + '</b> to someone.<br>Over the line = bust (and their donors too).' : X.qual === 'highrollers' ? 'Push your extra die onto someone.<br>Roll over = bust.' : 'Stop on the number.<br>One answer too many = bust.'}</div>` +
         `<div style="display:flex;align-items:baseline;gap:20px"><div class="prtimer">0</div><div class="prsub">SECONDS</div></div>`;
     }
-    const sig = X.phase + '|' + X.lineIdx;
+    const sig = X.phase + '|' + X.lineIdx + '|' + X.stage;
     if ($('prMid').dataset.sig !== sig){ $('prMid').dataset.sig = sig; $('prMid').innerHTML = mid; }
     if (X.phase === 'play') prTimer();
     if (!prT){ prPoll(); prT = setInterval(prPoll, 1300); }
   } else if (X.phase === 'results'){
     clearInterval(prT); prT = 0; prSig = '';
-    $('prTgt').innerHTML = `TARGET <b>${X.qual === 'math' || X.qual === 'donations' ? '$' : ''}${X.target}</b> · ${X.finalists.length} MADE THE FINALS · ${X.bustedN || 0} WENT OVER`;
+    $('prTgt').innerHTML = X.qual === 'none' ? `${X.finalists.length} CONTESTANT${X.finalists.length === 1 ? '' : 'S'} · UP NEXT: <b>${PM.esc(ST.name.toUpperCase())}</b>`
+      : `TARGET <b>${X.qual === 'math' || X.qual === 'donations' ? '$' : ''}${X.target}</b> · ${X.finalists.length} MADE THE FINALS · ${X.bustedN || 0} WENT OVER`;
     const rows = X.standings.slice(0, 9);
     (async () => {
       await PM.Shop.load();
       const ps = await PM.Shop.profiles(rows.map(r => r.id));
       $('prRows').innerHTML = rows.map(r => {
         const p = ps.get(r.id) || { display_name:r.name, avatar_url:r.avatar };
-        const pct = Math.min(100, Math.round((r.score || 0) * 100 / Math.max(1, X.target)));
+        const pct = X.qual === 'none' ? 100 : Math.min(100, Math.round((r.score || 0) * 100 / Math.max(1, X.target)));
         const dice = r.rolls && r.rolls.length ? `<span class="dice">${r.rolls.map(n => '⚀⚁⚂⚃⚄⚅'[n - 1]).join('')}</span>` : '';
-        return `<div class="prrow ${r.qualified ? 'fin' : ''} ${r.busted ? 'bust' : ''}"><div class="bar" style="width:${pct}%"></div><span class="rk">${r.qualified ? r.rank : ''}</span>${PM.Shop.avatar(p)}<span class="nm">${PM.Shop.name(p, r.name)}</span>${dice}<span class="bt">${r.qualified ? 'FINALIST' : r.busted ? (r.reason === 'donor' ? 'BUST (DONOR)' : 'BUST') : ''}</span><span class="sc">${r.score}</span></div>`;
-      }).join('') || '<div class="prsub">NOBODY PLAYED</div>';
+        return `<div class="prrow ${r.qualified ? 'fin' : ''} ${r.busted ? 'bust' : ''}"><div class="bar" style="width:${pct}%"></div><span class="rk">${r.qualified ? r.rank : ''}</span>${PM.Shop.avatar(p)}<span class="nm">${PM.Shop.name(p, r.name)}</span>${dice}<span class="bt">${r.qualified ? (X.qual === 'none' ? 'PLAYING' : 'FINALIST') : r.busted ? (r.reason === 'donor' ? 'BUST (DONOR)' : 'BUST') : ''}</span><span class="sc">${X.qual === 'none' ? '' : r.score}</span></div>`;
+      }).join('') || `<div class="prsub">${X.qual === 'none' ? 'NOBODY JOINED YET · JUMP IN ANY TIME' : 'NOBODY PLAYED'}</div>`;
       PM.marqueeAll($('prRows'), '.nm');
     })();
   } else if (stageNow){
     clearInterval(prT); prT = 0;
-    if (X.phase === 'stage'){ prPoll(); prT = setInterval(prPoll, 1200); }
+    if (X.phase === 'stage'){ prPoll(); prT = setInterval(prPoll, 1000); }
     else prPoll();
     renderStage(s);
   }
 
   if (first || !P) return;
   if (P.phase !== X.phase || P.showId !== X.showId){
-    if (X.phase === 'reading' || (X.phase === 'play' && P.phase !== 'reading')) banner(Q.name.toUpperCase(), 'open');
+    if (X.phase === 'lobby') banner(ST.name.toUpperCase(), 'open');
+    else if (X.phase === 'reading' || (X.phase === 'play' && P.phase !== 'reading')) banner(Q.name.toUpperCase(), 'open');
     else if (X.phase === 'play') banner('KEEP TYPING!', 'lock');
-    else if (X.phase === 'results') banner(X.finalists.length ? `${X.finalists.length} MADE THE FINALS` : 'NOBODY QUALIFIED', X.finalists.length ? 'win' : 'buzz');
-    else if (X.phase === 'stage') banner(PM.PIR.stages[X.stage].name.toUpperCase(), 'open');
+    else if (X.phase === 'results') banner(X.qual === 'none' ? `${X.finalists.length} PLAYING` : X.finalists.length ? `${X.finalists.length} MADE THE FINALS` : 'NOBODY QUALIFIED', X.finalists.length || X.qual === 'none' ? 'win' : 'buzz');
+    else if (X.phase === 'stage') banner(ST.name.toUpperCase(), 'open');
     else if (X.phase === 'done'){
       const w = X.winners[0];
-      banner(w ? `${String(w.name).toUpperCase()} WINS +${w.payout}` : 'NO WINNER', w ? 'win' : 'buzz',
-        w ? `${PM.esc(String(w.name).toUpperCase())} WINS +${w.payout}${PM.pickSVG('', true)}` : null);
+      const more = X.winners.length > 1 ? ` +${X.winners.length - 1}` : '';
+      banner(w ? `${String(w.name).toUpperCase()}${more} WINS +${w.payout}` : 'NO WINNER', w ? 'win' : 'buzz',
+        w ? `${PM.esc(String(w.name).toUpperCase())}${more} WINS +${w.payout}${PM.pickSVG('', true)}` : null);
     }
   }
 }
